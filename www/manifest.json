@@ -1,0 +1,14 @@
+{
+  "name": "Moon Tracker",
+  "short_name": "MoonTracker",
+  "description": "Calendario Lunar - Moon Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#02020F",
+  "theme_color": "#c9a840",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/pwa_192_192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/pwa_512_512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
