@@ -48,7 +48,7 @@
             font-family: 'Inter', 'Segoe UI', sans-serif;
             color: var(--text-main);
             min-height: 100vh;
-            padding: 8px;
+            padding: 4px;
             overflow-x: hidden;
             background:
                 radial-gradient(ellipse 80% 60% at 15% 10%, rgba(20,10,100,0.55) 0%, transparent 60%),
@@ -81,9 +81,9 @@
                 radial-gradient(2px 2px at 50% 50%, rgba(80,20,150,0.12) 0%, transparent 100%);
         }
 
-        .container { width: 100%; margin: 0 auto; padding: 0 20px; }
+        .container { width: 100%; margin: 0 auto; padding: 0 8px; }
 
-        header { text-align: center; margin-bottom: 10px; }
+        header { text-align: center; margin-bottom: 4px; }
 
         h1 {
             font-family: 'Cinzel', serif;
@@ -102,7 +102,7 @@
 
         .navigation {
             display: flex; justify-content: center; align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
             background: rgba(6,8,38,0.95);
             padding: 8px 12px; border-radius: 14px;
             border: 1px solid var(--gold-border);
@@ -139,10 +139,10 @@
                 0 0 60px rgba(201,168,64,0.08),
                 inset 0 1px 0 rgba(201,168,64,0.25);
             text-align: center;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
         }
 
-        .lunar-weeks { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
+        .lunar-weeks { display: flex; flex-direction: column; gap: 3px; margin-bottom: 3px; }
 
         .lunar-week {
             background: rgba(8,10,45,0.95);
@@ -361,10 +361,10 @@
         .greg-more { font-size: 0.58em; color: rgba(136,153,204,0.55); text-align: center; margin-top: 3px; }
 
         @media (max-width: 768px) {
-            body { padding: 5px; box-sizing: border-box; overflow-x: hidden; }
-            
+            body { padding: 3px; box-sizing: border-box; overflow-x: hidden; }
+
             /* ── Header: title on top row, buttons below ── */
-            header { margin-bottom: 8px; }
+            header { margin-bottom: 3px; }
             header > div:first-child {
                 flex-direction: column !important;
                 gap: 6px !important;
@@ -455,24 +455,24 @@
     <div class="container">
         <header>
             <!-- Header row: reliable centered title + pinned-right buttons -->
-            <div style="display:flex;flex-direction:row;align-items:center;width:100%;margin-bottom:10px;min-width:0;">
+            <div style="display:flex;flex-direction:row;align-items:center;width:100%;margin-bottom:4px;min-width:0;">
                 <!-- Left spacer mirrors buttons width -->
                 <div style="flex:1;min-width:0;"></div>
                 <!-- Title always centered -->
                 <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.8em);white-space:nowrap;flex-shrink:0;text-align:center;">Moon Tracker</h1>
                 <!-- Buttons pinned right, same flex:1 as spacer so title stays centered -->
                 <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-                    <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:2px solid rgba(255,255,255,0.1);border-radius:8px;padding:3px 6px;cursor:pointer;font-size:0.9em;opacity:0.5;flex-shrink:0;" title="Activar notificaciones">🔔</button>
-                    <button id="langES" style="background:transparent;border:2px solid rgba(255,255,255,0.3);border-radius:8px;padding:3px 6px;cursor:pointer;font-size:1.1em;flex-shrink:0;">🇪🇸</button>
-                    <button id="langEN" style="background:transparent;border:2px solid rgba(255,255,255,0.1);border-radius:8px;padding:3px 6px;cursor:pointer;font-size:1.1em;opacity:0.5;flex-shrink:0;">🇺🇸</button>
+                    <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:0.85em;opacity:0.5;flex-shrink:0;" title="Activar notificaciones">🔔</button>
+                    <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:1em;flex-shrink:0;">🇪🇸</button>
+                    <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:1em;opacity:0.5;flex-shrink:0;">🇺🇸</button>
                 </div>
             </div>
 
             <!-- Mode buttons: single scrollable row, never wrap -->
-            <div class="mode-btns" style="display:flex;flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:6px;width:100%;">
+            <div class="mode-btns" style="display:flex;flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:3px;width:100%;">
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:7px 18px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:25px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">🌙 Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">☉ Solar</button>
-                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">📅 <span data-translate="gregorianButton">Gregorian</span></button>
+                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">📅 <span id="gregorianButtonLabel">Gregorian</span></button>
             </div>
         </header>
 
@@ -865,12 +865,7 @@ function getAspectDescription(aspectType) {
 // Traditional full moon names
 function getFullMoonName(date) {
     const month = date.getMonth();
-    const names = [
-        'Wolf Moon', 'Snow Moon', 'Worm Moon', 'Pink Moon',
-        'Flower Moon', 'Strawberry Moon', 'Buck Moon', 'Sturgeon Moon',
-        'Harvest Moon', 'Hunter\'s Moon', 'Beaver Moon', 'Cold Moon'
-    ];
-    return names[month];
+    return translations[currentLang].moonNames[month];
 }
 
 // Calcular Julian Day
@@ -2069,7 +2064,15 @@ const translations = {
         clickPlanet: 'Haz click en un planeta para ver todos sus aspectos durante el año',
         aspectsLegend: '☌ Conjunción (0°) • ⚹ Sextil (60°) • □ Cuadratura (90°) • △ Trígono (120°) • ☍ Oposición (180°)',
         importantEvents: 'eventos importantes durante el año',
-        aspectsOf: 'Aspectos de'
+        aspectsOf: 'Aspectos de',
+
+        // Full Moon Names
+        moonNames: ['Luna de Lobo', 'Luna de Nieve', 'Luna de Gusano', 'Luna Rosada',
+                    'Luna de Flores', 'Luna de Fresa', 'Luna de Corzo', 'Luna de Esturión',
+                    'Luna de Cosecha', 'Luna de Cazador', 'Luna de Castor', 'Luna Fría'],
+
+        // Button labels
+        gregorianButton: 'Gregoriano'
     },
     en: {
         // Calendar
@@ -2191,7 +2194,15 @@ const translations = {
         clickPlanet: 'Click on a planet to see all its aspects during the year',
         aspectsLegend: '☌ Conjunction (0°) • ⚹ Sextile (60°) • □ Square (90°) • △ Trine (120°) • ☍ Opposition (180°)',
         importantEvents: 'important events during the year',
-        aspectsOf: 'Aspects of'
+        aspectsOf: 'Aspects of',
+
+        // Full Moon Names
+        moonNames: ['Wolf Moon', 'Snow Moon', 'Worm Moon', 'Pink Moon',
+                    'Flower Moon', 'Strawberry Moon', 'Buck Moon', 'Sturgeon Moon',
+                    'Harvest Moon', 'Hunter\'s Moon', 'Beaver Moon', 'Cold Moon'],
+
+        // Button labels
+        gregorianButton: 'Gregorian'
     }
 };
 
@@ -2492,24 +2503,28 @@ function updateUILanguage() {
     // Update title based on mode
     const title = calendarMode === 'lunar' ? t('lunarCalendar') : t('solarCalendar');
     document.getElementById('calendarTitle').innerHTML = title;
-    
+
     // Update subtitle (element may not exist)
     const subtitleEl = document.querySelector('.subtitle');
     if (subtitleEl) {
         const subtitle = calendarMode === 'lunar' ? t('subtitle') : t('subtitleSolar');
         subtitleEl.textContent = subtitle;
     }
-    
+
+    // Update Gregorian button label
+    const gregorianLabel = document.getElementById('gregorianButtonLabel');
+    if (gregorianLabel) gregorianLabel.textContent = t('gregorianButton');
+
     // Update planet buttons with counters
     updatePlanetButtonCounters();
-    
+
     // Update planetary aspects section
     const planetaryTitle = document.getElementById('planetaryAspectsTitle');
     if (planetaryTitle) planetaryTitle.textContent = t('planetaryAspects');
-    
+
     const planetarySubtitle = document.getElementById('planetaryAspectsSubtitle');
     if (planetarySubtitle) planetarySubtitle.textContent = t('clickPlanet');
-    
+
     const aspectsLegend = document.getElementById('aspectsLegendDiv');
     if (aspectsLegend) {
         aspectsLegend.innerHTML = `
@@ -2517,10 +2532,10 @@ function updateUILanguage() {
             ${t('aspectsLegend')}
         `;
     }
-    
+
     // Update static modal content
     updateModalTranslations();
-    
+
     // Re-render calendar to update all text
     if (calendarMode === 'lunar') {
         renderCalendar();
