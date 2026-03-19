@@ -9,11 +9,11 @@
     <title>🌙 Moon Sync - Calendario Lunar</title>
     
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Moon Tracker - Complete lunar calendar with exact phases, planetary aspects, personal journal and automatic notifications.">
+    <meta name="description" content="Moon Sync - Complete lunar calendar with exact phases, planetary aspects, personal journal and automatic notifications.">
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Moon Tracker">
+    <meta name="apple-mobile-web-app-title" content="Moon Sync">
     
     <!-- Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -459,7 +459,7 @@
                 <!-- Left spacer mirrors buttons width -->
                 <div style="flex:1;min-width:0;"></div>
                 <!-- Title always centered -->
-                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.8em);white-space:nowrap;flex-shrink:0;text-align:center;">🌙 Moon Sync v5</h1>
+                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.8em);white-space:nowrap;flex-shrink:0;text-align:center;">🌙 Moon Sync v8</h1>
                 <!-- Buttons pinned right, same flex:1 as spacer so title stays centered -->
                 <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:4px;">
                     <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:0.85em;opacity:0.5;flex-shrink:0;" title="Activar notificaciones">🔔</button>
@@ -470,7 +470,7 @@
 
             <!-- Mode buttons: single scrollable row, never wrap -->
             <div class="mode-btns" style="display:flex;flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:3px;width:100%;">
-                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:7px 18px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:25px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">🌙 Moon Sync v5</button>
+                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:7px 18px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:25px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">🌙 Moon Sync v8</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">☉ Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">📅 <span id="gregorianButtonLabel">Gregorian</span></button>
             </div>
@@ -1974,7 +1974,7 @@ let translationCache = JSON.parse(localStorage.getItem('translationCache') || '{
 const translations = {
     es: {
         // Calendar
-        lunarCalendar: 'Moon Tracker',
+        lunarCalendar: 'Moon Sync',
         solarCalendar: '☉ Calendario Solar Astrológico',
         subtitle: 'Ciclo natural de la Luna • Aspectos Planetarios • Diario Personal',
         subtitleSolar: 'Ciclo del Sol • Aspectos Planetarios • Diario Personal',
@@ -2104,7 +2104,7 @@ const translations = {
     },
     en: {
         // Calendar
-        lunarCalendar: 'Moon Tracker',
+        lunarCalendar: 'Moon Sync',
         solarCalendar: '☉ Astrological Solar Calendar',
         subtitle: 'Natural Lunar Cycle • Planetary Aspects • Personal Journal',
         subtitleSolar: 'Solar Cycle • Planetary Aspects • Personal Journal',
