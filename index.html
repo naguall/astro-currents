@@ -2605,38 +2605,16 @@ function updateModalTranslations() {
 // ==============================================
 
 function loadEvents() {
-    // Clear all demo/test events AND old UTC-based events
     const saved = localStorage.getItem('lunarCalendarEvents');
-    
-    // If there are saved events, check if they need migration
     if (saved) {
         try {
-            const oldEvents = JSON.parse(saved);
-            // Check if any key looks like it might have timezone issues
-            const hasUTCIssue = Object.keys(oldEvents).some(key => {
-                // If we have events, assume they might be UTC-based from old version
-                return true;
-            });
-            
-            if (hasUTCIssue) {
-                console.log('⚠️ Clearing old UTC-based events to prevent date mismatches');
-                localStorage.removeItem('lunarCalendarEvents');
-                events = {};
-            } else {
-                events = oldEvents;
-            }
+            events = JSON.parse(saved);
+            console.log('✅ Events loaded:', Object.keys(events).length, 'dates with events');
         } catch (e) {
             console.error('Error loading events:', e);
             events = {};
         }
     }
-    
-    /* Original code preserved for future use:
-    const saved = localStorage.getItem('lunarCalendarEvents');
-    if (saved) {
-        events = JSON.parse(saved);
-    }
-    */
 }
 
 function saveEvents() {
