@@ -1294,6 +1294,16 @@ function getTideExtremes(curve) {
         if (curve[i].level < curve[i-1].level && curve[i].level < curve[i+1].level)
             ex.push({ hour: curve[i].hour, level: curve[i].level, type: 'baja' });
     }
+    // If no extremes found in harmonic data, find approximate peak/valley from raw values
+    if (ex.length === 0 && curve && curve.length > 0) {
+        const levels = curve.map(c => c.level);
+        const maxLevel = Math.max(...levels);
+        const minLevel = Math.min(...levels);
+        const maxIdx = levels.indexOf(maxLevel);
+        const minIdx = levels.indexOf(minLevel);
+        if (maxIdx >= 0) ex.push({ hour: curve[maxIdx].hour, level: maxLevel, type: 'alta' });
+        if (minIdx >= 0) ex.push({ hour: curve[minIdx].hour, level: minLevel, type: 'baja' });
+    }
     return ex;
 }
 
@@ -4387,7 +4397,7 @@ function updateCurrentDayInfoForMode(mode) {
                     </div>
                     ${todayEvents.length > 0 ? `
                     <div style="display: flex; flex-direction: column; gap: 2px;">
-                        ${todayEvents.slice(0, 2).map((evt, idx) => {
+                        ${todayEvents.slice(0, 5).map((evt, idx) => {
                             const eventKey = getDateKey(today);
                             const isCompleted = evt.completed || false;
                             return `<div style="font-size: 0.65em; padding: 2px 3px; background: rgba(78,205,196,0.12); border-radius: 3px; display: flex; align-items: center; gap: 4px; border-left: 2px solid ${evt.type === 'reminder' ? '#f5576c' : evt.type === 'appointment' ? '#c9a840' : '#4ecdc4'};"><input type="checkbox" ${isCompleted ? 'checked' : ''} onclick="toggleEventComplete('${eventKey}', ${idx}); event.stopPropagation();" style="cursor: pointer; width: 12px; height: 12px; flex-shrink: 0;"><span style="cursor: pointer; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${isCompleted ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${evt.title}${evt.time ? ` <span style="font-weight: bold; color: #c9a840; float:right;">${evt.time}</span>` : ''}</span></div>`;
@@ -4413,7 +4423,7 @@ function updateCurrentDayInfoForMode(mode) {
                     </div>
                     ${allPlanetaryEvents.length > 0 ? `
                     <div style="display:flex;flex-direction:column;gap:2px;align-items:stretch;">
-                        ${allPlanetaryEvents.slice(0, 3).map(event => {
+                        ${allPlanetaryEvents.slice(0, 6).map(event => {
                             if (event.type === 'interPlanetaryAspect') {
                                 const asp = event.data;
                                 return `<div style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;border-left:2px solid ${asp.color};">${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)}</div>`;
@@ -5559,7 +5569,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             <div class="astro-card" style="margin-bottom:0;">
                 <h4 style="font-size:0.75em;">🌊 ${currentLang==='es'?'Curva de Marea':'Tide Curve'}</h4>
                 <div class="tide-curve-container" style="overflow:hidden;width:100%;">${renderTideSVG(tideCurve, 400, 60)}</div>
-                <div id="tideExtremesDisplay" style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:5px;">${extremesHTML || 'Sin extremos detectados'}</div>
+                <div id="tideExtremesDisplay" style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:5px;">${extremesHTML || 'Calculando...'}</div>
                 <div id="tideApiStatus" style="font-size:0.58em;color:rgba(78,205,196,0.45);margin-top:2px;">⟳ actualizando con datos reales...</div>
                 <div style="display:flex;justify-content:space-between;font-size:0.60em;color:rgba(255,255,255,0.22);margin-top:3px;">
                     <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
@@ -5764,12 +5774,12 @@ function renderCalendar() {
                     </div>
                     ${todayEvents.length > 0 ? `
                     <div style="display: flex; flex-direction: column; gap: 2px;">
-                        ${todayEvents.slice(0, 2).map((evt, idx) => {
+                        ${todayEvents.slice(0, 5).map((evt, idx) => {
                             const eventKey = getDateKey(today);
                             const isCompleted = evt.completed || false;
                             return `<div style="font-size: 0.65em; padding: 2px 3px; background: rgba(78,205,196,0.12); border-radius: 3px; display: flex; align-items: center; gap: 4px; border-left: 2px solid ${evt.type === 'reminder' ? '#f5576c' : evt.type === 'appointment' ? '#c9a840' : '#4ecdc4'};"><input type="checkbox" ${isCompleted ? 'checked' : ''} onclick="toggleEventComplete('${eventKey}', ${idx}); event.stopPropagation();" style="cursor: pointer; width: 12px; height: 12px; flex-shrink: 0;"><span style="cursor: pointer; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${isCompleted ? 'text-decoration: line-through; opacity: 0.6;' : ''}" onclick="openEventsModal(new Date(${today.getTime()}), ${currentDayInCycle.lunarDay})">${evt.title}${evt.time ? ` <span style="font-weight: bold; color: #c9a840; float:right;">${evt.time}</span>` : ''}</span></div>`;
                         }).join('')}
-                        ${todayEvents.length > 2 ? `<div style="font-size: 0.6em; text-align: center; color: #4ecdc4;">+${todayEvents.length - 2}</div>` : ''}
+                        ${todayEvents.length > 5 ? `<div style="font-size: 0.6em; text-align: center; color: #4ecdc4;">+${todayEvents.length - 5}</div>` : ''}
                     </div>
                     ` : `<div style="font-size: 0.6em; color: rgba(78,205,196,0.45); font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
                 </div>
@@ -5797,7 +5807,7 @@ function renderCalendar() {
                     </div>
                     ${allPlanetaryEvents.length > 0 ? `
                     <div style="display:flex;flex-direction:column;gap:2px;align-items:stretch;">
-                        ${allPlanetaryEvents.slice(0, 3).map(event => {
+                        ${allPlanetaryEvents.slice(0, 6).map(event => {
                             if (event.type === 'aspect') {
                                 const asp = event.data;
                                 const color = asp.class==='conjunction'?'#ff6b6b':asp.class==='sextile'?'#4ecdc4':asp.class==='square'?'#ff9f43':asp.class==='trine'?'#7c4dff':'#ee5a6f';
@@ -5819,7 +5829,7 @@ function renderCalendar() {
                                 return `<div onclick="openAspectsModal(new Date(${today.getTime()}),${currentDayInCycle.lunarDay},JSON.parse('${ds}'))" style="font-size:0.65em;padding:2px 4px;background:rgba(0,0,0,0.25);border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:2px;border-left:2px solid #ff6b6b;"><span style="color:#e8eaf6">${tp(ret.planet)} ${ret.isStart?'R':'D'}</span></div>`;
                             }
                         }).join('')}
-                        ${allPlanetaryEvents.length > 3 ? `<div style="font-size:0.6em;text-align:center;color:#8899cc;">+${allPlanetaryEvents.length - 3}</div>` : ''}
+                        ${allPlanetaryEvents.length > 6 ? `<div style="font-size:0.6em;text-align:center;color:#8899cc;">+${allPlanetaryEvents.length - 6}</div>` : ''}
                     </div>
                     ` : `<div style="font-size:0.6em;color:rgba(201,168,64,0.4);font-style:italic;padding:4px 0;">${currentLang==='es'?'Sin aspectos':'No aspects'}</div>`}
                 </div>
@@ -6113,7 +6123,16 @@ function checkNotifications() {
     // Check if notifications are enabled by user
     const notificationsEnabled = localStorage.getItem('notificationsEnabled') !== 'false';
     
-    if (!notificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') {
+    if (!notificationsEnabled) {
+        console.log("❌ Notifications disabled by user");
+        return;
+    }
+    if (!('Notification' in window)) {
+        console.log("❌ Notification API not available");
+        return;
+    }
+    if (Notification.permission !== 'granted') {
+        console.log("❌ Notification permission not granted. Current permission:", Notification.permission);
         return;
     }
     
@@ -6218,6 +6237,21 @@ setInterval(checkNotifications, 60 * 1000);
 
 // Initial check 2 seconds after page load
 setTimeout(checkNotifications, 2000);
+
+// TEST: Fire a test notification 5 seconds after page load to verify Notification API works
+setTimeout(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            new Notification('🧪 Test Notification', {
+                body: 'Moon Tracker notifications are working! This is a test.',
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23FFD700"/><circle cx="30" cy="30" r="15" fill="%23000"/></svg>'
+            });
+            console.log('✅ Test notification fired successfully');
+        } catch(e) {
+            console.log('Test notification failed:', e);
+        }
+    }
+}, 5000);
 
 // CRITICAL: Expose functions to window for onclick handlers
 window.deleteEventByIndex = deleteEvent;
