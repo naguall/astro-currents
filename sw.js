@@ -1,9 +1,9 @@
-const CACHE_NAME = 'moon-flow-v5';
+const CACHE_NAME = 'moon-sync-v5';
 const ASSETS = [
-  '/moon-flow/',
-  '/moon-flow/index.html',
-  '/moon-flow/lunar-data.js',
-  '/moon-flow/manifest.json'
+  '/moon-sync/',
+  '/moon-sync/index.html',
+  '/moon-sync/lunar-data.js',
+  '/moon-sync/manifest.json'
 ];
 
 self.addEventListener('install', e => {
