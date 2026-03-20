@@ -457,21 +457,15 @@
     <div class="container">
         <header>
             <!-- Header row: title + buttons centered together -->
-            <div style="display:flex;flex-direction:row;align-items:center;width:100%;margin-bottom:4px;min-width:0;justify-content:space-between;gap:4px;flex-wrap:nowrap;">
-                <!-- Spacer left -->
-                <div style="width:70px;"></div>
-                <!-- Title center -->
-                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.8em);white-space:nowrap;flex-shrink:1;text-align:center;overflow:hidden;text-overflow:ellipsis;">🌙 Lunar</h1>
-                <!-- Buttons right -->
-                <div style="display:flex;align-items:center;flex-shrink:0;gap:3px;">
-                    <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;" title="Activar notificaciones">🔔</button>
-                    <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;">🇪🇸</button>
-                    <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;">🇺🇸</button>
-                </div>
+            <div style="width:100%;margin-bottom:2px;text-align:center;">
+                <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.6em);text-align:center;">🌙 Calendario Lunar</h1>
             </div>
 
             <!-- Mode buttons: single scrollable row, never wrap -->
-            <div class="mode-btns" style="display:flex;flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:3px;width:100%;">
+            <div class="mode-btns" style="display:flex;flex-direction:row;gap:4px;justify-content:center;align-items:center;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:3px;width:100%;">
+                <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;opacity:0.5;flex-shrink:0;" title="Notificaciones">🔔</button>
+                <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;flex-shrink:0;">🇪🇸</button>
+                <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;opacity:0.5;flex-shrink:0;">🇺🇸</button>
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:7px 18px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:25px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">🌙 Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">☉ Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:7px 18px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:25px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;">📅 <span id="gregorianButtonLabel">Gregorian</span></button>
@@ -539,7 +533,7 @@
                     <span id="planetBtn-Plutón">♇ Plutón</span>
                 </button>
                 <button onclick="showMajorAspectsModal()" class="planet-btn" style="background: rgba(233, 30, 99, 0.3); border: 2px solid #e91e63; color: #ff69b4; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 1em; font-weight: bold; transition: all 0.3s;">
-                    <span>⭐ Aspectos Mayores</span>
+                    <span id="majorAspectsBtn">⭐ Aspectos Mayores</span>
                 </button>
             </div>
             
@@ -2027,8 +2021,8 @@ let translationCache = JSON.parse(localStorage.getItem('translationCache') || '{
 const translations = {
     es: {
         // Calendar
-        lunarCalendar: 'Moon Sync',
-        solarCalendar: '☉ Calendario Solar Astrológico',
+        lunarCalendar: 'Calendario Lunar',
+        solarCalendar: '☉ Calendario Solar',
         subtitle: 'Ciclo natural de la Luna • Aspectos Planetarios • Diario Personal',
         subtitleSolar: 'Ciclo del Sol • Aspectos Planetarios • Diario Personal',
         
@@ -2157,8 +2151,8 @@ const translations = {
     },
     en: {
         // Calendar
-        lunarCalendar: 'Moon Sync',
-        solarCalendar: '☉ Astrological Solar Calendar',
+        lunarCalendar: 'Lunar Calendar',
+        solarCalendar: '☉ Solar Calendar',
         subtitle: 'Natural Lunar Cycle • Planetary Aspects • Personal Journal',
         subtitleSolar: 'Solar Cycle • Planetary Aspects • Personal Journal',
         
@@ -2620,6 +2614,10 @@ function updateUILanguage() {
     // Update static modal content
     updateModalTranslations();
 
+    // Update major aspects button
+    var majBtn = document.getElementById('majorAspectsBtn');
+    if (majBtn) majBtn.textContent = currentLang === 'es' ? '⭐ Aspectos Mayores' : '⭐ Major Aspects';
+    
     // Re-render calendar to update all text
     if (calendarMode === 'lunar') {
         renderCalendar();
@@ -3043,7 +3041,7 @@ function openAspectsModal(date, lunarDay, dayData) {
                     ${timeStr}${tp(asp.planet1)} ${asp.symbol} ${tp(asp.planet2)} ${degreeStr}${badge}
                 </div>
                 <div class="aspect-description">
-                    ${asp.meaning}
+                    ${translateMeaning(asp.meaning)}
                 </div>
             </div>
         `}).join('');
@@ -3059,7 +3057,7 @@ function openAspectsModal(date, lunarDay, dayData) {
                     ${timeStr}${change.symbol} ${tp(change.planet)} → ${ts(change.toSign)}
                 </div>
                 <div class="aspect-description">
-                    ${change.meaning}
+                    ${translateMeaning(change.meaning)}
                 </div>
             </div>
         `}).join('');
@@ -3073,7 +3071,7 @@ function openAspectsModal(date, lunarDay, dayData) {
                     ${retro.planet} ${retro.isStart ? (currentLang === 'es' ? 'Retrógrado INICIA' : 'Retrograde STARTS') : (currentLang === 'es' ? 'Directo' : 'Direct')}
                 </div>
                 <div class="aspect-description">
-                    ${retro.meaning}
+                    ${translateMeaning(retro.meaning)}
                 </div>
             </div>
         `).join('');
@@ -4138,7 +4136,7 @@ function showPlanetAspects(planetName, planetSymbol, planetColor) {
                             </div>
                         </div>
                         <p style="color: rgba(255,255,255,0.8); font-size: 0.9em; margin: 0;">
-                            ${aspect.meaning}
+                            ${translateMeaning(aspect.meaning)}
                         </p>
                     </div>
                 `;
@@ -4166,7 +4164,7 @@ function showMajorAspectsModal() {
     
     // Stelliums section
     if (majorAspects.stelliums && majorAspects.stelliums.length > 0) {
-        html += '<div style="margin-bottom: 20px;"><h3 style="color: #c9a840; border-bottom: 2px solid #c9a840; padding-bottom: 8px;">★ Stelliums (3+ planetas en mismo signo)</h3>';
+        html += '<div style="margin-bottom: 20px;"><h3 style="color: #c9a840; border-bottom: 2px solid #c9a840; padding-bottom: 8px;">${currentLang==="es"?"★ Stelliums (3+ planetas en mismo signo)":"★ Stelliums (3+ planets in same sign)"}</h3>';
         majorAspects.stelliums.forEach(s => {
             html += `<div style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700;">`;
             html += `<strong style="color: #FFD700;">${s.sign}</strong>: ${s.planets.join(', ')}<br>`;
@@ -4202,7 +4200,7 @@ function showMajorAspectsModal() {
     
     // Major Oppositions section
     if (majorAspects.majorOppositions && majorAspects.majorOppositions.length > 0) {
-        html += '<div style="margin-bottom: 20px;"><h3 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 8px;">☍ Oposiciones Mayores</h3>';
+        html += '<div style="margin-bottom: 20px;"><h3 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 8px;">${currentLang==="es"?"☍ Oposiciones Mayores":"☍ Major Oppositions"}</h3>';
         majorAspects.majorOppositions.forEach(o => {
             html += `<div style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6;">`;
             html += `<strong style="color: #9b59b6;">${o.planet1}</strong> ☍ <strong style="color: #9b59b6;">${o.planet2}</strong><br>`;
@@ -4293,7 +4291,7 @@ function showMajorAspectsModal() {
     
     // Stelliums section
     if (majorAspects.stelliums && majorAspects.stelliums.length > 0) {
-        html += '<div style="margin-bottom: 20px;"><h3 style="color: #c9a840; border-bottom: 2px solid #c9a840; padding-bottom: 8px;">★ Stelliums (3+ planetas en mismo signo)</h3>';
+        html += '<div style="margin-bottom: 20px;"><h3 style="color: #c9a840; border-bottom: 2px solid #c9a840; padding-bottom: 8px;">${currentLang==="es"?"★ Stelliums (3+ planetas en mismo signo)":"★ Stelliums (3+ planets in same sign)"}</h3>';
         majorAspects.stelliums.forEach(s => {
             html += `<div style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700;">`;
             html += `<strong style="color: #FFD700;">${s.sign}</strong>: ${s.planets.join(', ')}<br>`;
@@ -4329,7 +4327,7 @@ function showMajorAspectsModal() {
     
     // Major Oppositions section
     if (majorAspects.majorOppositions && majorAspects.majorOppositions.length > 0) {
-        html += '<div style="margin-bottom: 20px;"><h3 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 8px;">☍ Oposiciones Mayores</h3>';
+        html += '<div style="margin-bottom: 20px;"><h3 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 8px;">${currentLang==="es"?"☍ Oposiciones Mayores":"☍ Major Oppositions"}</h3>';
         majorAspects.majorOppositions.forEach(o => {
             html += `<div style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6;">`;
             html += `<strong style="color: #9b59b6;">${o.planet1}</strong> ☍ <strong style="color: #9b59b6;">${o.planet2}</strong><br>`;
@@ -4917,7 +4915,7 @@ function generateGregorianMonth() {
         const dayDataStr = JSON.stringify(dayData).replace(/"/g, '&quot;');
         
         html += `<div class="day-cell ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}" onclick="handleDayClick(this)" data-date="${date.getTime()}" data-day-data="${dayDataStr}" style="min-width: unset; overflow: hidden;">`;
-        html += `<div class="day-header"><div class="day-number">${day}</div></div>`;
+        html += `<div class="day-header" style="display:flex;justify-content:space-between;align-items:baseline;"><div class="day-number">${day}</div></div>`;
         html += '<div class="day-content" style="font-size: 0.7em; display: flex; flex-direction: row; gap: 4px; justify-content: space-between;">';
         
         // Left: Events
@@ -5150,7 +5148,7 @@ function generateSolarWeeks(sign) {
             
             const isToday = isSameDay(dayDate, today);
             const dayEvents = getEventsForDate(dayDate);
-            const weekday = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'][dayDate.getDay()];
+            const weekday = (currentLang==='es' ? ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'] : ['SUN','MON','TUE','WED','THU','FRI','SAT'])[dayDate.getDay()];
             const eclipse = getEclipseInfo(dayDate);
             const retrogrades = getRetrogrades(dayDate);
             const signChanges = getSignChanges(dayDate);
@@ -5179,19 +5177,16 @@ function generateSolarWeeks(sign) {
             const dayDataStr = JSON.stringify({date: dayDate, lunarDay: realLunarDay, aspects: []}).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             
             html += `
-                <div class="day-cell ${isToday ? 'today' : ''}" 
+                <div class="day-cell ${isToday ? 'today' : ''} ${dayDate.getDay()===0||dayDate.getDay()===6 ? 'weekend' : ''}" 
                      data-date="${dayDate.getTime()}"
                      data-lunar-day="${realLunarDay}"
                      data-has-aspects="false"
                      data-day-data='${dayDataStr}'
                      onclick="handleDayClick(this)">
                     
-                    <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%; gap: 4px;">
-                        <div style="display: flex; align-items: baseline; gap: 4px;">
-                            <div class="day-number">${dayCounter}</div>
-                            <div class="day-weekday" style="font-size: 0.55em; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; font-weight: 600;">${weekday}</div>
-                        </div>
-                        <div class="day-date" style="color: rgba(255, 255, 255, 0.6);">${formatShortDate(dayDate)}</div>
+                    <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
+                        <div class="day-number">${dayCounter}</div>
+                        <div style="font-size: 0.7em; color: rgba(255,255,255,0.6); font-weight: 600; white-space:nowrap;">${weekday} ${formatShortDate(dayDate)}</div>
                     </div>
                     
                     <div class="day-content">
@@ -6287,12 +6282,9 @@ function renderCalendar() {
                      data-day-data='${dayDataStr}'
                      onclick="handleDayClick(this)">
                     
-                    <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%; gap: 4px;">
-                        <div style="display: flex; align-items: baseline; gap: 4px;">
-                            <div class="day-number">${day.lunarDay}</div>
-                            <div class="day-weekday" style="font-size: 0.55em; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; font-weight: 600;">${weekday}</div>
-                        </div>
-                        <div class="day-date" style="color: rgba(255, 255, 255, 0.6);">${formatShortDate(day.date)}</div>
+                    <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
+                        <div class="day-number">${day.lunarDay}</div>
+                        <div style="font-size: 0.7em; color: rgba(255,255,255,0.6); font-weight: 600; white-space:nowrap;">${weekday} ${formatShortDate(day.date)}</div>
                     </div>
                     
                     <div class="day-content">
