@@ -4684,13 +4684,14 @@ function updateCurrentDayInfoForMode(mode) {
         displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
         displayEmoji = '';
         // Calculate sign day (days since sign started)
-        const currentSign = solarSigns2026[currentSignIndex];
+        const todaySignIdx = getCurrentSign(); // Always use TODAY's sign, not displayed
+        const currentSign = solarSigns2026[todaySignIdx];
         const signStart = new Date(currentSign.start);
         const signDay = Math.floor((today - signStart) / 86400000) + 1;
         const signTotal = Math.ceil((new Date(currentSign.end) - signStart) / 86400000) + 1;
         // Solar month = sign index + 1 (Aries=1, Piscis=12)
         const ariesIdx = solarSigns2026.findIndex(s => s.name === 'Aries');
-        const solarMonth = ((currentSignIndex - ariesIdx + solarSigns2026.length) % solarSigns2026.length) + 1;
+        const solarMonth = ((todaySignIdx - ariesIdx + solarSigns2026.length) % solarSigns2026.length) + 1;
         displayDay = currentLang === 'es' ? signDay + '/' + solarMonth : solarMonth + '/' + signDay;
         // Calculate astrological year day (from spring equinox March 20)
         const equinox = new Date(today.getFullYear(), 2, 20);
@@ -4757,7 +4758,7 @@ function updateCurrentDayInfoForMode(mode) {
                     ` : `<div style="font-size: 0.6em; color: rgba(78,205,196,0.45); font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
                 </div>
                 <!-- HOY Centro -->
-                <div style="text-align: center; cursor: pointer; transition: all 0.2s; padding: 6px 4px; border-radius: 10px; border: 1px solid rgba(201,168,64,0.32); background: linear-gradient(160deg, rgba(40,28,5,0.95) 0%, rgba(25,18,3,0.95) 100%); box-shadow: 0 0 20px rgba(201,168,64,0.15);">
+                <div onclick="goToToday()" style="text-align: center; cursor: pointer; transition: all 0.2s; padding: 6px 4px; border-radius: 10px; border: 1px solid rgba(201,168,64,0.32); background: linear-gradient(160deg, rgba(40,28,5,0.95) 0%, rgba(25,18,3,0.95) 100%); box-shadow: 0 0 20px rgba(201,168,64,0.15);">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: #c9a840; text-transform: uppercase; margin-bottom: 1px;">— HOY —</div>
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
                         <span style="font-size:${String(displayDay).length > 4 ? '1.4em' : '2.4em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
@@ -6537,6 +6538,22 @@ function sendNotif(title, opts) {
         console.log('🔔 No SW, using native Notification');
         try { new _Notif(title, opts); } catch(e) { console.log('❌ Native failed:', e); }
     }
+}
+
+// Navigate back to today's month/sign when clicking HOY
+function goToToday() {
+    const today = new Date();
+    if (calendarMode === 'solar') {
+        currentSignIndex = getCurrentSign();
+        renderSolarCalendar();
+    } else if (calendarMode === 'gregorian') {
+        currentGregorianMonth = today.getMonth();
+        currentGregorianYear = today.getFullYear();
+        renderGregorianCalendar();
+    } else {
+        goToCurrentCycle();
+    }
+    window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 function checkNotifications() {
