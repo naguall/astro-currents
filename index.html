@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v136';
+        var REQUIRED_VER = 'v137';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -9666,50 +9666,56 @@ clearOldNotifications();
 // Clear app badge + close Android notifications when opening the app
 (function() {
     function _sendClearToSW() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(function(reg) {
-                // Close from page side
-                if (reg.getNotifications) {
-                    reg.getNotifications().then(function(notifications) {
-                        notifications.forEach(function(n) { n.close(); });
-                    });
-                }
-                // Tell SW to close from its side + do the silent notification trick
-                if (navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({type: 'CLEAR_BADGES'});
-                } else if (reg.active) {
-                    reg.active.postMessage({type: 'CLEAR_BADGES'});
-                }
-            }).catch(function(){});
-        }
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.ready.then(function(reg) {
+            // Close from page side directly
+            if (reg.getNotifications) {
+                reg.getNotifications().then(function(notifications) {
+                    console.log('[Badge] Page found ' + notifications.length + ' notifications');
+                    notifications.forEach(function(n) { n.close(); });
+                });
+            }
+            // Also tell SW to close from its side
+            var sw = navigator.serviceWorker.controller || reg.active;
+            if (sw) {
+                console.log('[Badge] Sending CLEAR_BADGES to SW');
+                sw.postMessage({type: 'CLEAR_BADGES'});
+            }
+        }).catch(function(e){ console.log('[Badge] Error:', e); });
     }
 
     function clearAllBadges() {
+        console.log('[Badge] clearAllBadges called');
         markAllNotifSeen();
         if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
         if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
-        // Android: tell SW to close all notifications + clear badge
         _sendClearToSW();
-        // Retry after delays — Android launcher sometimes needs time to sync
+        // Retries for Android launcher sync delay
         setTimeout(_sendClearToSW, 500);
-        setTimeout(_sendClearToSW, 2000);
-        setTimeout(function() {
-            if ('clearAppBadge' in navigator) { navigator.clearAppBadge().catch(()=>{}); }
-            if ('setAppBadge' in navigator) { navigator.setAppBadge(0).catch(()=>{}); }
-        }, 3000);
+        setTimeout(_sendClearToSW, 1500);
+        setTimeout(_sendClearToSW, 3000);
         updateNotifBadge();
     }
 
     // On page load
     clearAllBadges();
 
-    // When returning from background (tab/app switch)
+    // When returning from background
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') { clearAllBadges(); }
     });
 
-    // Also on focus
+    // On focus
     window.addEventListener('focus', function() { clearAllBadges(); });
+
+    // CRITICAL: When new SW takes control, clear again immediately
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            console.log('[Badge] New SW took control, clearing again');
+            _sendClearToSW();
+            setTimeout(_sendClearToSW, 500);
+        });
+    }
 })();
 
 // Schedule clear at 23:59
@@ -10416,7 +10422,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v136';
+const APP_VERSION = 'v137';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
