@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v118';
+        var REQUIRED_VER = 'v119';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -7666,7 +7666,7 @@ function renderSublunaryInfoBox(latStr, lonDeg, userLat, userLon) {
     }
     var closestTimeStr = closestTime.toLocaleTimeString(currentLang==='es'?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false});
 
-    var cityLabel = ASTRO_CITY_NAME || 'Uvita';
+    var cityLabel = (ASTRO_USER_NAME || 'Uvita').split(',')[0];
     var mrs = getMoonRiseSet(now, uLat, uLon);
     var timeFmt = {hour:'2-digit',minute:'2-digit',hour12:false};
     var locale = currentLang==='es'?'es':'en';
