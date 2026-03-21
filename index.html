@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v147';
+        var REQUIRED_VER = 'v148';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -10826,7 +10826,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v147';
+const APP_VERSION = 'v148';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
@@ -11023,7 +11023,7 @@ let aiChatHistory = [];
 let aiIsTyping = false;
 
 // Built-in Gemini API key (free tier) — users don't need to configure anything
-const AI_BUILTIN_KEY = 'AIzaSyAanA-im-m6osQVxXVkVG2h6JidTF2qOwE';
+const AI_BUILTIN_KEY = 'AIzaSyCg_3eDzIcYaLBNB7Wq1fnzcJNgEUX6cyQ';
 // Optional proxy URL or personal key override
 const AI_PROXY_URL = localStorage.getItem('aiProxyUrl') || '';
 
