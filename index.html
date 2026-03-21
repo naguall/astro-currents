@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v103';
+        var REQUIRED_VER = 'v104';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -8615,7 +8615,7 @@ setTimeout(() => {
 // Log today's aspects and events to notification history on load (once per day)
 setTimeout(() => {
     try {
-        const todayKey = new Date().toISOString().slice(0,10); // "2026-03-20"
+        const todayKey = getDateKey(new Date()); // local date "2026-03-20"
         const lastLogDay = localStorage.getItem('lastNotifLogDay');
         if (lastLogDay === todayKey) return; // Already logged today
 
@@ -9281,10 +9281,12 @@ async function handleNotifToggle(enable) {
 // Notification history system
 function logNotificationEvent(message, type) {
     const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+    const now = new Date();
     history.unshift({
         message: message,
         type: type || 'info',
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
+        localDate: getDateKey(now), // LOCAL date key for filtering (avoids UTC mismatch)
         seen: false
     });
     // Keep only last 50
@@ -9298,8 +9300,8 @@ function updateNotifBadge() {
     const badge = document.getElementById('notifBadge');
     if (!badge) return;
     const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
-    const todayStr = new Date().toISOString().slice(0,10);
-    const unseen = history.filter(h => !h.seen && h.timestamp && h.timestamp.slice(0,10) === todayStr).length;
+    const todayStr = getDateKey(new Date());
+    const unseen = history.filter(h => !h.seen && (h.localDate === todayStr || (!h.localDate && h.timestamp && h.timestamp.slice(0,10) === todayStr))).length;
     if (unseen > 0) {
         badge.textContent = unseen > 99 ? '99+' : unseen;
         badge.style.display = 'block';
@@ -9318,11 +9320,15 @@ function markAllNotifSeen() {
     updateNotifBadge();
 }
 
-// Clear notifications older than today
+// Clear notifications older than today (uses LOCAL date, not UTC)
 function clearOldNotifications() {
     const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
-    const todayStr = new Date().toISOString().slice(0,10);
-    const filtered = history.filter(h => h.timestamp && h.timestamp.slice(0,10) === todayStr);
+    const todayStr = getDateKey(new Date());
+    const filtered = history.filter(h => {
+        // Use localDate if available, fallback to UTC timestamp for old entries
+        const entryDate = h.localDate || (h.timestamp ? h.timestamp.slice(0,10) : '');
+        return entryDate === todayStr;
+    });
     localStorage.setItem('notifHistory', JSON.stringify(filtered));
     updateNotifBadge();
 }
@@ -9367,9 +9373,12 @@ function openNotifHistoryModal() {
         </div>
     `;
 
-    // Filter: only show today's notifications
-    const todayStr = new Date().toISOString().slice(0,10);
-    const todayHistory = history.filter(h => h.timestamp && h.timestamp.slice(0,10) === todayStr);
+    // Filter: only show today's notifications (LOCAL date, not UTC)
+    const todayStr = getDateKey(new Date());
+    const todayHistory = history.filter(h => {
+        const entryDate = h.localDate || (h.timestamp ? h.timestamp.slice(0,10) : '');
+        return entryDate === todayStr;
+    });
 
     if (todayHistory.length === 0) {
         html += `<div style="text-align:center;padding:30px 10px;color:rgba(255,255,255,0.35);font-size:0.85em;">
@@ -9884,7 +9893,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v103';
+const APP_VERSION = 'v104';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
