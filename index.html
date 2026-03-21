@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v131';
+        var REQUIRED_VER = 'v132';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -5431,7 +5431,7 @@ function renderEarthInfoPanel() {
             <div style="font-family:'Cinzel',serif;color:#ff6b6b;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
                 🌋 ${currentLang==='es'?'Actividad Sísmica — Últimas 24 Horas':'Seismic Activity — Last 24 Hours'}
             </div>
-            <div id="earthSeismicData" style="text-align:center;color:rgba(255,107,107,0.5);padding:10px;font-size:0.8em;max-height:350px;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+            <div id="earthSeismicData" style="text-align:center;color:rgba(255,107,107,0.5);padding:10px;font-size:0.8em;">
                 ${currentLang==='es'?'Cargando datos sísmicos...':'Loading seismic data...'}
             </div>
         </div>
@@ -5597,9 +5597,9 @@ function fetchEarthquakes(lat, lon, containerId) {
             return { mag: p.mag, place: p.place, dist: dist, depth: c[2], time: time, url: p.url };
         });
 
-        // Sort: nearest first, then show top 8
+        // Sort: nearest first, show all
         quakes.sort((a, b) => a.dist - b.dist);
-        const nearest = quakes.slice(0, 8);
+        const nearest = quakes;
 
         // Summary stats
         const maxMag = Math.max(...features.map(f => f.properties.mag));
@@ -5640,11 +5640,9 @@ function fetchEarthquakes(lat, lon, containerId) {
         });
         html += '</div>';
 
-        if (quakes.length > 8) {
-            html += '<div style="text-align:center;font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">'
-                + (currentLang==='es'?'Mostrando 8 más cercanos de ':'Showing 8 nearest of ') + quakes.length + (currentLang==='es'?' registrados':' recorded')
-                + '</div>';
-        }
+        html += '<div style="text-align:center;font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">'
+            + (currentLang==='es'?'Total: ':'Total: ') + quakes.length + (currentLang==='es'?' sismos registrados':' earthquakes recorded')
+            + '</div>';
 
         container.innerHTML = html;
     }).catch(err => {
@@ -10384,7 +10382,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v131';
+const APP_VERSION = 'v132';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
