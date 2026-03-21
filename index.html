@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v117';
+        var REQUIRED_VER = 'v118';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -7636,19 +7636,48 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
         + '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="9" fill="#c9a840" filter="url(#gf4)" opacity="0.95"/>'
         + '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="4" fill="white"/>'
         + '<text x="'+(px+12).toFixed(0)+'" y="'+(py-10).toFixed(0)+'" fill="#e8c84a" font-size="10" font-family="monospace" font-weight="bold">☽ '+lat.toFixed(1)+'°'+(lat>=0?'N':'S')+' '+Math.abs(lonDeg).toFixed(1)+'°'+(lonDeg>=0?'E':'W')+'</text>'
-        + '</svg>'
-        + (function() {
-            const mrs = getMoonRiseSet(now, uLat, uLon);
-            const timeFmt = {hour:'2-digit',minute:'2-digit',hour12:false};
-            const locale = currentLang==='es'?'es':'en';
-            const riseStr = mrs.rise ? mrs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
-            const setStr = mrs.set ? mrs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
-            return '<div style="margin-top:10px;padding:10px 14px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;">'
-            + '<div style="font-size:1.3em;font-weight:bold;color:#4ecdc4;margin-bottom:4px;">' + cityLabel + ' ↔ ' + (currentLang==='es'?'Sublunar':'Sublunar') + ': ' + Math.round(distToUser).toLocaleString() + ' km</div>'
-            + '<div style="font-size:1.3em;font-weight:bold;color:#c9a840;margin-bottom:4px;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</div>'
-            + '<div style="font-size:1.15em;color:rgba(200,215,255,0.8);margin-top:4px;">🌙↑ ' + riseStr + '  &nbsp;  🌙↓ ' + setStr + '</div>'
-            + '</div>';
-        })();
+        + '</svg>';
+}
+
+function renderSublunaryInfoBox(latStr, lonDeg, userLat, userLon) {
+    var uLat = userLat || ASTRO_USER_LAT || 9.16;
+    var uLon = userLon || ASTRO_USER_LON || -83.75;
+    var lat = parseFloat(latStr) || 0;
+    var now = new Date();
+
+    // Distance calc
+    var toRad = function(d){return d*Math.PI/180;};
+    var R = 6371;
+    var dLat = toRad(lat - uLat);
+    var dLon = toRad(lonDeg - uLon);
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(toRad(uLat))*Math.cos(toRad(lat))*Math.sin(dLon/2)*Math.sin(dLon/2);
+    var distToUser = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    // Closest approach today
+    var closestDist = distToUser, closestTime = now;
+    for (var m = 0; m < 1440; m += 10) {
+        var t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, m);
+        var pLat = parseFloat(getAstroData(t).sublunarLat) || 0;
+        var pLon = getSublunaryLonDeg(t);
+        var dl = toRad(pLat - uLat); var dn = toRad(pLon - uLon);
+        var aa = Math.sin(dl/2)*Math.sin(dl/2) + Math.cos(toRad(uLat))*Math.cos(toRad(pLat))*Math.sin(dn/2)*Math.sin(dn/2);
+        var dd = R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa));
+        if (dd < closestDist) { closestDist = dd; closestTime = t; }
+    }
+    var closestTimeStr = closestTime.toLocaleTimeString(currentLang==='es'?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false});
+
+    var cityLabel = ASTRO_CITY_NAME || 'Uvita';
+    var mrs = getMoonRiseSet(now, uLat, uLon);
+    var timeFmt = {hour:'2-digit',minute:'2-digit',hour12:false};
+    var locale = currentLang==='es'?'es':'en';
+    var riseStr = mrs.rise ? mrs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
+    var setStr = mrs.set ? mrs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
+
+    return '<div style="padding:10px 14px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;">'
+        + '<div style="font-size:1.1em;font-weight:bold;color:#4ecdc4;margin-bottom:4px;">' + cityLabel + ' ↔ ' + (currentLang==='es'?'Sublunar':'Sublunar') + ': ' + Math.round(distToUser).toLocaleString() + ' km</div>'
+        + '<div style="font-size:1.1em;font-weight:bold;color:#c9a840;margin-bottom:4px;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</div>'
+        + '<div style="font-size:1.05em;color:rgba(200,215,255,0.8);margin-top:4px;">🌙↑ ' + riseStr + '  &nbsp;  🌙↓ ' + setStr + '</div>'
+        + '</div>';
 }
 
 // ── 3D Globe ─────────────────────────────────────────────────
@@ -8065,6 +8094,8 @@ function startSublunaryRefresh() {
         console.log(`[Moon Position Update] ${now.toLocaleTimeString()} - Lat: ${lat.toFixed(2)}°, Lon: ${lon.toFixed(2)}°`);
         const mapEl = document.getElementById('sublunaryMapContainer');
         if (mapEl) mapEl.innerHTML = renderSublunaryMap(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
+        const infoEl = document.getElementById('sublunaryInfoBox');
+        if (infoEl) infoEl.innerHTML = renderSublunaryInfoBox(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
         renderSublunaryGlobe(lat, lon);
         // Also refresh solar panel if visible
         const solarPanel = document.getElementById('solarInfoPanel');
@@ -8286,6 +8317,10 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
                 <div>
                     <canvas id="sublunaryGlobe" width="260" height="180" style="border-radius:8px;border:1px solid rgba(74,158,255,0.25);display:block;width:100%;"></canvas>
                 </div>
+            </div>
+            <!-- Info box separado debajo de ambos mapas -->
+            <div id="sublunaryInfoBox" style="margin-top:8px;">
+                ${renderSublunaryInfoBox(astro.sublunarLat, getSublunaryLonDeg(today), ASTRO_USER_LAT, ASTRO_USER_LON)}
             </div>
         </div>
 
