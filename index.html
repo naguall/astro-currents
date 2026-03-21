@@ -318,6 +318,7 @@
         .tide-curve-container { margin-top: 7px; }
         .zenith-badge { display: inline-block; background: rgba(74,158,255,0.15); border: 1px solid var(--blue-border); color: var(--blue-bright); padding: 2px 8px; border-radius: 12px; font-size: 0.78em; animation: pulseZenith 2s ease-in-out infinite; }
         @keyframes pulseZenith { 0%,100% { box-shadow: 0 0 4px rgba(74,158,255,0.18); } 50% { box-shadow: 0 0 14px rgba(74,158,255,0.50); } }
+        @keyframes pulseGold { 0%,100% { box-shadow: 0 0 5px rgba(201,168,64,0.2); } 50% { box-shadow: 0 0 25px rgba(201,168,64,0.7), inset 0 0 8px rgba(201,168,64,0.15); } }
         .cycle-186-section { background: rgba(5,7,30,0.95); border: 1px solid var(--blue-border); border-radius: 10px; padding: 14px; margin-top: 10px; margin-bottom: 10px; }
         .cycle-186-bar { display: inline-block; border-radius: 2px; vertical-align: bottom; }
 
@@ -466,9 +467,11 @@
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:5px 12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:20px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="gregorianButtonLabel">Gregoriano</span></button>
-                <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;opacity:0.5;flex-shrink:0;margin-left:4px;">🔔</button>
-                <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;flex-shrink:0;">🇪🇸</button>
-                <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;opacity:0.5;flex-shrink:0;">🇺🇸</button>
+                <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;opacity:0.5;flex-shrink:0;margin-left:4px;display:none;">🔔</button>
+                <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;flex-shrink:0;display:none;">🇪🇸</button>
+                <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;opacity:0.5;flex-shrink:0;display:none;">🇺🇸</button>
+                <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:5px;padding:3px 6px;cursor:pointer;font-size:0.75em;flex-shrink:0;margin-left:4px;color:rgba(255,255,255,0.7);">⚙️</button>
+                <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:4px 7px;cursor:pointer;font-size:0.85em;flex-shrink:0;color:rgba(255,255,255,0.8);">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.7em;font-weight:800;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;padding:0 4px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
             </div>
         </header>
 
@@ -2382,11 +2385,16 @@ function changeLanguage(lang) {
 }
 
 async function toggleNotifications() {
+    // Redirect to preferences modal
+    openPreferencesModal();
+    return;
+
+    // Legacy code below (kept for reference)
     const btn = document.getElementById('notificationBtn');
-    
+
     if (!('Notification' in window)) {
-        alert(currentLang === 'es' ? 
-            'Tu navegador no soporta notificaciones' : 
+        alert(currentLang === 'es' ?
+            'Tu navegador no soporta notificaciones' :
             'Your browser does not support notifications');
         return;
     }
@@ -4945,7 +4953,7 @@ function generateGregorianMonth() {
         
         // Planetary events
         if (astronomicalEvent) html += `<div style="color: #e8c84a; font-weight: bold; font-size: 0.8em; text-align: center;">${astronomicalEvent[currentLang === 'es' ? 'es' : 'en']}</div>`;
-        if (moonEvent) html += `<div style="color:${moonEvent.type==='full'?'#FFD700':'#ccc'}; font-weight: bold; font-size: 0.6em; text-align: center; line-height: 1.2; overflow: visible;"><span style="font-size:0.9em;">${moonEvent.type==='full'?'🌕':moonEvent.icon}</span> ${moonEvent.label}</div>`;
+        if (moonEvent) html += `<div onclick="event.stopPropagation(); navigateToLunar2026Moon(${date.getTime()}, '${moonEvent.type}')" style="color:${moonEvent.type==='full'?'#FFD700':'#ccc'}; font-weight: bold; font-size: 0.6em; text-align: center; line-height: 1.2; overflow: visible; cursor:pointer; text-decoration:underline; text-underline-offset:2px;"><span style="font-size:0.9em;">${moonEvent.type==='full'?'🌕':moonEvent.icon}</span> ${moonEvent.label}</div>`;
         if (planetaryEvents.eclipse) html += `<div style="color:#FFD700; font-size: 0.6em; font-weight:bold;">${planetaryEvents.eclipse.type==='solar'?'☀️ Ecl.Sol':'🌒 Ecl.Lun'}</div>`;
         
         // Inter-planetary aspects (limit 1)
@@ -5213,7 +5221,7 @@ function generateSolarWeeks(sign) {
                         ${(eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium || majorAspect || astronomicalEvent || moonEvent) ? `
                         <div style="display: flex; flex-direction: column; gap: 2px; font-size: 1.2em; flex-shrink: 0; margin-left: auto;">
                             ${astronomicalEvent ? `<div style="color: #e8c84a; font-weight: bold; line-height: 1; font-size: 0.9em; text-align: center; cursor: default;" title="${astronomicalEvent[currentLang]}">${astronomicalEvent[currentLang === 'es' ? 'es' : 'en']}</div>` : ''}
-                            ${moonEvent ? `<div style="color:${moonEvent.type==='full'?'#FFD700':'#ccc'};font-weight:bold;font-size:0.65em;text-align:center;line-height:1.2;overflow:visible;"><span style="font-size:0.9em;">${moonEvent.type==='full'?'🌕':moonEvent.icon}</span> ${moonEvent.label}</div>` : ''}
+                            ${moonEvent ? `<div onclick="event.stopPropagation(); navigateToLunar2026Moon(${dayDate.getTime()}, '${moonEvent.type}')" style="color:${moonEvent.type==='full'?'#FFD700':'#ccc'};font-weight:bold;font-size:0.65em;text-align:center;line-height:1.2;overflow:visible;cursor:pointer;text-decoration:underline;text-underline-offset:2px;"><span style="font-size:0.9em;">${moonEvent.type==='full'?'🌕':moonEvent.icon}</span> ${moonEvent.label}</div>` : ''}
                             ${eclipse ? `<div onclick="event.stopPropagation(); showEclipseModal('${eclipse.type}', '${eclipse.name}', '${dayDate.getTime()}')" style="cursor: pointer; line-height: 1.2; font-size:0.7em; font-weight:bold; color:#FFD700;" title="${eclipse.name}">${eclipse.type === 'solar' ? '☀️' : '🌒'} ${currentLang==='es'?'Eclipse':'Eclipse'}</div>` : ''}
                             ${interAspects.map(asp => {
                                 const p1 = getPlanetInitial(asp.planet1);
@@ -6457,6 +6465,7 @@ updatePlanetButtonCounters();
 // Update notification button status (with delay to ensure DOM is ready)
 setTimeout(() => {
     updateNotificationButton();
+    updateNotifBadge();
 }, 100);
 
 // Check security context and warn if insecure
@@ -6925,7 +6934,256 @@ function _getLunarDayFor(date) {
 }
 
 
-function openLunarCalendar2026() {
+// ══════════════════════════════════════════════════
+// PREFERENCES MODAL
+// ══════════════════════════════════════════════════
+function openPreferencesModal() {
+    const modal = document.getElementById('preferencesModal');
+    const body = document.getElementById('preferencesBody');
+    const titleEl = document.getElementById('prefModalTitle');
+    if (!modal || !body) return;
+
+    titleEl.textContent = currentLang === 'es' ? '⚙️ Preferencias' : '⚙️ Preferences';
+
+    const notifEnabled = localStorage.getItem('notificationsEnabled') !== 'false' && ('Notification' in window) && Notification.permission === 'granted';
+    const notifPermission = ('Notification' in window) ? Notification.permission : 'unsupported';
+
+    body.innerHTML = `
+        <!-- Idioma / Language -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
+                ${currentLang==='es'?'Idioma':'Language'}
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button onclick="changeLanguage('es'); openPreferencesModal();"
+                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
+                    background:${currentLang==='es'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
+                    border:${currentLang==='es'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
+                    color:${currentLang==='es'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
+                    🇪🇸 Español
+                </button>
+                <button onclick="changeLanguage('en'); openPreferencesModal();"
+                    style="flex:1;padding:10px;border-radius:8px;cursor:pointer;font-size:0.9em;font-weight:600;
+                    background:${currentLang==='en'?'linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08))':'rgba(255,255,255,0.04)'};
+                    border:${currentLang==='en'?'2px solid rgba(78,205,196,0.6)':'1px solid rgba(255,255,255,0.15)'};
+                    color:${currentLang==='en'?'#4ecdc4':'rgba(255,255,255,0.5)'};">
+                    🇺🇸 English
+                </button>
+            </div>
+        </div>
+
+        <!-- Notificaciones -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.85em;font-weight:700;color:#7ec8ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
+                ${currentLang==='es'?'Notificaciones':'Notifications'}
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;">
+                <span style="font-size:1.3em;">${notifEnabled?'🔔':'🔕'}</span>
+                <div style="flex:1;">
+                    <div style="font-size:0.88em;font-weight:600;color:${notifEnabled?'#4ecdc4':'rgba(255,255,255,0.5)'};">
+                        ${notifEnabled?(currentLang==='es'?'Activadas':'Enabled'):(currentLang==='es'?'Desactivadas':'Disabled')}
+                    </div>
+                    <div style="font-size:0.72em;color:rgba(255,255,255,0.4);">
+                        ${notifPermission==='denied'?(currentLang==='es'?'Bloqueadas en el navegador':'Blocked in browser'):
+                          notifPermission==='unsupported'?(currentLang==='es'?'No soportadas':'Not supported'):
+                          (currentLang==='es'?'Eventos: 15 min antes | Aspectos: inicio del día':'Events: 15 min before | Aspects: start of day')}
+                    </div>
+                </div>
+                <label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;">
+                    <input type="checkbox" ${notifEnabled?'checked':''} onchange="handleNotifToggle(this.checked)"
+                        style="opacity:0;width:0;height:0;">
+                    <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
+                        background:${notifEnabled?'rgba(78,205,196,0.5)':'rgba(255,255,255,0.15)'};
+                        border-radius:26px;transition:0.3s;">
+                        <span style="position:absolute;content:'';height:20px;width:20px;left:${notifEnabled?'24px':'3px'};bottom:3px;
+                            background:white;border-radius:50%;transition:0.3s;display:block;"></span>
+                    </span>
+                </label>
+            </div>
+            ${notifPermission==='denied'?`
+            <div style="margin-top:8px;padding:8px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:6px;font-size:0.72em;color:#ff6b6b;">
+                ${currentLang==='es'?
+                '⚠️ Las notificaciones están bloqueadas en tu navegador. Haz clic en el candado 🔒 de la barra de direcciones → Configuración del sitio → Notificaciones → Permitir':
+                '⚠️ Notifications are blocked in your browser. Click the lock 🔒 in the address bar → Site settings → Notifications → Allow'}
+            </div>`:''}
+        </div>
+
+        <!-- Ubicación -->
+        <div>
+            <button onclick="closePreferencesModal(); setTimeout(()=>openLocationSelector(),200);"
+                style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(74,158,255,0.05));border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#7ec8ff;font-size:0.85em;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+                📍 ${currentLang==='es'?'Cambiar ubicación':'Change location'} <span style="font-size:0.8em;opacity:0.6;">(${ASTRO_USER_NAME || 'San José, Costa Rica'})</span>
+            </button>
+        </div>
+    `;
+
+    modal.classList.add('show');
+}
+
+function closePreferencesModal() {
+    const modal = document.getElementById('preferencesModal');
+    if (modal) modal.classList.remove('show');
+}
+
+async function handleNotifToggle(enable) {
+    if (enable) {
+        if (!('Notification' in window)) {
+            alert(currentLang==='es'?'Tu navegador no soporta notificaciones':'Your browser does not support notifications');
+            openPreferencesModal(); // refresh UI
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            openPreferencesModal(); // refresh UI to show blocked message
+            return;
+        }
+        if (Notification.permission === 'default') {
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') {
+                openPreferencesModal();
+                return;
+            }
+        }
+        localStorage.setItem('notificationsEnabled', 'true');
+        // Log this activation to history
+        logNotificationEvent(currentLang==='es'?'Notificaciones activadas':'Notifications enabled', 'system');
+        // Send confirmation
+        try {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'});
+            });
+        } catch(e) {}
+        try { new Notification('🔔 Moon Sync', {body: currentLang==='es'?'Notificaciones activadas':'Notifications enabled'}); } catch(e) {}
+    } else {
+        localStorage.setItem('notificationsEnabled', 'false');
+        logNotificationEvent(currentLang==='es'?'Notificaciones desactivadas':'Notifications disabled', 'system');
+    }
+    updateNotificationButton();
+    openPreferencesModal(); // refresh UI
+}
+
+// Notification history system
+function logNotificationEvent(message, type) {
+    const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+    history.unshift({
+        message: message,
+        type: type || 'info',
+        timestamp: new Date().toISOString(),
+        seen: false
+    });
+    // Keep only last 50
+    if (history.length > 50) history.length = 50;
+    localStorage.setItem('notifHistory', JSON.stringify(history));
+    updateNotifBadge();
+}
+
+// Update the red badge on the 🔔 button
+function updateNotifBadge() {
+    const badge = document.getElementById('notifBadge');
+    if (!badge) return;
+    const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+    const unseen = history.filter(h => !h.seen).length;
+    if (unseen > 0) {
+        badge.textContent = unseen > 99 ? '99+' : unseen;
+        badge.style.display = 'block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Mark all notifications as seen
+function markAllNotifSeen() {
+    const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+    history.forEach(h => h.seen = true);
+    localStorage.setItem('notifHistory', JSON.stringify(history));
+    updateNotifBadge();
+}
+
+function openNotifHistoryModal() {
+    const modal = document.getElementById('notifHistoryModal');
+    const body = document.getElementById('notifHistoryBody');
+    const titleEl = document.getElementById('notifHistoryTitle');
+    if (!modal || !body) return;
+
+    // Mark all as seen when user opens the history
+    markAllNotifSeen();
+
+    titleEl.textContent = currentLang==='es'?'🔔 Historial de Notificaciones':'🔔 Notification History';
+
+    const history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+    const notifEnabled = localStorage.getItem('notificationsEnabled') !== 'false' && ('Notification' in window) && Notification.permission === 'granted';
+
+    let html = `
+        <!-- Status bar -->
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;background:rgba(${notifEnabled?'78,205,196':'255,107,107'},0.08);border:1px solid rgba(${notifEnabled?'78,205,196':'255,107,107'},0.25);border-radius:8px;">
+            <span style="font-size:1.2em;">${notifEnabled?'🔔':'🔕'}</span>
+            <span style="font-size:0.85em;font-weight:600;color:${notifEnabled?'#4ecdc4':'#ff6b6b'};">
+                ${notifEnabled?(currentLang==='es'?'Notificaciones activas':'Notifications active'):(currentLang==='es'?'Notificaciones desactivadas':'Notifications disabled')}
+            </span>
+        </div>
+    `;
+
+    if (history.length === 0) {
+        html += `<div style="text-align:center;padding:30px 10px;color:rgba(255,255,255,0.35);font-size:0.85em;">
+            ${currentLang==='es'?'No hay historial de notificaciones aún':'No notification history yet'}
+        </div>`;
+    } else {
+        html += `<div style="max-height:350px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">`;
+        history.forEach(item => {
+            const d = new Date(item.timestamp);
+            const timeStr = d.toLocaleDateString(currentLang==='es'?'es':'en', {day:'numeric',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString(currentLang==='es'?'es':'en', {hour:'2-digit',minute:'2-digit'});
+            const typeIcon = item.type==='system'?'⚙️':item.type==='event'?'📅':item.type==='aspect'?'🪐':'🔔';
+            const borderColor = item.type==='system'?'rgba(78,205,196,0.3)':item.type==='event'?'rgba(201,168,64,0.3)':'rgba(74,158,255,0.3)';
+            html += `<div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-left:3px solid ${borderColor};border-radius:4px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.9em;">${typeIcon}</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.8em;color:#e8eaf6;">${item.message}</div>
+                    <div style="font-size:0.68em;color:rgba(255,255,255,0.35);">${timeStr}</div>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+        html += `<button onclick="if(confirm(currentLang==='es'?'¿Borrar historial?':'Clear history?')){localStorage.removeItem('notifHistory');updateNotifBadge();openNotifHistoryModal();}"
+            style="margin-top:12px;width:100%;padding:8px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;">
+            🗑️ ${currentLang==='es'?'Borrar historial':'Clear history'}
+        </button>`;
+    }
+
+    body.innerHTML = html;
+    modal.classList.add('show');
+}
+
+function closeNotifHistoryModal() {
+    const modal = document.getElementById('notifHistoryModal');
+    if (modal) modal.classList.remove('show');
+}
+
+// Navigate from calendar day → Lunas 2026 modal, scrolling to the matching moon
+function navigateToLunar2026Moon(timestamp, type) {
+    // Open the modal with scrollTarget
+    openLunarCalendar2026(timestamp);
+}
+
+// Navigate from Lunas 2026 → calendar cycle containing this moon date
+function navigateToCalendarCycle(timestamp) {
+    const date = new Date(timestamp);
+    date.setHours(0,0,0,0);
+    // Close the modal
+    closeLunarCalendar2026();
+    // Find the new moon that starts the cycle containing this date
+    const nearNewMoon = findNearestNewMoon(date);
+    currentCycleStart = nearNewMoon;
+    renderCalendar();
+    // Scroll to the day cell after rendering
+    setTimeout(() => {
+        const dayCell = document.querySelector(`.day-cell[data-date="${date.getTime()}"]`);
+        if (dayCell) {
+            dayCell.scrollIntoView({behavior:'smooth', block:'center'});
+            dayCell.style.animation = 'pulseGold 1.5s ease-in-out 2';
+        }
+    }, 200);
+}
+
+function openLunarCalendar2026(scrollToTimestamp) {
     const modal = document.getElementById('lunarCal2026Modal');
     const body  = document.getElementById('lunarCal2026Body');
     if (!modal || !body) return;
@@ -7122,11 +7380,11 @@ function openLunarCalendar2026() {
             const prevLabel = ev.type === 'new' ? (currentLang==='es'?'🌕 Luna Llena anterior en este signo':'🌕 Previous Full Moon in this sign') : (currentLang==='es'?'🌑 Luna Nueva anterior en este signo':'🌑 Previous New Moon in this sign');
             const nextLabel = ev.type === 'new' ? (currentLang==='es'?'🌕 Luna Llena siguiente en este signo':'🌕 Next Full Moon in this sign') : (currentLang==='es'?'🌑 Luna Nueva siguiente en este signo':'🌑 Next New Moon in this sign');
 
-            html += `<div style="padding:8px 10px;border-radius:10px;background:rgba(201,168,64,${currMonth?'0.13':past?'0.03':'0.07'});border:${border};${glow}${opacity}">
+            html += `<div data-moon-card="${ev.date.getTime()}" style="padding:8px 10px;border-radius:10px;background:rgba(201,168,64,${currMonth?'0.13':past?'0.03':'0.07'});border:${border};${glow}${opacity}">
 
-                <!-- Fila principal: icono + info + botón -->
+                <!-- Fila principal: icono + info + botones -->
                 <div style="display:flex;align-items:center;gap:8px;">
-                    
+
                     <!-- Icono fase -->
                     <div style="flex-shrink:0;">${getMoonSVG(ev.phase, 26)}</div>
 
@@ -7141,6 +7399,9 @@ function openLunarCalendar2026() {
                         </div>
                     </div>
 
+                    <!-- Botón Ir al calendario -->
+                    <button onclick="navigateToCalendarCycle(${ev.date.getTime()})"
+                        style="flex-shrink:0;background:linear-gradient(135deg,rgba(78,205,196,0.20),rgba(78,205,196,0.06));border:1px solid rgba(78,205,196,0.38);border-radius:7px;color:#4ecdc4;padding:5px 10px;cursor:pointer;font-size:0.68em;font-weight:600;white-space:nowrap;">📅 ${currentLang==='es'?'Ir al ciclo':'Go to cycle'}</button>
                     <!-- Botón Ver más -->
                     <button data-moon-action="vermas" data-moon-ts="${ev.date.getTime()}"
                         style="flex-shrink:0;background:linear-gradient(135deg,rgba(201,168,64,0.22),rgba(201,168,64,0.08));border:1px solid rgba(201,168,64,0.42);border-radius:7px;color:#e8c84a;padding:5px 14px;cursor:pointer;font-size:0.72em;font-weight:700;white-space:nowrap;letter-spacing:0.3px;">🔍 ${currentLang==='es'?'Ver más':'See more'}</button>
@@ -7156,6 +7417,31 @@ function openLunarCalendar2026() {
     html += `</div>`;
     body.innerHTML = html;
     modal.classList.add('show');
+
+    // If called with a timestamp, scroll to that moon card
+    if (scrollToTimestamp) {
+        setTimeout(() => {
+            const card = body.querySelector(`[data-moon-card="${scrollToTimestamp}"]`);
+            if (card) {
+                card.scrollIntoView({behavior:'smooth', block:'center'});
+                card.style.animation = 'pulseGold 1.5s ease-in-out 2';
+            } else {
+                // Try matching by date (same day, different time)
+                const targetDate = new Date(scrollToTimestamp);
+                targetDate.setHours(0,0,0,0);
+                const allCards = body.querySelectorAll('[data-moon-card]');
+                for (const c of allCards) {
+                    const cardDate = new Date(parseInt(c.dataset.moonCard));
+                    cardDate.setHours(0,0,0,0);
+                    if (cardDate.getTime() === targetDate.getTime()) {
+                        c.scrollIntoView({behavior:'smooth', block:'center'});
+                        c.style.animation = 'pulseGold 1.5s ease-in-out 2';
+                        break;
+                    }
+                }
+            }
+        }, 300);
+    }
 }
 
 function closeLunarCalendar2026() {
@@ -7386,6 +7672,28 @@ if ('serviceWorker' in navigator) {
             </div>
         </div>
     </div>
+    <!-- Modal: Preferencias -->
+    <div id="preferencesModal" class="modal" style="z-index:1200;" onclick="if(event.target===this)closePreferencesModal()">
+        <div class="modal-content" style="max-width:440px;">
+            <div class="modal-header">
+                <h2 id="prefModalTitle">⚙️ Preferencias</h2>
+                <span class="close" onclick="closePreferencesModal()">×</span>
+            </div>
+            <div id="preferencesBody" style="padding:10px 0;"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Historial de Notificaciones -->
+    <div id="notifHistoryModal" class="modal" style="z-index:1250;" onclick="if(event.target===this)closeNotifHistoryModal()">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h2 id="notifHistoryTitle">🔔 Notificaciones</h2>
+                <span class="close" onclick="closeNotifHistoryModal()">×</span>
+            </div>
+            <div id="notifHistoryBody" style="padding:10px 0;"></div>
+        </div>
+    </div>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
