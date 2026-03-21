@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v137';
+        var REQUIRED_VER = 'v138';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -697,9 +697,6 @@
             </button>
             <button onclick="selectDayOption('diario')" style="width: 100%; padding: 15px; margin-bottom: 10px; background: #9b59b6; border: none; border-radius: 8px; color: white; font-size: 1em; cursor: pointer; transition: all 0.2s;">
                 📝 Diario Personal y Reflexiones
-            </button>
-            <button id="astroOptionBtn" onclick="selectDayOption('astronomia')" style="width: 100%; padding: 15px; margin-bottom: 10px; background: linear-gradient(135deg, #0288D1, #01579B); border: 2px solid #4FC3F7; border-radius: 8px; color: white; font-size: 1em; cursor: pointer; transition: all 0.2s; font-weight: bold;">
-                🌊🌙 Info Lunar
             </button>
             <button onclick="closeDayOptionsModal()" style="width: 100%; padding: 15px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: white; font-size: 1em; cursor: pointer; transition: all 0.2s;">
                 ❌ Cancelar
@@ -10422,7 +10419,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v137';
+const APP_VERSION = 'v138';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
