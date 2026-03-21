@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v126';
+        var REQUIRED_VER = 'v127';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -360,12 +360,12 @@
         .tide-bar { display: inline-block; height: 8px; border-radius: 2px; min-width: 3px; vertical-align: middle; }
         .astro-btn { width: 100%; padding: 14px; margin-bottom: 10px; background: linear-gradient(135deg, rgba(74,158,255,0.20) 0%, rgba(74,158,255,0.08) 100%); border: 1px solid var(--blue-border); border-radius: 9px; color: var(--blue-bright); font-size: 1em; cursor: pointer; transition: all 0.2s; font-family: inherit; }
         .astro-btn:hover { transform: scale(1.02); filter: brightness(1.15); }
-        .astro-card { background: rgba(5,7,30,0.95); border: 1px solid var(--blue-border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; min-height: 120px; display: flex; flex-direction: column; }
+        .astro-card { background: rgba(5,7,30,0.95); border: 1px solid var(--blue-border); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; min-height: 120px; display: flex; flex-direction: column; text-align: center; align-items: center; }
         .astro-info-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; align-items:stretch; }
-        .astro-card h4 { font-family: 'Cinzel', serif; color: var(--blue-bright); font-size: 0.68em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.8px; }
-        .astro-value { font-size: 1.15em; font-weight: bold; margin-bottom: 3px; color: #e8f4ff; }
-        .astro-label { font-size: 0.70em; color: rgba(136,153,204,0.55); line-height:1.3; }
-        .astro-bar-bg { height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+        .astro-card h4 { font-family: 'Cinzel', serif; color: var(--blue-bright); font-size: 0.68em; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.8px; text-align: center; }
+        .astro-value { font-size: 1.15em; font-weight: bold; margin-bottom: 3px; color: #e8f4ff; text-align: center; }
+        .astro-label { font-size: 0.70em; color: rgba(136,153,204,0.55); line-height:1.3; text-align: center; }
+        .astro-bar-bg { height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; margin-top: 6px; overflow: hidden; width: 100%; }
         .astro-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
         .tide-curve-container { margin-top: 7px; }
         .zenith-badge { display: inline-block; background: rgba(74,158,255,0.15); border: 1px solid var(--blue-border); color: var(--blue-bright); padding: 2px 8px; border-radius: 12px; font-size: 0.78em; animation: pulseZenith 2s ease-in-out infinite; }
@@ -10380,7 +10380,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v126';
+const APP_VERSION = 'v127';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
