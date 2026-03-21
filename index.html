@@ -348,7 +348,7 @@
         .gregorian-header-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 10px; }
         .gregorian-day-header { text-align: center; font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.82em; letter-spacing: 0.8px; padding: 9px; background: rgba(6,8,38,0.95); border: 1px solid var(--blue-border); border-radius: 8px; color: var(--blue-bright); }
         .gregorian-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
-        .gregorian-day-cell { min-height: 82px; background: rgba(4,6,28,0.95); border: 1px solid rgba(74,158,255,0.10); border-radius: 9px; padding: 8px; cursor: pointer; transition: all 0.3s; overflow-y: auto; }
+        .gregorian-day-cell { min-height: 82px; background: rgba(4,6,28,0.95); border: 1px solid rgba(74,158,255,0.10); border-radius: 9px; padding: 8px; cursor: pointer; transition: all 0.3s; overflow: visible; }
         .gregorian-day-cell:hover { background: rgba(10,14,50,0.98); border-color: var(--blue-border); }
         .gregorian-day-cell.empty { background: transparent; cursor: default; }
         .gregorian-day-cell.weekend { background: rgba(7,9,36,0.95); border-color: rgba(201,168,64,0.12); }
@@ -441,9 +441,13 @@
             body.solar-mode .lunar-week { min-width: 800px; }
             body.solar-mode .lunar-week > div:not(.week-header) { display: grid !important; grid-template-columns: repeat(10, 1fr) !important; }
             body.solar-mode .day-cell { min-width: 75px; min-height: 70px; }
-            .gregorian-day-cell { min-height: 65px; padding: 4px; }
+            /* Gregorian mobile: horizontally scrollable with larger cells */
+            body.gregorian-mode .gregorian-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            body.gregorian-mode .gregorian-header-row { min-width: 750px; }
+            body.gregorian-mode .gregorian-days-grid { min-width: 750px; }
+            .gregorian-day-cell { min-height: 100px; min-width: 100px; padding: 6px; overflow: visible; }
             .greg-day-number { font-size: 1em; }
-            .greg-event { font-size: 0.53em; padding: 2px 3px; }
+            .greg-event { font-size: 0.6em; padding: 2px 3px; white-space: nowrap; }
             
             /* ── Ver más modal: always 3 cols, scroll if needed ── */
             .vermas-cols {
@@ -5476,30 +5480,26 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
     const uLon = userLon || ASTRO_USER_LON || -84;
     const cityLabel = (ASTRO_USER_NAME || 'Tu ubicación').split(',')[0];
 
-    // Trajectory ±13h every 15min — full map coverage (~25h = full lunar orbit in longitude)
+    // Trajectory: future only, stop at map edge (no wrapping)
     const now = new Date();
-    const allPts = [];
-    for (let m = -780; m <= 780; m += 15) {
+    const futurePts = [];
+    let prevLon = lonDeg;
+    for (let m = 0; m <= 780; m += 10) {
         const t = new Date(now.getTime() + m * 60000);
         const a = getAstroData(t);
-        allPts.push({ lon: getSublunaryLonDeg(t), lat: parseFloat(a.sublunarLat), past: m < 0 });
+        const pLon = getSublunaryLonDeg(t);
+        // Stop if longitude wraps around (jump > 200°)
+        if (futurePts.length > 0 && Math.abs(pLon - prevLon) > 200) break;
+        futurePts.push({ lon: pLon, lat: parseFloat(a.sublunarLat) });
+        prevLon = pLon;
     }
-    function buildSegs(pts) {
-        const segs = []; let seg = [];
-        pts.forEach((p, i) => {
-            if (i > 0 && Math.abs(p.lon - pts[i-1].lon) > 200) { segs.push(seg); seg = []; }
-            seg.push(mx(p.lon).toFixed(1) + ',' + my(p.lat).toFixed(1));
-        });
-        segs.push(seg);
-        return segs.filter(s => s.length > 1);
-    }
-    const leadSVG = buildSegs(allPts.filter(p => !p.past)).map(s =>
-        '<polyline points="' + s.join(' ') + '" fill="none" stroke="rgba(201,168,64,0.6)" stroke-width="2" stroke-dasharray="8,4" stroke-linecap="round"/>').join('');
-    const lp = allPts.filter(p => !p.past);
+    const leadPts = futurePts.map(p => mx(p.lon).toFixed(1) + ',' + my(p.lat).toFixed(1));
+    const leadSVG = leadPts.length > 1 ? '<polyline points="' + leadPts.join(' ') + '" fill="none" stroke="rgba(201,168,64,0.6)" stroke-width="2" stroke-dasharray="8,4" stroke-linecap="round"/>' : '';
     let arrow = '';
-    if (lp.length >= 4) {
-        const ax = mx(lp[lp.length-1].lon), ay = my(lp[lp.length-1].lat);
-        const ang = Math.atan2(my(lp[lp.length-1].lat)-my(lp[lp.length-4].lat), mx(lp[lp.length-1].lon)-mx(lp[lp.length-4].lon))*180/Math.PI;
+    if (futurePts.length >= 4) {
+        const last = futurePts[futurePts.length-1], prev = futurePts[futurePts.length-4];
+        const ax = mx(last.lon), ay = my(last.lat);
+        const ang = Math.atan2(my(last.lat)-my(prev.lat), mx(last.lon)-mx(prev.lon))*180/Math.PI;
         arrow = '<polygon points="-9,-4 0,0 -9,4" fill="rgba(201,168,64,0.9)" transform="translate(' + ax.toFixed(1) + ',' + ay.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')"/>';
     }
     const px = mx(lonDeg), py = my(lat);
