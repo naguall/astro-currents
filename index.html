@@ -1291,6 +1291,54 @@ function getMoonDeclination(date) {
     return Math.asin(Math.sin(lat*DR)*Math.cos(obliq*DR) + Math.cos(lat*DR)*Math.sin(obliq*DR)*Math.sin(lng*DR)) / DR;
 }
 
+// Moon altitude for a given date/time at observer lat/lon
+function getMoonAltitude(date, obsLat, obsLon) {
+    const DR = Math.PI / 180;
+    const dec = getMoonDeclination(date) * DR;
+    // Approximate moon right ascension from ecliptic longitude
+    const jd = astroJD(date);
+    const T = (jd - 2451545.0) / 36525;
+    const L0 = ((218.3164477 + 481267.88123421*T)%360+360)%360;
+    const Mp = ((134.9633964 + 477198.8675055*T)%360+360)%360;
+    const D = ((297.8501921 + 445267.1114034*T)%360+360)%360;
+    const M = ((357.5291092 + 35999.0502909*T)%360+360)%360;
+    const F = ((93.272095 + 483202.0175233*T)%360+360)%360;
+    const lng = L0 + 6.289*Math.sin(Mp*DR) + 1.274*Math.sin((2*D-Mp)*DR) + 0.658*Math.sin(2*D*DR) + 0.214*Math.sin(2*Mp*DR) - 0.186*Math.sin(M*DR);
+    const lat = 5.128*Math.sin(F*DR) + 0.2806*Math.sin((Mp+F)*DR) + 0.2777*Math.sin((Mp-F)*DR);
+    const obliq = (23.4393 - 0.01300*T) * DR;
+    const ra = Math.atan2(Math.sin(lng*DR)*Math.cos(obliq) - Math.tan(lat*DR)*Math.sin(obliq), Math.cos(lng*DR));
+    // Local sidereal time
+    const gmst = ((280.46061837 + 360.98564736629*(jd-2451545.0))%360+360)%360;
+    const lst = (gmst + obsLon) * DR;
+    const ha = lst - ra;
+    const alt = Math.asin(Math.sin(obsLat*DR)*Math.sin(dec) + Math.cos(obsLat*DR)*Math.cos(dec)*Math.cos(ha));
+    return alt / DR;
+}
+
+// Find moonrise and moonset for a given date at observer location
+function getMoonRiseSet(date, obsLat, obsLon) {
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    let riseTime = null, setTime = null;
+    let prevAlt = getMoonAltitude(day, obsLat, obsLon);
+    // Scan every 5 minutes through 30 hours (moon can rise/set late)
+    for (let m = 5; m <= 1800; m += 5) {
+        const t = new Date(day.getTime() + m * 60000);
+        const alt = getMoonAltitude(t, obsLat, obsLon);
+        if (prevAlt <= -0.5 && alt > -0.5 && !riseTime) {
+            // Interpolate
+            const frac = (0 - prevAlt) / (alt - prevAlt);
+            riseTime = new Date(day.getTime() + (m - 5 + frac * 5) * 60000);
+        }
+        if (prevAlt > -0.5 && alt <= -0.5 && !setTime && riseTime) {
+            const frac = (0 - prevAlt) / (alt - prevAlt);
+            setTime = new Date(day.getTime() + (m - 5 + frac * 5) * 60000);
+        }
+        if (riseTime && setTime) break;
+        prevAlt = alt;
+    }
+    return { rise: riseTime, set: setTime };
+}
+
 function getTideStrength(date) {
     const phaseAngle = calculateLunarPhase(date);
     const dist = getMoonDistance(date);
@@ -5574,10 +5622,18 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
         + '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="4" fill="white"/>'
         + '<text x="'+(px+12).toFixed(0)+'" y="'+(py-10).toFixed(0)+'" fill="#e8c84a" font-size="10" font-family="monospace" font-weight="bold">'+lat.toFixed(1)+'°'+(lat>=0?'N':'S')+' '+Math.abs(lonDeg).toFixed(1)+'°'+(lonDeg>=0?'E':'W')+'</text>'
         + '</svg>'
-        + '<div style="margin-top:10px;padding:8px 12px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;">'
-        + '<div style="font-size:1.3em;font-weight:bold;color:#4ecdc4;margin-bottom:4px;">' + cityLabel + ' ↔ ' + (currentLang==='es'?'Sublunar':'Sublunar') + ': ' + Math.round(distToUser).toLocaleString() + ' km</div>'
-        + '<div style="font-size:1.3em;font-weight:bold;color:#c9a840;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</div>'
-        + '</div>';
+        + (function() {
+            const mrs = getMoonRiseSet(now, uLat, uLon);
+            const timeFmt = {hour:'2-digit',minute:'2-digit'};
+            const locale = currentLang==='es'?'es':'en';
+            const riseStr = mrs.rise ? mrs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
+            const setStr = mrs.set ? mrs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
+            return '<div style="margin-top:10px;padding:10px 14px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;">'
+            + '<div style="font-size:1.3em;font-weight:bold;color:#4ecdc4;margin-bottom:4px;">' + cityLabel + ' ↔ ' + (currentLang==='es'?'Sublunar':'Sublunar') + ': ' + Math.round(distToUser).toLocaleString() + ' km</div>'
+            + '<div style="font-size:1.3em;font-weight:bold;color:#c9a840;margin-bottom:4px;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</div>'
+            + '<div style="font-size:1.15em;color:rgba(200,215,255,0.8);margin-top:4px;">🌙↑ ' + riseStr + '  &nbsp;  🌙↓ ' + setStr + '</div>'
+            + '</div>';
+        })();
 }
 
 // ── 3D Globe ─────────────────────────────────────────────────
