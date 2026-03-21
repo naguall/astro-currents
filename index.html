@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v132';
+        var REQUIRED_VER = 'v133';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -5427,11 +5427,11 @@ function renderEarthInfoPanel() {
         </div>
 
         <!-- Actividad Sísmica -->
-        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(255,107,107,0.25);border-radius:10px;border-top:2px solid rgba(255,107,107,0.5);">
-            <div style="font-family:'Cinzel',serif;color:#ff6b6b;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
+        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(255,107,107,0.25);border-radius:10px;border-top:2px solid rgba(255,107,107,0.5);max-height:400px;overflow-y:scroll;-webkit-overflow-scrolling:touch;">
+            <div style="font-family:'Cinzel',serif;color:#ff6b6b;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;position:sticky;top:0;background:rgba(5,7,30,0.98);padding-bottom:6px;z-index:1;">
                 🌋 ${currentLang==='es'?'Actividad Sísmica — Últimas 24 Horas':'Seismic Activity — Last 24 Hours'}
             </div>
-            <div id="earthSeismicData" style="text-align:center;color:rgba(255,107,107,0.5);padding:10px;font-size:0.8em;">
+            <div id="earthSeismicData" style="text-align:center;color:rgba(255,107,107,0.5);font-size:0.8em;">
                 ${currentLang==='es'?'Cargando datos sísmicos...':'Loading seismic data...'}
             </div>
         </div>
@@ -10382,7 +10382,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v132';
+const APP_VERSION = 'v133';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
