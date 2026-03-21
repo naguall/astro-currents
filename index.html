@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v133';
+        var REQUIRED_VER = 'v134';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -5624,6 +5624,7 @@ function fetchEarthquakes(lat, lon, containerId) {
             const agoStr = ago < 60
                 ? ago + (currentLang==='es'?' min':' min')
                 : Math.round(ago / 60) + (currentLang==='es'?' h':' h');
+            const timeStr = q.time.getHours().toString().padStart(2,'0') + ':' + q.time.getMinutes().toString().padStart(2,'0');
             const distStr = q.dist < 100 ? q.dist.toFixed(0) + ' km' : (q.dist / 1000).toFixed(1) + 'k km';
 
             html += '<div style="display:grid;grid-template-columns:42px 1fr auto;gap:6px;align-items:center;padding:4px 6px;background:' + magBg(q.mag) + ';border-radius:6px;border-left:3px solid ' + magColor(q.mag) + ';">'
@@ -5635,7 +5636,10 @@ function fetchEarthquakes(lat, lon, containerId) {
                 + '<div style="font-size:0.7em;color:rgba(255,255,255,0.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (q.place || 'Unknown') + '</div>'
                 + '<div style="font-size:0.6em;color:rgba(255,255,255,0.35);">📍 ' + distStr + ' ' + (currentLang==='es'?'de ti':'from you') + '</div>'
                 + '</div>'
-                + '<div style="text-align:right;font-size:0.62em;color:rgba(255,255,255,0.35);white-space:nowrap;">' + agoStr + ' ' + (currentLang==='es'?'atrás':'ago') + '</div>'
+                + '<div style="text-align:right;white-space:nowrap;">'
+                + '<div style="font-size:0.7em;color:rgba(255,255,255,0.5);font-weight:600;">🕐 ' + timeStr + '</div>'
+                + '<div style="font-size:0.55em;color:rgba(255,255,255,0.3);">' + agoStr + ' ' + (currentLang==='es'?'atrás':'ago') + '</div>'
+                + '</div>'
                 + '</div>';
         });
         html += '</div>';
@@ -9534,8 +9538,8 @@ function openPreferencesModal() {
                     style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,165,0,0.2),rgba(255,165,0,0.05));border:1px solid rgba(255,165,0,0.45);border-radius:8px;color:#ffb347;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
                     🔄 ${currentLang==='es'?'Forzar Actualización':'Force Update'}
                 </button>
-                <div style="margin-top:8px;font-size:0.7em;color:rgba(255,255,255,0.3);text-align:center;">
-                    v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?'}
+                <div style="margin-top:12px;font-size:0.85em;color:#7ec8ff;text-align:center;font-weight:600;padding:6px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:8px;">
+                    🌙 Moon Sync ${typeof APP_VERSION !== 'undefined' ? APP_VERSION : '?'}
                 </div>
             </div>
         </div>
@@ -10382,7 +10386,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v133';
+const APP_VERSION = 'v134';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
