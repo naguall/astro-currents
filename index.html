@@ -5476,10 +5476,10 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
     const uLon = userLon || ASTRO_USER_LON || -84;
     const cityLabel = (ASTRO_USER_NAME || 'Tu ubicación').split(',')[0];
 
-    // Trajectory ±6h every 60min
+    // Trajectory ±6h every 20min for smooth lines
     const now = new Date();
     const allPts = [];
-    for (let m = -360; m <= 360; m += 60) {
+    for (let m = -360; m <= 360; m += 20) {
         const t = new Date(now.getTime() + m * 60000);
         const a = getAstroData(t);
         allPts.push({ lon: getSublunaryLonDeg(t), lat: parseFloat(a.sublunarLat), past: m < 0 });
@@ -5494,9 +5494,9 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
         return segs.filter(s => s.length > 1);
     }
     const trailSVG = buildSegs(allPts.filter(p => p.past)).map(s =>
-        '<polyline points="' + s.join(' ') + '" fill="none" stroke="rgba(126,200,255,0.4)" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round"/>').join('');
+        '<polyline points="' + s.join(' ') + '" fill="none" stroke="rgba(126,200,255,0.45)" stroke-width="2" stroke-dasharray="6,4" stroke-linecap="round"/>').join('');
     const leadSVG = buildSegs(allPts.filter(p => !p.past)).map(s =>
-        '<polyline points="' + s.join(' ') + '" fill="none" stroke="rgba(126,200,255,0.4)" stroke-width="1.5" stroke-dasharray="6,3" stroke-linecap="round"/>').join('');
+        '<polyline points="' + s.join(' ') + '" fill="none" stroke="rgba(201,168,64,0.6)" stroke-width="2" stroke-dasharray="8,4" stroke-linecap="round"/>').join('');
     const lp = allPts.filter(p => !p.past);
     let arrow = '';
     if (lp.length >= 4) {
@@ -5576,13 +5576,13 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
         + '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="4" fill="white"/>'
         + '<text x="'+(px+12).toFixed(0)+'" y="'+(py-10).toFixed(0)+'" fill="#e8c84a" font-size="10" font-family="monospace" font-weight="bold">'+lat.toFixed(1)+'°'+(lat>=0?'N':'S')+' '+Math.abs(lonDeg).toFixed(1)+'°'+(lonDeg>=0?'E':'W')+'</text>'
         // Legend
-        + '<line x1="8" y1="'+(H-8)+'" x2="28" y2="'+(H-8)+'" stroke="rgba(126,200,255,0.5)" stroke-width="2" stroke-dasharray="4,3"/>'
-        + '<text x="32" y="'+(H-4)+'" fill="rgba(255,255,255,0.38)" font-size="8" font-family="monospace">pasado</text>'
-        + '<line x1="80" y1="'+(H-8)+'" x2="100" y2="'+(H-8)+'" stroke="rgba(201,168,64,0.65)" stroke-width="2" stroke-dasharray="6,3"/>'
-        + '<text x="104" y="'+(H-4)+'" fill="rgba(255,255,255,0.38)" font-size="8" font-family="monospace">futuro</text>'
+        + '<line x1="8" y1="'+(H-8)+'" x2="28" y2="'+(H-8)+'" stroke="rgba(126,200,255,0.5)" stroke-width="2" stroke-dasharray="6,4"/>'
+        + '<text x="32" y="'+(H-4)+'" fill="rgba(255,255,255,0.38)" font-size="8" font-family="monospace">'+(currentLang==='es'?'pasado':'past')+'</text>'
+        + '<line x1="80" y1="'+(H-8)+'" x2="100" y2="'+(H-8)+'" stroke="rgba(201,168,64,0.65)" stroke-width="2" stroke-dasharray="8,4"/>'
+        + '<text x="104" y="'+(H-4)+'" fill="rgba(255,255,255,0.38)" font-size="8" font-family="monospace">'+(currentLang==='es'?'futuro':'future')+'</text>'
         // Distance info
-        + '<text x="' + (W-8) + '" y="' + (H-18) + '" fill="#4ecdc4" font-size="9" font-family="monospace" text-anchor="end">' + cityLabel + ' ↔ ' + (currentLang==='es'?'Sublunar':'Sublunar') + ': ' + Math.round(distToUser).toLocaleString() + ' km</text>'
-        + '<text x="' + (W-8) + '" y="' + (H-6) + '" fill="#c9a840" font-size="9" font-family="monospace" text-anchor="end">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</text>'
+        + '<text x="' + (W-8) + '" y="' + (H-36) + '" fill="#4ecdc4" font-size="18" font-family="monospace" font-weight="bold" text-anchor="end">' + cityLabel + ' ↔ ' + (currentLang==='es'?'Sublunar':'Sublunar') + ': ' + Math.round(distToUser).toLocaleString() + ' km</text>'
+        + '<text x="' + (W-8) + '" y="' + (H-12) + '" fill="#c9a840" font-size="18" font-family="monospace" font-weight="bold" text-anchor="end">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</text>'
         + '</svg>';
 }
 
