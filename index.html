@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v155';
+        var REQUIRED_VER = 'v156';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -431,6 +431,14 @@
         /* Personal mode */
         body.personal-mode { background: radial-gradient(ellipse 70% 50% at 20% 15%, rgba(60,0,80,0.55) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 80% 80%, rgba(40,0,90,0.50) 0%, transparent 55%), linear-gradient(170deg, #0a0020 0%, #120030 40%, #0a0020 100%); }
         body.personal-mode h1 { background: linear-gradient(135deg, #9b59b6 0%, #e8c84a 50%, #c39bd3 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .profile-selector-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding: 6px; background: rgba(10,3,22,0.7); border-radius: 10px; border: 1px solid rgba(155,89,182,0.15); }
+        .profile-tab { display: flex; align-items: center; gap: 4px; padding: 7px 14px; border-radius: 8px; font-size: 0.82em; color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.2s; background: rgba(155,89,182,0.08); border: 1px solid rgba(155,89,182,0.15); }
+        .profile-tab:hover { background: rgba(155,89,182,0.15); color: rgba(255,255,255,0.7); }
+        .profile-tab.active { background: rgba(155,89,182,0.25); border-color: rgba(155,89,182,0.5); color: #c39bd3; font-weight: 600; }
+        .profile-tab.add-profile { background: rgba(78,205,196,0.08); border-color: rgba(78,205,196,0.2); color: rgba(78,205,196,0.6); font-size: 1.1em; padding: 5px 12px; }
+        .profile-tab.add-profile:hover { background: rgba(78,205,196,0.15); color: #4ecdc4; }
+        .profile-delete-btn { font-size: 1em; color: rgba(255,255,255,0.25); margin-left: 4px; padding: 0 2px; line-height: 1; }
+        .profile-delete-btn:hover { color: #e74c3c; }
         .personal-natal-card { background: rgba(15,5,30,0.95); border: 1px solid rgba(155,89,182,0.25); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
         .personal-natal-card h3 { font-family: 'Cinzel', serif; font-size: 0.95em; color: #c39bd3; margin-bottom: 10px; }
         .natal-planet-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(155,89,182,0.10); font-size: 0.82em; }
@@ -655,7 +663,7 @@
 
         <div id="lunarInfoBanner" style="display:none; margin-bottom: 6px;"></div>
 
-        <div class="legend">
+        <div class="legend" id="planetaryAspectsSection">
             <h3 id="planetaryAspectsTitle">🪐 Aspectos Planetarios 2026</h3>
             <p id="planetaryAspectsSubtitle" style="font-size: 0.9em; color: #a8b2d1; margin-bottom: 15px;">
                 Haz click en un planeta para ver todos sus aspectos durante el año
@@ -6970,7 +6978,11 @@ function switchToLunarMode() {
     // Show lunar calendar
     const lunarWeeks = document.getElementById('lunarWeeks');
     if (lunarWeeks) lunarWeeks.style.display = 'block';
-    
+
+    // Restore planetary aspects section (only visible in lunar mode)
+    const pas = document.getElementById('planetaryAspectsSection');
+    if (pas) pas.style.display = '';
+
     // Hide solar calendar
     const solarWeeks = document.getElementById('solarWeeks');
     if (solarWeeks) solarWeeks.style.display = 'none';
@@ -8241,19 +8253,141 @@ function calculateTransitsToNatal(transitDate, natalChart) {
     });
 }
 
-// --- Birth Data Storage ---
-function getNatalData() {
-    const data = localStorage.getItem('natalData');
-    if (!data) return null;
+// --- Multi-Profile Birth Data Storage ---
+function getNatalProfiles() {
     try {
-        return JSON.parse(data);
-    } catch(e) { return null; }
+        const raw = localStorage.getItem('natalProfiles');
+        if (raw) return JSON.parse(raw);
+    } catch(e) {}
+    // Migration: convert old single-profile data to profiles array
+    const old = localStorage.getItem('natalData');
+    if (old) {
+        try {
+            const d = JSON.parse(old);
+            const profile = { id: 'profile_1', name: d.cityName || 'Mi Carta', ...d };
+            const profiles = [profile];
+            localStorage.setItem('natalProfiles', JSON.stringify(profiles));
+            localStorage.setItem('activeProfileId', 'profile_1');
+            // Migrate chart too
+            const oldChart = localStorage.getItem('natalChart');
+            if (oldChart) localStorage.setItem('natalChart_profile_1', oldChart);
+            return profiles;
+        } catch(e) {}
+    }
+    return [];
+}
+
+function getActiveProfileId() {
+    return localStorage.getItem('activeProfileId') || null;
+}
+
+function setActiveProfileId(id) {
+    localStorage.setItem('activeProfileId', id);
+}
+
+function getNatalData() {
+    const profiles = getNatalProfiles();
+    if (profiles.length === 0) return null;
+    const activeId = getActiveProfileId();
+    let profile = profiles.find(p => p.id === activeId);
+    // If active profile has no date (just created), return null to show form
+    if (profile && !profile.date) return null;
+    // Fallback to first profile with a date
+    if (!profile) profile = profiles.find(p => p.date) || null;
+    if (!profile) return null;
+    if (!activeId || activeId !== profile.id) setActiveProfileId(profile.id);
+    // Set lat/lon for calculateNatalChart compatibility
+    localStorage.setItem('natalLat', profile.lat);
+    localStorage.setItem('natalLon', profile.lon);
+    return profile;
 }
 
 function saveNatalData(data) {
-    localStorage.setItem('natalData', JSON.stringify(data));
+    const profiles = getNatalProfiles();
+    const activeId = getActiveProfileId();
+    const idx = profiles.findIndex(p => p.id === activeId);
+    if (idx >= 0) {
+        profiles[idx] = { ...profiles[idx], ...data };
+    } else {
+        // New profile
+        const newId = 'profile_' + Date.now();
+        data.id = newId;
+        profiles.push(data);
+        setActiveProfileId(newId);
+    }
+    localStorage.setItem('natalProfiles', JSON.stringify(profiles));
     localStorage.setItem('natalLat', data.lat);
     localStorage.setItem('natalLon', data.lon);
+}
+
+function addNewProfile() {
+    const newId = 'profile_' + Date.now();
+    // Add empty placeholder to profiles array
+    const profiles = getNatalProfiles();
+    profiles.push({ id: newId, name: '', date: '', time: '', cityName: '', lat: 0, lon: 0, countryCode: '' });
+    localStorage.setItem('natalProfiles', JSON.stringify(profiles));
+    setActiveProfileId(newId);
+    renderPersonalSetupForm();
+}
+
+function switchProfile(id) {
+    setActiveProfileId(id);
+    const profile = getNatalData();
+    if (profile) {
+        // Load cached chart for this profile
+        const cachedChart = localStorage.getItem('natalChart_' + id);
+        if (cachedChart) {
+            localStorage.setItem('natalChart', cachedChart);
+        } else {
+            localStorage.removeItem('natalChart');
+        }
+    }
+    renderPersonalCalendar();
+}
+
+function deleteProfile(id) {
+    const L = currentLang === 'es';
+    if (!confirm(L ? '¿Eliminar este perfil?' : 'Delete this profile?')) return;
+    let profiles = getNatalProfiles();
+    profiles = profiles.filter(p => p.id !== id);
+    localStorage.setItem('natalProfiles', JSON.stringify(profiles));
+    localStorage.removeItem('natalChart_' + id);
+    if (getActiveProfileId() === id) {
+        if (profiles.length > 0) {
+            setActiveProfileId(profiles[0].id);
+            const cached = localStorage.getItem('natalChart_' + profiles[0].id);
+            if (cached) localStorage.setItem('natalChart', cached);
+            else localStorage.removeItem('natalChart');
+            renderPersonalCalendar();
+        } else {
+            localStorage.removeItem('activeProfileId');
+            localStorage.removeItem('natalChart');
+            renderPersonalSetupForm();
+        }
+    } else {
+        renderPersonalCalendar();
+    }
+}
+
+function buildProfileSelector() {
+    const L = currentLang === 'es';
+    const profiles = getNatalProfiles();
+    const activeId = getActiveProfileId();
+    if (profiles.length === 0) return '';
+
+    const tabs = profiles.map(p => {
+        const isActive = p.id === activeId;
+        const displayName = p.name || p.cityName || (L ? 'Sin nombre' : 'Unnamed');
+        return `<div class="profile-tab${isActive ? ' active' : ''}" onclick="switchProfile('${p.id}')" title="${p.cityName} · ${p.date}">
+            <span>${displayName}</span>
+            ${profiles.length > 1 ? `<span class="profile-delete-btn" onclick="event.stopPropagation();deleteProfile('${p.id}')" title="${L?'Eliminar':'Delete'}">×</span>` : ''}
+        </div>`;
+    }).join('');
+
+    return `<div class="profile-selector-bar">
+        ${tabs}
+        <div class="profile-tab add-profile" onclick="addNewProfile()" title="${L?'Agregar perfil':'Add profile'}">＋</div>
+    </div>`;
 }
 
 let personalCurrentMonth = new Date().getMonth();
@@ -8269,7 +8403,7 @@ function switchToPersonalMode() {
     document.body.classList.add('personal-mode');
 
     // Hide other panels
-    ['lunarWeeks', 'solarWeeks', 'gregorianCalendar', 'solarInfoPanel', 'earthInfoPanel', 'solarSystemPanel', 'lunarInfoBanner', 'currentDayInfo'].forEach(id => {
+    ['lunarWeeks', 'solarWeeks', 'gregorianCalendar', 'solarInfoPanel', 'earthInfoPanel', 'solarSystemPanel', 'lunarInfoBanner', 'currentDayInfo', 'planetaryAspectsSection'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -8305,19 +8439,29 @@ function renderPersonalSetupForm() {
     }
     container.style.display = 'block';
 
-    const existing = getNatalData();
+    const profiles = getNatalProfiles();
+    const activeId = getActiveProfileId();
+    // If editing existing profile, load its data; otherwise blank for new profile
+    const existing = profiles.find(p => p.id === activeId) || null;
+
+    const profileSelector = profiles.length > 0 ? buildProfileSelector() : '';
 
     container.innerHTML = `
+        ${profileSelector}
         <div class="personal-setup-form">
             <div style="text-align:center;margin-bottom:20px;">
                 <div style="font-size:2.5em;margin-bottom:8px;">🔮</div>
                 <div style="font-family:'Cinzel',serif;font-size:1.1em;color:#c39bd3;margin-bottom:6px;">
-                    ${L ? 'Tu Carta Natal' : 'Your Natal Chart'}
+                    ${existing ? (L ? 'Editar Carta Natal' : 'Edit Natal Chart') : (L ? 'Nueva Carta Natal' : 'New Natal Chart')}
                 </div>
                 <div style="font-size:0.78em;color:rgba(255,255,255,0.4);">
                     ${L ? 'Ingresa tu fecha, hora y lugar de nacimiento para calcular tu carta astral y ver los tránsitos personalizados.' : 'Enter your birth date, time, and place to calculate your natal chart and see personalized transits.'}
                 </div>
             </div>
+
+            <label>${L ? 'Nombre del perfil' : 'Profile name'}</label>
+            <input type="text" id="natalProfileName" placeholder="${L ? 'Ej: Mi Carta, Pareja, Hijo...' : 'E.g.: My Chart, Partner, Child...'}"
+                value="${existing?.name || ''}" style="margin-bottom:12px;" />
 
             <label>${L ? 'Fecha de nacimiento' : 'Birth date'}</label>
             <input type="date" id="natalBirthDate" value="${existing?.date || ''}" />
@@ -8338,14 +8482,18 @@ function renderPersonalSetupForm() {
             <input type="hidden" id="natalCityLon" value="${existing?.lon || ''}" />
             <input type="hidden" id="natalCityCountry" value="${existing?.countryCode || ''}" />
 
-            ${existing ? `
+            ${existing?.date ? `
             <div style="margin-bottom:16px;padding:10px;background:rgba(78,205,196,0.06);border:1px solid rgba(78,205,196,0.25);border-radius:8px;font-size:0.78em;color:#4ecdc4;">
-                ✓ ${L ? 'Datos guardados' : 'Data saved'}: ${existing.cityName} (${existing.date}, ${existing.time})
+                ✓ ${L ? 'Datos guardados' : 'Data saved'}: ${existing.name || existing.cityName} (${existing.date}, ${existing.time})
             </div>` : ''}
 
             <button onclick="saveNatalForm()" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(155,89,182,0.35),rgba(155,89,182,0.12));border:1px solid rgba(155,89,182,0.55);border-radius:10px;color:#c39bd3;font-size:1em;font-weight:700;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:1px;margin-top:4px;">
                 ${L ? '✨ Calcular Carta Natal' : '✨ Calculate Natal Chart'}
             </button>
+            ${profiles.length > 0 && !existing?.date ? `
+            <button onclick="renderPersonalCalendar()" style="width:100%;padding:10px;background:none;border:1px solid rgba(155,89,182,0.25);border-radius:10px;color:rgba(155,89,182,0.5);font-size:0.85em;cursor:pointer;margin-top:8px;">
+                ${L ? '← Volver al calendario' : '← Back to calendar'}
+            </button>` : ''}
         </div>
     `;
 }
@@ -8402,13 +8550,21 @@ function saveNatalForm() {
         return;
     }
 
-    const data = { date, time, cityName, lat: parseFloat(lat), lon: parseFloat(lon), countryCode };
+    const profileName = document.getElementById('natalProfileName')?.value || cityName || (L ? 'Mi Carta' : 'My Chart');
+    const activeId = getActiveProfileId() || ('profile_' + Date.now());
+    const data = { id: activeId, name: profileName, date, time, cityName, lat: parseFloat(lat), lon: parseFloat(lon), countryCode };
+
+    // Ensure activeProfileId is set
+    if (!getActiveProfileId()) setActiveProfileId(activeId);
+
     saveNatalData(data);
 
     // Calculate natal chart
     const birthUTC = getBirthUTCTime(date, time, data.lat, data.lon, countryCode);
     const chart = calculateNatalChart(birthUTC);
     localStorage.setItem('natalChart', JSON.stringify(chart));
+    // Also save per-profile chart cache
+    localStorage.setItem('natalChart_' + activeId, JSON.stringify(chart));
 
     renderPersonalCalendar();
 }
@@ -8421,8 +8577,10 @@ function renderPersonalCalendar() {
     const L = currentLang === 'es';
     const birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
     let natalChart;
+    // Try profile-specific chart first, then fallback to global
     try {
-        natalChart = JSON.parse(localStorage.getItem('natalChart'));
+        const profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     if (!natalChart) {
         natalChart = calculateNatalChart(birthUTC);
@@ -8482,9 +8640,12 @@ function renderPersonalCalendar() {
     startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Mon=0
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    const profileDisplayName = natal.name || natal.cityName || (L ? 'Mi Carta' : 'My Chart');
+
     let calendarHTML = `
+        ${buildProfileSelector()}
         <div class="personal-natal-card">
-            <h3>🔮 ${L ? 'Tu Carta Natal' : 'Your Natal Chart'}</h3>
+            <h3>🔮 ${profileDisplayName} — ${L ? 'Carta Natal' : 'Natal Chart'}</h3>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:0.82em;">
                 <div><span style="color:rgba(255,255,255,0.4);">☉ ${L?'Sol':'Sun'}:</span> <span class="natal-planet-sign">${sunSign}</span></div>
                 <div><span style="color:rgba(255,255,255,0.4);">☽ ${L?'Luna':'Moon'}:</span> <span class="natal-planet-sign">${moonSign}</span></div>
@@ -8504,7 +8665,10 @@ function renderPersonalCalendar() {
                     `).join('')}
                 </div>
             </details>
-            <div style="margin-top:6px;text-align:right;">
+            <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                <button onclick="copyNatalChartForAI()" style="background:none;border:1px solid rgba(78,205,196,0.3);border-radius:6px;padding:4px 10px;color:rgba(78,205,196,0.6);font-size:0.72em;cursor:pointer;" title="${L ? 'Copiar carta natal como texto para interpretar con IA' : 'Copy natal chart as text for AI interpretation'}">
+                    📋 ${L ? 'Copiar para IA' : 'Copy for AI'}
+                </button>
                 <button onclick="renderPersonalSetupForm()" style="background:none;border:1px solid rgba(155,89,182,0.3);border-radius:6px;padding:4px 10px;color:rgba(155,89,182,0.6);font-size:0.72em;cursor:pointer;">
                     ✏️ ${L ? 'Editar datos' : 'Edit data'}
                 </button>
@@ -8616,6 +8780,79 @@ function personalPrevMonth() {
     renderPersonalCalendar();
 }
 
+function copyNatalChartForAI() {
+    const L = currentLang === 'es';
+    const natal = getNatalData();
+    if (!natal) return;
+
+    let natalChart;
+    try {
+        const profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+
+    const today = new Date();
+    const todayTransits = calculateTransitsToNatal(today, natalChart);
+
+    let text = `CARTA NATAL — ${natal.name || natal.cityName}\n`;
+    text += `Nacimiento: ${natal.date}, ${natal.time} — ${natal.cityName}\n`;
+    text += `Lat: ${natal.lat}, Lon: ${natal.lon}\n`;
+    text += `\n--- PLANETAS NATALES ---\n`;
+
+    Object.entries(natalChart.planets).forEach(([p, data]) => {
+        const house = natalChart.houses ? getHouseForLongitude(data.longitude, natalChart.houses.cusps) : '?';
+        text += `${(planetNames[p] || p)}: ${data.formatted} (${data.longitude.toFixed(2)}°) — Casa ${house}\n`;
+    });
+
+    if (natalChart.houses) {
+        text += `\nASC: ${natalChart.houses.ascFormatted} (${natalChart.houses.asc.toFixed(2)}°)\n`;
+        text += `MC: ${natalChart.houses.mcFormatted} (${natalChart.houses.mc.toFixed(2)}°)\n`;
+        text += `\n--- CÚSPIDES DE CASAS (Equal) ---\n`;
+        natalChart.houses.cusps.forEach((c, i) => {
+            text += `Casa ${i + 1}: ${c.toFixed(2)}°\n`;
+        });
+    }
+
+    text += `\n--- TRÁNSITOS HOY (${today.toISOString().split('T')[0]}) ---\n`;
+    if (todayTransits.length > 0) {
+        todayTransits.forEach(t => {
+            text += `${planetNames[t.transitPlanet] || t.transitPlanet} ${t.symbol} natal ${planetNames[t.natalPlanet] || t.natalPlanet} (orbe: ${t.orb}°)\n`;
+        });
+    } else {
+        text += 'Sin aspectos exactos hoy.\n';
+    }
+
+    // Copy all profiles summary
+    const profiles = getNatalProfiles().filter(p => p.date);
+    if (profiles.length > 1) {
+        text += `\n--- OTROS PERFILES ---\n`;
+        profiles.filter(p => p.id !== natal.id).forEach(p => {
+            const pChart = localStorage.getItem('natalChart_' + p.id);
+            if (pChart) {
+                try {
+                    const pc = JSON.parse(pChart);
+                    text += `\n${p.name || p.cityName} (${p.date}, ${p.time} — ${p.cityName}):\n`;
+                    Object.entries(pc.planets).forEach(([pl, d]) => {
+                        text += `  ${(planetNames[pl] || pl)}: ${d.formatted}\n`;
+                    });
+                } catch(e) {}
+            }
+        });
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target.closest('button');
+        const orig = btn.innerHTML;
+        btn.innerHTML = L ? '✅ Copiado!' : '✅ Copied!';
+        btn.style.color = '#4ecdc4';
+        setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
+    }).catch(() => {
+        // Fallback: show in a modal
+        alert(text);
+    });
+}
+
 function personalNextMonth() {
     personalCurrentMonth++;
     if (personalCurrentMonth > 11) {
@@ -8633,7 +8870,10 @@ function showPersonalDayDetail(year, month, day) {
     if (!natal) return;
 
     let natalChart;
-    try { natalChart = JSON.parse(localStorage.getItem('natalChart')); } catch(e) { return; }
+    try {
+        const profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
     if (!natalChart) return;
 
     const transits = calculateTransitsToNatal(date, natalChart);
@@ -12599,7 +12839,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v155';
+const APP_VERSION = 'v156';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
