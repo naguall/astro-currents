@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v149';
+const CACHE_NAME = 'moon-sync-v150';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -75,6 +75,10 @@ self.addEventListener('fetch', e => {
   const url = e.request.url;
   // External images (NASA, Wikimedia): pass through directly without modifying request mode
   if (url.includes('upload.wikimedia.org') || url.includes('science.nasa.gov')) {
+    return;
+  }
+  // Google Identity Services & Calendar API: pass through
+  if (url.includes('accounts.google.com') || url.includes('googleapis.com/calendar') || url.includes('googleapis.com/oauth2')) {
     return;
   }
   // External APIs: network only
