@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v160';
+        var REQUIRED_VER = 'v161';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -252,6 +252,8 @@
             border-radius: 7px; font-size: 0.75em;
             transition: all 0.2s; cursor: pointer; padding: 6px;
             position: relative; overflow: visible;
+            -webkit-tap-highlight-color: rgba(74,158,255,0.2);
+            touch-action: manipulation;
         }
         .day-cell:hover {
             background: rgba(12,16,58,0.98);
@@ -721,7 +723,7 @@
     </div>
 
     <!-- Modal de Aspectos del Planeta -->
-    <div id="planetAspectsModal" class="modal">
+    <div id="planetAspectsModal" class="modal" onclick="if(event.target===this)closePlanetAspectsModal()"
         <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
             <div class="modal-header">
                 <h2 id="planetAspectsTitle">Aspectos del Planeta</h2>
@@ -747,7 +749,7 @@
     </div>
 
     <!-- Modal de Eventos Extraordinarios -->
-    <div id="historicAspectsModal" class="modal">
+    <div id="historicAspectsModal" class="modal" onclick="if(event.target===this)closeHistoricAspectsModal()"
         <div class="modal-content" style="max-width: 750px; max-height: 85vh; overflow-y: auto;">
             <div class="modal-header">
                 <h2 id="historicAspectsTitle">🏛️ Eventos Extraordinarios 2026</h2>
@@ -780,7 +782,7 @@
     </div>
 
     <!-- Modal de Aspectos y Diario -->
-    <div id="aspectsModal" class="modal">
+    <div id="aspectsModal" class="modal" onclick="if(event.target===this)closeAspectsModal()"
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="aspectsModalTitle">Aspectos Planetarios del Día</h2>
@@ -801,7 +803,7 @@
     </div>
 
     <!-- Modal de Eventos/Agenda -->
-    <div id="eventsModal" class="modal" style="z-index:1200;">
+    <div id="eventsModal" class="modal" onclick="if(event.target===this)closeEventsModal()" style="z-index:1200;">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="eventsModalTitle">Eventos y Agenda</h2>
@@ -895,7 +897,7 @@
     </div>
 
     <!-- Modal de Diario -->
-    <div id="diarioModal" class="modal" style="z-index:1200;">
+    <div id="diarioModal" class="modal" onclick="if(event.target===this)closeDiarioModal()" style="z-index:1200;">
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h2 id="diarioModalTitle">📓</h2>
@@ -927,7 +929,7 @@
     </div>
 
     <!-- Modal de Eclipse -->
-    <div id="eclipseModal" class="modal">
+    <div id="eclipseModal" class="modal" onclick="if(event.target===this)closeEclipseModal()"
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2 id="eclipseModalTitle">Eclipse</h2>
@@ -940,7 +942,7 @@
     </div>
 
     <!-- Modal de Retrogradación -->
-    <div id="retrogradeModal" class="modal">
+    <div id="retrogradeModal" class="modal" onclick="if(event.target===this)closeRetrogradeModal()"
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2 id="retrogradeModalTitle">Retrogradación</h2>
@@ -953,7 +955,7 @@
     </div>
 
     <!-- Modal de Cambio de Signo -->
-    <div id="signChangeModal" class="modal">
+    <div id="signChangeModal" class="modal" onclick="if(event.target===this)closeSignChangeModal()"
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2 id="signChangeModalTitle">Cambio de Signo</h2>
@@ -966,7 +968,7 @@
     </div>
 
     <!-- Modal de Stellium -->
-    <div id="stelliumModal" class="modal">
+    <div id="stelliumModal" class="modal" onclick="if(event.target===this)closeStelliumModal()"
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2 id="stelliumModalTitle">Stellium</h2>
@@ -979,7 +981,7 @@
     </div>
 
     <!-- Modal de Aspecto Mayor -->
-    <div id="majorAspectModal" class="modal">
+    <div id="majorAspectModal" class="modal" onclick="if(event.target===this)closeMajorAspectModal()"
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2 id="majorAspectModalTitle">Configuración Planetaria</h2>
@@ -992,7 +994,7 @@
     </div>
 
     <!-- Modal de Astronomía (Mareas, Distancia, Declinación) -->
-    <div id="astroModal" class="modal">
+    <div id="astroModal" class="modal" onclick="if(event.target===this)closeAstroModal()"
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h2 id="astroModalTitle">🌊 Datos Astronómicos</h2>
@@ -8668,7 +8670,7 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    const NATAL_ENGINE_VER = 'v160';
+    const NATAL_ENGINE_VER = 'v161';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
@@ -12295,6 +12297,31 @@ setTimeout(checkNotifications, 2000);
 window.deleteEventByIndex = deleteEvent;
 window.handleInterAspectClick = handleInterAspectClick;
 window.handleDayClick = handleDayClick;
+
+// ── Samsung Android fix: touch event delegation for day cells ──
+// On Samsung Galaxy S22 Ultra (Android 14), onclick on div elements becomes
+// unreliable after modal show/hide cycles. Touch event delegation bypasses this.
+(function() {
+    function findDayCell(el) {
+        // Walk up to 5 levels to find the .day-cell parent
+        for (var i = 0; i < 5 && el; i++) {
+            if (el.classList && el.classList.contains('day-cell')) return el;
+            el = el.parentElement;
+        }
+        return null;
+    }
+    // Use touchend (not touchstart) to allow scrolling without triggering
+    document.addEventListener('touchend', function(e) {
+        // Ignore if a modal is currently shown (user is tapping modal, not calendar)
+        var modals = document.querySelectorAll('.modal.show');
+        if (modals.length > 0) return;
+        var cell = findDayCell(e.target);
+        if (cell && cell.dataset && cell.dataset.date) {
+            e.preventDefault();
+            handleDayClick(cell);
+        }
+    }, { passive: false });
+})();
 window.toggleEventComplete = toggleEventComplete;
 window.switchToLunarMode = switchToLunarMode;
 window.switchToSolarMode = switchToSolarMode;
@@ -13525,7 +13552,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v160';
+const APP_VERSION = 'v161';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
