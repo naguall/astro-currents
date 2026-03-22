@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v150';
+        var REQUIRED_VER = 'v151';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -3290,6 +3290,8 @@ let gcalAccessToken = localStorage.getItem('gcalAccessToken') || '';
 let gcalTokenExpiry = parseInt(localStorage.getItem('gcalTokenExpiry') || '0');
 let gcalEvents = {}; // keyed by date string like events
 let gcalSyncInProgress = false;
+let gcalAutoSyncInterval = null;
+const GCAL_SYNC_INTERVAL_MS = 15 * 60 * 1000; // Auto-sync every 15 minutes
 
 function gcalIsConfigured() {
     const clientId = localStorage.getItem('gcalClientId') || GCAL_CLIENT_ID;
@@ -3317,6 +3319,7 @@ function initGoogleCalendar() {
         if (gcalIsConnected()) {
             console.log('📅 Google Calendar: token still valid, auto-syncing');
             gcalFetchEvents();
+            gcalStartAutoSync();
         }
     } catch(e) {
         console.error('❌ Google Calendar init error:', e);
@@ -3334,6 +3337,8 @@ function handleGcalTokenResponse(response) {
     localStorage.setItem('gcalTokenExpiry', gcalTokenExpiry.toString());
     console.log('✅ Google Calendar connected');
     gcalFetchEvents();
+    // Start auto-sync interval
+    gcalStartAutoSync();
     // Refresh preferences UI if open
     const modal = document.getElementById('preferencesModal');
     if (modal && modal.classList.contains('show')) {
@@ -3369,6 +3374,7 @@ function gcalSignOut() {
     gcalAccessToken = '';
     gcalTokenExpiry = 0;
     gcalEvents = {};
+    gcalStopAutoSync();
     localStorage.removeItem('gcalAccessToken');
     localStorage.removeItem('gcalTokenExpiry');
     localStorage.removeItem('gcalEvents');
@@ -3381,6 +3387,24 @@ function gcalSignOut() {
     // Re-render calendar
     if (calendarMode === 'lunar') renderCalendar();
     else renderSolarCalendar();
+}
+
+function gcalStartAutoSync() {
+    gcalStopAutoSync();
+    gcalAutoSyncInterval = setInterval(() => {
+        if (gcalIsConnected()) {
+            console.log('📅 Auto-syncing Google Calendar...');
+            gcalFetchEvents();
+        }
+    }, GCAL_SYNC_INTERVAL_MS);
+    console.log('📅 Auto-sync enabled (every 15 min)');
+}
+
+function gcalStopAutoSync() {
+    if (gcalAutoSyncInterval) {
+        clearInterval(gcalAutoSyncInterval);
+        gcalAutoSyncInterval = null;
+    }
 }
 
 async function gcalFetchEvents() {
@@ -3407,6 +3431,7 @@ async function gcalFetchEvents() {
             console.log('📅 Google Calendar token expired, clearing');
             gcalAccessToken = '';
             localStorage.removeItem('gcalAccessToken');
+            gcalStopAutoSync();
             gcalSyncInProgress = false;
             return;
         }
@@ -3416,22 +3441,63 @@ async function gcalFetchEvents() {
 
         if (data.items) {
             for (const item of data.items) {
-                const start = item.start?.dateTime || item.start?.date;
-                if (!start) continue;
-                const eventDate = new Date(start);
-                const key = getDateKey(eventDate);
-                if (!gcalEvents[key]) gcalEvents[key] = [];
-                gcalEvents[key].push({
+                const startRaw = item.start?.dateTime || item.start?.date;
+                const endRaw = item.end?.dateTime || item.end?.date;
+                if (!startRaw) continue;
+
+                const isAllDay = !item.start?.dateTime;
+                const startDate = new Date(startRaw);
+                const endDate = endRaw ? new Date(endRaw) : new Date(startDate);
+
+                const eventObj = {
                     title: item.summary || '(Sin título)',
                     type: 'google',
                     time: item.start?.dateTime ?
-                        eventDate.toLocaleTimeString(currentLang === 'es' ? 'es' : 'en', {hour:'2-digit', minute:'2-digit'}) : '',
+                        startDate.toLocaleTimeString(currentLang === 'es' ? 'es' : 'en', {hour:'2-digit', minute:'2-digit'}) : '',
                     description: item.description || '',
                     location: item.location || '',
                     gcalId: item.id,
                     gcalLink: item.htmlLink,
-                    isGoogleEvent: true
-                });
+                    isGoogleEvent: true,
+                    isMultiDay: false,
+                    multiDayLabel: ''
+                };
+
+                // Check if multi-day event
+                const startKey = getDateKey(startDate);
+                // For all-day events, Google uses exclusive end date (e.g. May 1 to May 4 means May 1-3)
+                let endCheck = new Date(endDate);
+                if (isAllDay) endCheck.setDate(endCheck.getDate() - 1);
+                const endKey = getDateKey(endCheck);
+
+                if (startKey !== endKey) {
+                    // Multi-day event — add to each day in the range
+                    eventObj.isMultiDay = true;
+                    let current = new Date(startDate);
+                    let dayNum = 1;
+                    const lastDay = new Date(endCheck);
+
+                    // Count total days
+                    const totalDays = Math.round((lastDay - current) / (1000*60*60*24)) + 1;
+
+                    while (current <= lastDay) {
+                        const key = getDateKey(current);
+                        if (!gcalEvents[key]) gcalEvents[key] = [];
+                        gcalEvents[key].push({
+                            ...eventObj,
+                            time: '', // Multi-day events show as all-day
+                            multiDayLabel: `(${dayNum}/${totalDays})`,
+                            multiDayStart: startKey,
+                            multiDayEnd: endKey
+                        });
+                        current.setDate(current.getDate() + 1);
+                        dayNum++;
+                    }
+                } else {
+                    // Single-day event
+                    if (!gcalEvents[startKey]) gcalEvents[startKey] = [];
+                    gcalEvents[startKey].push(eventObj);
+                }
             }
         }
 
@@ -11209,7 +11275,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with force-update mechanism
-const APP_VERSION = 'v150';
+const APP_VERSION = 'v151';
 if ('serviceWorker' in navigator) {
     // Force update: check for new SW on every page load
     navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
@@ -11655,7 +11721,11 @@ async function sendAIMessage() {
             if (response.status === 429) {
                 addAIMessage('error', currentLang === 'es' ? '⏳ Demasiadas consultas. Espera 10 segundos e intenta de nuevo.' : '⏳ Too many requests. Wait 10 seconds and try again.');
             } else if (response.status === 400 && errMsg.includes('API key')) {
-                addAIMessage('error', currentLang === 'es' ? '🔑 API key inválida. Ve a ⚙️ Preferencias para cambiarla.' : '🔑 Invalid API key. Go to ⚙️ Preferences to change it.');
+                if (personalKey) {
+                    addAIMessage('error', currentLang === 'es' ? '🔑 API key inválida. Ve a ⚙️ Preferencias para cambiarla.' : '🔑 Invalid API key. Go to ⚙️ Preferences to change it.');
+                } else {
+                    addAIMessage('error', currentLang === 'es' ? '⚠️ El servicio AI tiene un problema temporal. Intenta de nuevo más tarde.' : '⚠️ AI service has a temporary issue. Try again later.');
+                }
             } else {
                 addAIMessage('error', '❌ ' + errMsg);
             }
