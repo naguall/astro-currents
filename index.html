@@ -455,8 +455,7 @@
         .planet-spin { animation: planetWobble var(--spin-duration, 20s) ease-in-out infinite; transform-origin: center; }
         .planet-spin-reverse { animation: planetWobble var(--spin-duration, 20s) ease-in-out infinite reverse; transform-origin: center; }
         .planet-3d-wrap { perspective: 300px; border-radius: 50%; overflow: hidden; }
-        /* 3D planet sphere canvas */
-        .planet-sphere-canvas { display: block; margin: 0 auto; border-radius: 50%; }
+        /* Planet rotating GIF */
 
         /* Natal Data Table */
         .natal-data-table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
@@ -1464,9 +1463,9 @@ function getMoonMeanAnomaly(d) {
 // Obtener signo zodiacal desde longitud
 function getZodiacSignFromLongitude(longitude) {
     const signs = [
-        '♈ Aries', '♉ Tauro', '♊ Géminis', '♋ Cáncer', 
-        '♌ Leo', '♍ Virgo', '♎ Libra', '♏ Escorpio', 
-        '♐ Sagitario', '♑ Capricornio', '♒ Acuario', '♓ Piscis'
+        'Aries', 'Tauro', 'Géminis', 'Cáncer',
+        'Leo', 'Virgo', 'Libra', 'Escorpio',
+        'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
     ];
     const signIndex = Math.floor(longitude / 30);
     return signs[signIndex];
@@ -1475,9 +1474,9 @@ function getZodiacSignFromLongitude(longitude) {
 // Obtener signo zodiacal con grado
 function getZodiacSignWithDegree(longitude) {
     const signs = [
-        '♈ Aries', '♉ Tauro', '♊ Géminis', '♋ Cáncer', 
-        '♌ Leo', '♍ Virgo', '♎ Libra', '♏ Escorpio', 
-        '♐ Sagitario', '♑ Capricornio', '♒ Acuario', '♓ Piscis'
+        'Aries', 'Tauro', 'Géminis', 'Cáncer',
+        'Leo', 'Virgo', 'Libra', 'Escorpio',
+        'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
     ];
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
@@ -3210,14 +3209,16 @@ function ts(signName) {
     return translations[currentLang].signs[signName] || signName;
 }
 
-// Translate full sign string like '♑ Capricornio' → '♑ Capricorn'
+// Translate sign name: 'Capricornio' → 'Capricorn' (also handles legacy '♑ Capricornio' format)
 function tsSign(fullSign) {
     if (!fullSign) return fullSign;
     const parts = fullSign.split(' ');
-    if (parts.length < 2) return fullSign;
-    const emoji = parts[0];
-    const name = parts.slice(1).join(' ');
-    return emoji + ' ' + (translations[currentLang].signs[name] || name);
+    if (parts.length >= 2) {
+        var emoji = parts[0];
+        var name = parts.slice(1).join(' ');
+        return emoji + ' ' + (translations[currentLang].signs[name] || name);
+    }
+    return translations[currentLang].signs[fullSign] || fullSign;
 }
 
 // Translate aspect type
@@ -7184,6 +7185,7 @@ function getSolarSystemData() {
             name: es?'Mercurio':'Mercury', icon: '☿', color: '#b0b0b0', colorBg: 'rgba(176,176,176,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/4/4a/Mercury_in_true_color.jpg',
             textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mercury.jpg?width=1024',
+            rotatingGif: 'https://commons.wikimedia.org/wiki/Special:FilePath/Mercure.gif?width=160',
             diameter: 4879, mass: '3.30×10²³ kg', gravity: 3.7,
             distSun: 57.9, distSunUnit: 'M km',
             orbitalPeriod: 88, orbitalPeriodUnit: es?'días':'days',
@@ -7205,6 +7207,7 @@ function getSolarSystemData() {
             name: es?'Venus':'Venus', icon: '♀', color: '#f5deb3', colorBg: 'rgba(245,222,179,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Venus-real_color.jpg',
             textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_venus_atmosphere.jpg?width=1024',
+            rotatingGif: 'https://commons.wikimedia.org/wiki/Special:FilePath/Venus_Rotation_Movie.gif?width=160',
             diameter: 12104, mass: '4.87×10²⁴ kg', gravity: 8.87,
             distSun: 108.2, distSunUnit: 'M km',
             orbitalPeriod: 225, orbitalPeriodUnit: es?'días':'days',
@@ -7226,6 +7229,7 @@ function getSolarSystemData() {
             name: es?'Tierra':'Earth', icon: '🌍', color: '#4ecdc4', colorBg: 'rgba(78,205,196,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/c/cb/The_Blue_Marble_%28remastered%29.jpg',
             textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_earth_daymap.jpg?width=1024',
+            rotatingGif: 'https://commons.wikimedia.org/wiki/Special:FilePath/Rotating_earth_(large).gif?width=160',
             diameter: 12742, mass: '5.97×10²⁴ kg', gravity: 9.81,
             distSun: 149.6, distSunUnit: 'M km',
             orbitalPeriod: 365, orbitalPeriodUnit: es?'días':'days',
@@ -7247,6 +7251,7 @@ function getSolarSystemData() {
             name: es?'Marte':'Mars', icon: '♂', color: '#ff6b6b', colorBg: 'rgba(255,107,107,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg',
             textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_mars.jpg?width=1024',
+            rotatingGif: 'https://commons.wikimedia.org/wiki/Special:FilePath/Mars_rotation_simulation_august_2003.gif?width=160',
             diameter: 6792, mass: '6.42×10²³ kg', gravity: 3.72,
             distSun: 227.9, distSunUnit: 'M km',
             orbitalPeriod: 687, orbitalPeriodUnit: es?'días':'days',
@@ -7268,6 +7273,7 @@ function getSolarSystemData() {
             name: es?'Júpiter':'Jupiter', icon: '♃', color: '#f5a623', colorBg: 'rgba(245,166,35,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Jupiter_New_Horizons.jpg',
             textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_jupiter.jpg?width=1024',
+            rotatingGif: 'https://commons.wikimedia.org/wiki/Special:FilePath/Cassini_Jupiter_Rotation_Movie.gif?width=160',
             diameter: 142984, mass: '1.90×10²⁷ kg', gravity: 24.79,
             distSun: 778.6, distSunUnit: 'M km',
             orbitalPeriod: 4333, orbitalPeriodUnit: es?'días (11.86 años)':'days (11.86 years)',
@@ -7290,6 +7296,7 @@ function getSolarSystemData() {
             name: es?'Saturno':'Saturn', icon: '♄', color: '#e8c84a', colorBg: 'rgba(232,200,74,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/c/c7/Saturn_during_Equinox.jpg',
             textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Solarsystemscope_texture_2k_saturn.jpg?width=1024',
+            rotatingGif: 'https://commons.wikimedia.org/wiki/Special:FilePath/Saturn360_Movie.gif?width=160',
             diameter: 120536, mass: '5.68×10²⁶ kg', gravity: 10.44,
             distSun: 1433.5, distSunUnit: 'M km',
             orbitalPeriod: 10759, orbitalPeriodUnit: es?'días (29.46 años)':'days (29.46 years)',
@@ -7356,6 +7363,7 @@ function getSolarSystemData() {
             name: es?'Plutón':'Pluto', icon: '⯓', color: '#c9a87c', colorBg: 'rgba(201,168,124,',
             photo: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Pluto_in_True_Color_-_High-Res.jpg',
             textureMap: 'https://commons.wikimedia.org/wiki/Special:FilePath/Pluto_in_True_Color_-_High-Res.jpg?width=1024',
+            rotatingGif: 'https://commons.wikimedia.org/wiki/Special:FilePath/Pluto_rotation_movie2.gif',
             diameter: 2377, mass: '1.30×10²² kg', gravity: 0.62,
             distSun: 5906.4, distSunUnit: 'M km',
             orbitalPeriod: 90560, orbitalPeriodUnit: es?'días (247.9 años)':'days (247.9 years)',
@@ -7607,20 +7615,15 @@ function renderSolarSystemPanel() {
         // Expandable details (hidden by default)
         html += '<div id="planetDetails' + idx + '" style="display:none;margin-top:8px;">';
 
-        // Planet 3D sphere canvas
-        var sphereId = 'planetSphere' + idx;
-        var isSaturn = (p.name.toLowerCase() === 'saturn' || p.name.toLowerCase() === 'saturno');
+        // Planet rotating GIF (or CSS wobble fallback)
+        var gifUrl = p.rotatingGif || '';
+        var spinDur = Math.max(4, Math.min(120, (p.rotHours || 24) * 0.8));
+        var revClass = p.rotReverse ? 'planet-spin-reverse' : 'planet-spin';
         html += '<div style="text-align:center;margin-bottom:8px;padding:12px;background:radial-gradient(circle,' + p.colorBg + '0.1) 0%,rgba(0,0,0,0) 70%);border-radius:10px;">'
-            + '<canvas id="' + sphereId + '" width="180" height="180" class="planet-sphere-canvas"'
-            + ' style="max-width:180px;box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);"'
-            + ' data-texture="' + (p.textureMap || '') + '"'
-            + ' data-photo="' + p.photo + '"'
-            + ' data-rot-hours="' + (p.rotHours || 24) + '"'
-            + ' data-reverse="' + (p.rotReverse ? '1' : '0') + '"'
-            + ' data-planet-color="' + p.color + '"'
-            + ' data-saturn="' + (isSaturn ? '1' : '0') + '"'
-            + '></canvas>'
-            + '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">' + p.name + (p.isDwarf ? ' — '+(es?'Planeta Enano':'Dwarf Planet') : '') + '</div>'
+            + (gifUrl
+                ? '<img src="' + gifUrl + '" alt="' + p.name + '" style="width:160px;height:160px;object-fit:cover;border-radius:50%;display:block;margin:0 auto;box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);" referrerpolicy="no-referrer" loading="lazy"/>'
+                : '<div style="width:160px;height:160px;margin:0 auto;perspective:300px;"><img src="' + p.photo + '" class="' + revClass + '" style="--spin-duration:' + spinDur + 's;width:100%;height:100%;object-fit:cover;border-radius:50%;box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);" referrerpolicy="no-referrer"/></div>')
+            + '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);margin-top:6px;">' + p.name + (p.isDwarf ? ' — '+(es?'Planeta Enano':'Dwarf Planet') : '') + ' <span style="font-size:0.85em;color:rgba(255,255,255,0.12);">NASA/ESA</span></div>'
             + '</div>';
 
         // Detail grid
@@ -7847,185 +7850,9 @@ function togglePlanetDetails(idx) {
     if (el.style.display === 'none') {
         el.style.display = 'block';
         if (arrow) arrow.textContent = '▲';
-        startPlanetSphere('planetSphere' + idx);
     } else {
         el.style.display = 'none';
         if (arrow) arrow.textContent = '▼';
-        stopPlanetSphere('planetSphere' + idx);
-    }
-}
-
-// ===== 3D SPHERE RENDERER (drawImage strip projection) =====
-var _planetSphereAnims = {};
-
-function startPlanetSphere(canvasId) {
-    var canvas = document.getElementById(canvasId);
-    if (!canvas || _planetSphereAnims[canvasId]) return;
-
-    var ctx = canvas.getContext('2d');
-    var W = canvas.width, H = canvas.height;
-    var R = Math.min(W, H) / 2 - 4;
-    var cx = W / 2, cy = H / 2;
-
-    var rotHours = parseFloat(canvas.dataset.rotHours) || 24;
-    var reverse = canvas.dataset.reverse === '1';
-    var textureUrl = canvas.dataset.texture || '';
-    var photoUrl = canvas.dataset.photo || '';
-    var planetColor = canvas.dataset.planetColor || '#8888ff';
-    var isSaturn = canvas.dataset.saturn === '1';
-
-    // Rotation speed: Earth (24h) ~ 20s visual cycle
-    var rotPerSec = (2 * Math.PI) / Math.max(4, Math.min(120, rotHours * 0.8));
-    if (reverse) rotPerSec = -rotPerSec;
-
-    var angle = 0, lastTime = 0;
-    var texImg = null, texReady = false, usedFallback = false;
-
-    // Pre-compute per-column sphere geometry
-    var cols = [];
-    for (var x = 0; x < W; x++) {
-        var dx = x - cx + 0.5;
-        var r2 = R * R - dx * dx;
-        if (r2 <= 0) { cols.push(null); continue; }
-        var halfH = Math.sqrt(r2);
-        var sinA = dx / R;
-        var lon = Math.asin(sinA);
-        var cosLon = Math.cos(lon);
-        cols.push({ halfH: halfH, lon: lon, cosLon: cosLon, top: cy - halfH, h: halfH * 2 });
-    }
-
-    // Pre-render lighting overlay (sphere shading + atmosphere)
-    var lightCvs = document.createElement('canvas');
-    lightCvs.width = W; lightCvs.height = H;
-    var lctx = lightCvs.getContext('2d');
-    // Sphere shading: specular highlight + terminator shadow
-    var g1 = lctx.createRadialGradient(cx - R * 0.35, cy - R * 0.25, R * 0.05, cx + R * 0.1, cy, R);
-    g1.addColorStop(0, 'rgba(255,255,255,0.18)');
-    g1.addColorStop(0.25, 'rgba(255,255,255,0.05)');
-    g1.addColorStop(0.55, 'rgba(0,0,0,0.05)');
-    g1.addColorStop(0.8, 'rgba(0,0,0,0.3)');
-    g1.addColorStop(1, 'rgba(0,0,0,0.55)');
-    lctx.beginPath(); lctx.arc(cx, cy, R, 0, Math.PI * 2); lctx.fillStyle = g1; lctx.fill();
-    // Atmosphere glow
-    var g2 = lctx.createRadialGradient(cx, cy, R - 2, cx, cy, R + 5);
-    g2.addColorStop(0, planetColor + '20');
-    g2.addColorStop(0.5, planetColor + '0a');
-    g2.addColorStop(1, 'transparent');
-    lctx.beginPath(); lctx.arc(cx, cy, R + 5, 0, Math.PI * 2); lctx.fillStyle = g2; lctx.fill();
-
-    // Loading animation
-    ctx.fillStyle = '#0a0519';
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('Loading 3D...', cx, cy);
-
-    function render(ts) {
-        if (!_planetSphereAnims[canvasId]) return;
-        var dt = lastTime ? (ts - lastTime) / 1000 : 0;
-        if (dt > 0.15) dt = 0.033;
-        lastTime = ts;
-        angle += rotPerSec * dt;
-
-        ctx.clearRect(0, 0, W, H);
-
-        // Dark background sphere
-        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-        ctx.fillStyle = '#050210'; ctx.fill();
-
-        if (texReady && texImg) {
-            var tw = texImg.naturalWidth || texImg.width;
-            var th = texImg.naturalHeight || texImg.height;
-            var TWO_PI = Math.PI * 2;
-
-            ctx.save();
-            ctx.beginPath(); ctx.arc(cx, cy, R, 0, TWO_PI); ctx.clip();
-
-            // Draw sphere as vertical strips (1px each for smooth look)
-            for (var x = 0; x < W; x++) {
-                var c = cols[x];
-                if (!c) continue;
-
-                // Texture U coordinate with rotation
-                var u = (c.lon + angle) / TWO_PI + 0.5;
-                u = ((u % 1) + 1) % 1;
-
-                var srcX = Math.floor(u * tw);
-                // Source width: accounts for spherical foreshortening at edges
-                var srcW = Math.max(1, Math.ceil((1.0 / c.cosLon) * (tw / (R * 2)) * 0.55));
-                if (srcX + srcW > tw) {
-                    // Wrap around: draw two parts
-                    var part1 = tw - srcX;
-                    if (part1 > 0) ctx.drawImage(texImg, srcX, 0, part1, th, x, c.top, 1, c.h);
-                    // Rest from beginning
-                    var part2 = srcW - part1;
-                    if (part2 > 0) ctx.drawImage(texImg, 0, 0, part2, th, x, c.top, 1, c.h);
-                } else {
-                    ctx.drawImage(texImg, srcX, 0, srcW, th, x, c.top, 1, c.h);
-                }
-            }
-            ctx.restore();
-        }
-
-        // Lighting overlay
-        ctx.drawImage(lightCvs, 0, 0);
-
-        // Saturn rings
-        if (isSaturn) {
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.scale(1, 0.3);
-            // Outer ring
-            ctx.beginPath(); ctx.arc(0, 0, R * 1.55, 0, Math.PI * 2);
-            ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(180,155,110,0.3)'; ctx.stroke();
-            // Main ring
-            ctx.beginPath(); ctx.arc(0, 0, R * 1.42, 0, Math.PI * 2);
-            ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(210,180,140,0.4)'; ctx.stroke();
-            // Inner ring
-            ctx.beginPath(); ctx.arc(0, 0, R * 1.28, 0, Math.PI * 2);
-            ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(200,170,120,0.35)'; ctx.stroke();
-            // Gap (Cassini division)
-            ctx.beginPath(); ctx.arc(0, 0, R * 1.35, 0, Math.PI * 2);
-            ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(5,2,16,0.5)'; ctx.stroke();
-            ctx.restore();
-        }
-
-        _planetSphereAnims[canvasId] = requestAnimationFrame(render);
-    }
-
-    // Load equirectangular texture
-    function tryLoad() {
-        if (!textureUrl) { tryFallback(); return; }
-        texImg = new Image();
-        texImg.crossOrigin = 'anonymous';
-        texImg.onload = function() { clearTimeout(loadTimeout); texReady = true; };
-        texImg.onerror = function() { clearTimeout(loadTimeout); tryFallback(); };
-        var loadTimeout = setTimeout(function() {
-            if (!texReady) { texImg.src = ''; tryFallback(); }
-        }, 6000);
-        texImg.src = textureUrl;
-    }
-
-    function tryFallback() {
-        if (!photoUrl) { texReady = false; return; }
-        usedFallback = true;
-        texImg = new Image();
-        texImg.crossOrigin = 'anonymous';
-        texImg.onload = function() { texReady = true; };
-        texImg.onerror = function() { texReady = false; };
-        texImg.src = photoUrl;
-    }
-
-    tryLoad();
-    _planetSphereAnims[canvasId] = requestAnimationFrame(render);
-}
-
-function stopPlanetSphere(canvasId) {
-    if (_planetSphereAnims[canvasId]) {
-        if (typeof _planetSphereAnims[canvasId] === 'number') {
-            cancelAnimationFrame(_planetSphereAnims[canvasId]);
-        }
-        delete _planetSphereAnims[canvasId];
     }
 }
 
