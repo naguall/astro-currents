@@ -3566,6 +3566,7 @@ function loadEvents() {
 
 function saveEvents() {
     localStorage.setItem('lunarCalendarEvents', JSON.stringify(events));
+    if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
 }
 
 function loadJournals() {
@@ -3577,6 +3578,7 @@ function loadJournals() {
 
 function saveJournals() {
     localStorage.setItem('lunarCalendarJournals', JSON.stringify(journals));
+    if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
 }
 
 // ==============================================
@@ -3681,6 +3683,166 @@ function importUserData() {
     };
     input.click();
 }
+
+// ==============================================
+// AUTO-BACKUP — IndexedDB mirror for persistence
+// ==============================================
+
+// IndexedDB auto-backup: mirrors localStorage data to IndexedDB
+// so it survives app reinstalls and localStorage clears
+const AUTOBACKUP_DB = 'moonsync_autobackup';
+const AUTOBACKUP_STORE = 'backupData';
+const AUTOBACKUP_KEY = 'latest';
+
+function openAutoBackupDB() {
+    return new Promise(function(resolve, reject) {
+        const req = indexedDB.open(AUTOBACKUP_DB, 1);
+        req.onupgradeneeded = function(e) {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(AUTOBACKUP_STORE)) {
+                db.createObjectStore(AUTOBACKUP_STORE);
+            }
+        };
+        req.onsuccess = function(e) { resolve(e.target.result); };
+        req.onerror = function(e) { reject(e.target.error); };
+    });
+}
+
+function autoBackupToIndexedDB() {
+    try {
+        const backup = {
+            _version: 'moonsync_autobackup_v1',
+            _date: new Date().toISOString(),
+            events: null,
+            journals: null,
+            diaryEntries: {},
+            natalProfiles: null,
+            settings: {}
+        };
+        try { backup.events = JSON.parse(localStorage.getItem('lunarCalendarEvents') || 'null'); } catch(e) {}
+        try { backup.journals = JSON.parse(localStorage.getItem('lunarCalendarJournals') || 'null'); } catch(e) {}
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('diary_')) {
+                backup.diaryEntries[key] = localStorage.getItem(key);
+            }
+        }
+        try { backup.natalProfiles = JSON.parse(localStorage.getItem('natalProfiles') || 'null'); } catch(e) {}
+        ['natalLat','natalLon','currentLang','natalBirthDate','natalBirthTime','natalCityName','natalCountryCode','activeProfileId'].forEach(function(k) {
+            const v = localStorage.getItem(k);
+            if (v) backup.settings[k] = v;
+        });
+
+        openAutoBackupDB().then(function(db) {
+            const tx = db.transaction(AUTOBACKUP_STORE, 'readwrite');
+            tx.objectStore(AUTOBACKUP_STORE).put(backup, AUTOBACKUP_KEY);
+            tx.oncomplete = function() { console.log('[AutoBackup] Saved to IndexedDB:', backup._date); };
+            tx.onerror = function(e) { console.warn('[AutoBackup] Save error:', e.target.error); };
+        }).catch(function(e) { console.warn('[AutoBackup] DB open error:', e); });
+    } catch(e) { console.warn('[AutoBackup] Error:', e); }
+}
+
+function autoRestoreFromIndexedDB() {
+    return openAutoBackupDB().then(function(db) {
+        return new Promise(function(resolve, reject) {
+            const tx = db.transaction(AUTOBACKUP_STORE, 'readonly');
+            const req = tx.objectStore(AUTOBACKUP_STORE).get(AUTOBACKUP_KEY);
+            req.onsuccess = function(e) {
+                const backup = e.target.result;
+                if (!backup || !backup._version) { resolve(false); return; }
+
+                // Check if localStorage is essentially empty (no diary/events data)
+                const hasEvents = localStorage.getItem('lunarCalendarEvents');
+                const hasJournals = localStorage.getItem('lunarCalendarJournals');
+                let hasDiary = false;
+                for (let i = 0; i < localStorage.length; i++) {
+                    if (localStorage.key(i) && localStorage.key(i).startsWith('diary_')) { hasDiary = true; break; }
+                }
+
+                if (hasEvents || hasJournals || hasDiary) {
+                    // localStorage has data, no need to restore
+                    resolve(false);
+                    return;
+                }
+
+                // localStorage is empty but IndexedDB has backup — auto-restore
+                console.log('[AutoBackup] Restoring from IndexedDB backup dated:', backup._date);
+                if (backup.events) {
+                    localStorage.setItem('lunarCalendarEvents', JSON.stringify(backup.events));
+                    try { events = backup.events; } catch(e) {}
+                }
+                if (backup.journals) {
+                    localStorage.setItem('lunarCalendarJournals', JSON.stringify(backup.journals));
+                    try { journals = backup.journals; } catch(e) {}
+                }
+                if (backup.diaryEntries) {
+                    Object.keys(backup.diaryEntries).forEach(function(key) {
+                        localStorage.setItem(key, backup.diaryEntries[key]);
+                    });
+                }
+                if (backup.natalProfiles) {
+                    localStorage.setItem('natalProfiles', JSON.stringify(backup.natalProfiles));
+                }
+                if (backup.settings) {
+                    Object.keys(backup.settings).forEach(function(key) {
+                        localStorage.setItem(key, backup.settings[key]);
+                    });
+                }
+                resolve(true); // restored
+            };
+            req.onerror = function(e) { reject(e.target.error); };
+        });
+    });
+}
+
+// Auto-backup every time user saves diary, events, or journals
+// Debounced to avoid excessive writes
+let _autoBackupTimer = null;
+function scheduleAutoBackup() {
+    clearTimeout(_autoBackupTimer);
+    _autoBackupTimer = setTimeout(autoBackupToIndexedDB, 3000); // 3 seconds after last change
+}
+
+// Run auto-restore on startup, then start periodic backup
+(function initAutoBackup() {
+    autoRestoreFromIndexedDB().then(function(restored) {
+        if (restored) {
+            console.log('[AutoBackup] Data restored from IndexedDB. Reloading...');
+            location.reload();
+            return;
+        }
+        // Initial backup on load
+        setTimeout(autoBackupToIndexedDB, 5000);
+        // Periodic backup every 5 minutes
+        setInterval(autoBackupToIndexedDB, 5 * 60 * 1000);
+    }).catch(function(e) {
+        console.warn('[AutoBackup] Restore check failed:', e);
+        // Still do periodic backups even if restore check fails
+        setTimeout(autoBackupToIndexedDB, 5000);
+        setInterval(autoBackupToIndexedDB, 5 * 60 * 1000);
+    });
+})();
+
+// Monthly reminder to download external backup
+(function checkBackupReminder() {
+    setTimeout(function() {
+        const lastReminder = localStorage.getItem('lastBackupReminder');
+        const now = Date.now();
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+        // Only remind if there's actual diary/event data
+        const hasData = localStorage.getItem('lunarCalendarEvents') || localStorage.getItem('lunarCalendarJournals');
+        if (hasData && (!lastReminder || (now - parseInt(lastReminder)) > THIRTY_DAYS)) {
+            const L = (localStorage.getItem('currentLang') || 'es') === 'es';
+            const msg = L
+                ? '💾 Han pasado 30 días desde tu último backup externo.\n¿Deseas descargar un backup ahora?\n\n(Ve a ⚙️ Preferencias → Backup para descargar)'
+                : '💾 It\'s been 30 days since your last external backup.\nWould you like to download a backup now?\n\n(Go to ⚙️ Preferences → Backup to download)';
+            if (confirm(msg)) {
+                if (typeof exportUserData === 'function') exportUserData();
+            }
+            localStorage.setItem('lastBackupReminder', String(now));
+        }
+    }, 10000); // Check 10 seconds after load
+})();
 
 // ==============================================
 // GOOGLE CALENDAR SYNC
@@ -5316,6 +5478,7 @@ function openDiarioModal(date, lunarDay) {
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             localStorage.setItem(`diary_${dateKey}`, textarea.value);
+            if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
             document.getElementById('diarioSaveStatus').textContent = t('saved');
             setTimeout(() => {
                 document.getElementById('diarioSaveStatus').textContent = '';
@@ -10572,7 +10735,7 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    const NATAL_ENGINE_VER = 'v166';
+    const NATAL_ENGINE_VER = 'v166b';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
