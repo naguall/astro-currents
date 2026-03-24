@@ -8001,7 +8001,6 @@ function switchToSolarMode() {
 
     updateModeButtons();
     renderSolarCalendar();
-    refreshAllLiveData();
 }
 
 function switchToGregorianMode() {
@@ -8025,7 +8024,6 @@ function switchToGregorianMode() {
 
     updateModeButtons();
     renderGregorianCalendar();
-    refreshAllLiveData();
 }
 
 function switchToEarthMode() {
@@ -8068,7 +8066,6 @@ function switchToEarthMode() {
     var oldEip = document.getElementById('earthInfoPanel');
     if (oldEip) oldEip.remove();
     renderEarthInfoPanel();
-    refreshAllLiveData();
 }
 
 function switchToLunarMode() {
@@ -8168,7 +8165,6 @@ function switchToSolarSystemMode() {
 
     updateModeButtons();
     renderSolarSystemPanel();
-    refreshAllLiveData();
 }
 
 function getSolarSystemData() {
@@ -9802,7 +9798,6 @@ function switchToPersonalMode() {
     } else {
         renderPersonalCalendar();
     }
-    refreshAllLiveData();
 }
 
 // --- Birth Data Setup Form ---
@@ -13538,33 +13533,16 @@ function renderSubsolarGlobe(lat, lon) {
     ctx.stroke();
 }
 
-// ── Refresh all live data on tab click ──────────
+// ── Refresh sublunar position on tab click ──────────
 function refreshAllLiveData() {
     const now = new Date();
-    // Refresh sublunar position
     const lat = parseFloat(getAstroData(now).sublunarLat);
     const lon = getSublunaryLonDeg(now);
-    console.log(`[Tab Click Refresh] ${now.toLocaleTimeString()} - Lat: ${lat.toFixed(2)}°, Lon: ${lon.toFixed(2)}°`);
     const mapEl = document.getElementById('sublunaryMapContainer');
     if (mapEl) mapEl.innerHTML = renderSublunaryMap(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
     const infoEl = document.getElementById('sublunaryInfoBox');
     if (infoEl) infoEl.innerHTML = renderSublunaryInfoBox(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
     renderSublunaryGlobe(lat, lon);
-    // Refresh earth panel if visible (seismic, weather, tides)
-    const earthPanel = document.getElementById('earthInfoPanel');
-    if (earthPanel && earthPanel.style.display !== 'none') {
-        renderEarthInfoPanel();
-    }
-    // Refresh solar panel if visible
-    const solarPanel = document.getElementById('solarInfoPanel');
-    if (solarPanel && solarPanel.style.display !== 'none') {
-        renderSolarInfoPanel();
-    }
-    // Refresh solar system panel if visible
-    const ssPanel = document.getElementById('solarSystemPanel');
-    if (ssPanel && ssPanel.style.display !== 'none') {
-        renderSolarSystemPanel();
-    }
 }
 
 // ── Auto-refresh sublunar position every 3 minutes ──────────
