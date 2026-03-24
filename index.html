@@ -645,23 +645,23 @@
                 <h1 id="calendarTitle" style="margin:0;font-size:clamp(1.1em,4vw,1.6em);text-align:center;">🌙 Lunar</h1>
             </div>
 
-            <!-- Mode buttons: single scrollable row, never wrap -->
-            <div class="mode-btns" style="display:flex;flex-direction:row;gap:3px;justify-content:center;align-items:center;flex-wrap:nowrap;margin-bottom:3px;width:100%;">
-                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:5px 12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:20px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Lunar</button>
-                <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Solar</button>
-                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="personalButtonLabel">Natal</span></button>
+            <!-- Mode buttons: single row, compact to fit screen -->
+            <div class="mode-btns" style="display:flex;flex-direction:row;gap:2px;justify-content:center;align-items:center;flex-wrap:nowrap;margin-bottom:3px;width:100%;overflow-x:auto;padding:0 2px;">
+                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 9px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Lunar</button>
+                <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Solar</button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Natal</span></button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
-                <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="earthButtonLabel">Tierra</span></button>
-                <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="ssButtonLabel">S.S</span></button>
-                <button id="aspects2026ModeBtn" onclick="switchToAspects2026Mode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="asp2026ButtonLabel">2026</span></button>
+                <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
+                <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
+                <button id="aspects2026ModeBtn" onclick="switchToAspects2026Mode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="asp2026ButtonLabel">2026</span></button>
                 <!-- HIDDEN: Gregorian button (kept for future use) -->
-                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="display:none;padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="gregorianButtonLabel">Gregoriano</span></button>
-                <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;opacity:0.5;flex-shrink:0;margin-left:4px;display:none;">🔔</button>
-                <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;flex-shrink:0;display:none;">🇪🇸</button>
-                <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:3px 5px;cursor:pointer;font-size:0.75em;opacity:0.5;flex-shrink:0;display:none;">🇺🇸</button>
-                <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:5px;padding:3px 6px;cursor:pointer;font-size:0.75em;flex-shrink:0;margin-left:4px;color:rgba(255,255,255,0.7);">📚</button>
-                <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:5px;padding:3px 6px;cursor:pointer;font-size:0.75em;flex-shrink:0;margin-left:4px;color:rgba(255,255,255,0.7);">⚙️</button>
-                <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:4px 7px;cursor:pointer;font-size:0.85em;flex-shrink:0;color:rgba(255,255,255,0.8);">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.7em;font-weight:800;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;padding:0 4px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
+                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="gregorianButtonLabel">Gregoriano</span></button>
+                <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🔔</button>
+                <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;display:none;">🇪🇸</button>
+                <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🇺🇸</button>
+                <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;margin-left:2px;color:rgba(255,255,255,0.7);">📚</button>
+                <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;margin-left:2px;color:rgba(255,255,255,0.7);">⚙️</button>
+                <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:2px 5px;cursor:pointer;font-size:0.75em;flex-shrink:0;color:rgba(255,255,255,0.8);">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.7em;font-weight:800;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:50%;padding:0 4px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
             </div>
         </header>
         <script>
@@ -5361,15 +5361,15 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
         }
 
         var astroCtx = gatherAstroContext();
-        // Short summary prompt — concise, expandable via "Ver más"
+        // Summary prompt — ~12 short paragraphs, complete sentences, no user names
         var systemPrompt = L
-            ? 'Eres un astrólogo transpersonal evolutivo. Interpretas la carta natal como mapa del viaje del alma. Da una interpretación RESUMIDA y CONCISA en 2 párrafos cortos: el significado esencial y un consejo práctico. Sé sobrio, sabio y directo. Usa datos reales de la carta. No repitas datos que ya se muestran en pantalla. Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a transpersonal evolutionary astrologer. You interpret the natal chart as a map of the soul\'s journey. Give a SUMMARIZED and CONCISE interpretation in 2 short paragraphs: the essential meaning and practical advice. Be sober, wise and direct. Use real chart data. Don\'t repeat data already shown on screen. Respond in English.\n\nDATA:\n' + astroCtx;
+            ? 'Eres un astrólogo transpersonal evolutivo. Interpretas la carta natal como mapa del viaje del alma. REGLAS ESTRICTAS:\n- Escribe aproximadamente 12 párrafos cortos (2-3 frases cada uno) que capturen la esencia de lo que se analiza.\n- NUNCA uses el nombre del usuario ni nombres propios. Usa "tú", "tu carta", "tu alma", etc.\n- SIEMPRE termina cada frase completa. NUNCA cortes una frase a la mitad.\n- Sé sobrio, sabio y directo. Usa datos reales de la carta.\n- No repitas datos que ya se muestran en pantalla.\n- Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a transpersonal evolutionary astrologer. You interpret the natal chart as a map of the soul\'s journey. STRICT RULES:\n- Write approximately 12 short paragraphs (2-3 sentences each) capturing the essence of what is being analyzed.\n- NEVER use the user\'s name or proper names. Use "you", "your chart", "your soul", etc.\n- ALWAYS finish every sentence completely. NEVER cut a sentence in the middle.\n- Be sober, wise and direct. Use real chart data.\n- Don\'t repeat data already shown on screen.\n- Respond in English.\n\nDATA:\n' + astroCtx;
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
             contents: [{ role: 'user', parts: [{ text: specificPrompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 1500 }
+            generationConfig: { temperature: 0.8, maxOutputTokens: 4096 }
         };
 
         var apiUrl;
@@ -5441,8 +5441,8 @@ async function expandAIReading(readingKey, btn) {
     try {
         var astroCtx = gatherAstroContext();
         var systemPrompt = L
-            ? 'Eres un astrólogo transpersonal evolutivo con maestría profunda. Tu marco teórico integra:\n- ASTROLOGÍA EVOLUTIVA (Jeff Green, Steven Forrest): el alma elige su carta natal para evolucionar. Plutón y los Nodos Lunares revelan el viaje kármico. Cada planeta es un arquetipo al servicio del crecimiento del alma.\n- PERSPECTIVA TRANSPERSONAL (Dane Rudhyar): los planetas exteriores (Urano, Neptuno, Plutón) como agentes de transformación colectiva que actúan sobre la psique individual.\n- ASTROLOGÍA ARQUETIPAL (Richard Tarnas): las correlaciones entre tránsitos y los grandes ciclos de transformación personal y colectiva.\n- PSICOLOGÍA PROFUNDA (Liz Greene): los complejos inconscientes proyectados en la carta, la sombra, la individuación junguiana.\n\nDa una interpretación EXHAUSTIVA y PROFUNDA (5-8 párrafos) que incluya:\n1. PROPÓSITO EVOLUTIVO: ¿Qué está aprendiendo el alma con esta configuración? ¿De dónde viene (Nodo Sur) y hacia dónde se dirige (Nodo Norte)?\n2. PATRÓN KÁRMICO: ¿Qué patrón inconsciente o herida ancestral revela? ¿Qué sombra necesita integrarse?\n3. DINÁMICA PSICOLÓGICA: Los complejos, proyecciones y mecanismos de defensa asociados.\n4. POTENCIAL DE TRANSFORMACIÓN: ¿Cómo transmutar esta energía? ¿Cuál es la expresión más elevada?\n5. CONEXIONES EN LA CARTA: ¿Cómo dialoga con otros aspectos, planetas y casas?\n6. PRAXIS: Rituales, meditaciones, ejercicios de consciencia o prácticas concretas para trabajar esta energía.\n\nUsa los datos REALES de la carta. Responde en español.\n\nDATOS:\n' + astroCtx
-            : 'You are a transpersonal evolutionary astrologer with deep mastery. Your framework integrates:\n- EVOLUTIONARY ASTROLOGY (Jeff Green, Steven Forrest): the soul chooses its natal chart to evolve. Pluto and Lunar Nodes reveal the karmic journey. Each planet is an archetype in service of soul growth.\n- TRANSPERSONAL PERSPECTIVE (Dane Rudhyar): outer planets (Uranus, Neptune, Pluto) as agents of collective transformation acting on individual psyche.\n- ARCHETYPAL ASTROLOGY (Richard Tarnas): correlations between transits and great cycles of personal and collective transformation.\n- DEPTH PSYCHOLOGY (Liz Greene): unconscious complexes projected in the chart, the shadow, Jungian individuation.\n\nGive an EXHAUSTIVE and DEEP interpretation (5-8 paragraphs) including:\n1. EVOLUTIONARY PURPOSE: What is the soul learning with this configuration? Where does it come from (South Node) and where is it heading (North Node)?\n2. KARMIC PATTERN: What unconscious pattern or ancestral wound does it reveal? What shadow needs integrating?\n3. PSYCHOLOGICAL DYNAMICS: Associated complexes, projections and defense mechanisms.\n4. TRANSFORMATION POTENTIAL: How to transmute this energy? What is its highest expression?\n5. CHART CONNECTIONS: How does it dialogue with other aspects, planets and houses?\n6. PRAXIS: Rituals, meditations, consciousness exercises or concrete practices to work this energy.\n\nUse REAL chart data. Respond in English.\n\nDATA:\n' + astroCtx;
+            ? 'Eres un astrólogo transpersonal evolutivo con maestría profunda. Tu marco teórico integra:\n- ASTROLOGÍA EVOLUTIVA (Jeff Green, Steven Forrest): el alma elige su carta natal para evolucionar. Plutón y los Nodos Lunares revelan el viaje kármico.\n- PERSPECTIVA TRANSPERSONAL (Dane Rudhyar): los planetas exteriores como agentes de transformación colectiva.\n- ASTROLOGÍA ARQUETIPAL (Richard Tarnas): correlaciones entre tránsitos y grandes ciclos de transformación.\n- PSICOLOGÍA PROFUNDA (Liz Greene): complejos inconscientes, la sombra, la individuación junguiana.\n\nREGLAS ESTRICTAS:\n- NUNCA uses el nombre del usuario ni nombres propios. Usa "tú", "tu carta", "tu alma".\n- SIEMPRE termina cada frase completa. NUNCA cortes una frase a la mitad.\n\nDa una interpretación EXHAUSTIVA y PROFUNDA que incluya:\n1. PROPÓSITO EVOLUTIVO: ¿Qué está aprendiendo el alma?\n2. PATRÓN KÁRMICO: ¿Qué patrón inconsciente o herida ancestral revela?\n3. DINÁMICA PSICOLÓGICA: Complejos, proyecciones y mecanismos de defensa.\n4. POTENCIAL DE TRANSFORMACIÓN: ¿Cómo transmutar esta energía?\n5. CONEXIONES EN LA CARTA: ¿Cómo dialoga con otros aspectos y casas?\n6. PRAXIS: Rituales, meditaciones o prácticas concretas.\n\nUsa los datos REALES de la carta. Responde en español.\n\nDATOS:\n' + astroCtx
+            : 'You are a transpersonal evolutionary astrologer with deep mastery. Your framework integrates:\n- EVOLUTIONARY ASTROLOGY (Jeff Green, Steven Forrest): the soul chooses its natal chart to evolve.\n- TRANSPERSONAL PERSPECTIVE (Dane Rudhyar): outer planets as agents of collective transformation.\n- ARCHETYPAL ASTROLOGY (Richard Tarnas): correlations between transits and transformation cycles.\n- DEPTH PSYCHOLOGY (Liz Greene): unconscious complexes, the shadow, Jungian individuation.\n\nSTRICT RULES:\n- NEVER use the user\'s name or proper names. Use "you", "your chart", "your soul".\n- ALWAYS finish every sentence completely. NEVER cut a sentence in the middle.\n\nGive an EXHAUSTIVE and DEEP interpretation including:\n1. EVOLUTIONARY PURPOSE: What is the soul learning?\n2. KARMIC PATTERN: What unconscious pattern or ancestral wound does it reveal?\n3. PSYCHOLOGICAL DYNAMICS: Complexes, projections and defense mechanisms.\n4. TRANSFORMATION POTENTIAL: How to transmute this energy?\n5. CHART CONNECTIONS: How does it dialogue with other aspects and houses?\n6. PRAXIS: Rituals, meditations or concrete practices.\n\nUse REAL chart data. Respond in English.\n\nDATA:\n' + astroCtx;
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -9079,15 +9079,6 @@ function renderAspects2026Panel() {
     html += '<div style="margin-bottom:10px;padding:12px;background:rgba(5,7,30,0.95);border:1px solid rgba(233,30,99,0.3);border-radius:12px;border-top:2px solid rgba(233,30,99,0.6);text-align:center;">'
         + '<div style="font-family:\'Cinzel\',serif;color:#e91e63;font-size:1em;font-weight:600;letter-spacing:2px;margin-bottom:6px;">'
         + '🪐 ' + (es ? 'ASPECTOS PLANETARIOS 2026' : 'PLANETARY ASPECTS 2026') + '</div>'
-        + '<div style="color:rgba(255,255,255,0.5);font-size:0.8em;line-height:1.5;">'
-        + (es ? 'Tránsitos, retrogradaciones, cambios de signo y aspectos entre planetas' : 'Transits, retrogrades, sign changes and inter-planetary aspects')
-        + '<br>' + (es ? 'Click en cada planeta para ver sus aspectos del año' : 'Click each planet to see its yearly aspects')
-        + '</div>'
-        + '</div>';
-
-    // Legend
-    html += '<div style="margin-bottom:10px;padding:8px 10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.78em;color:#a8b2d1;text-align:center;">'
-        + '☌ ' + (es ? 'Conjunción' : 'Conjunction') + ' • ⚹ ' + (es ? 'Sextil' : 'Sextile') + ' • □ ' + (es ? 'Cuadratura' : 'Square') + ' • △ ' + (es ? 'Trígono' : 'Trine') + ' • ☍ ' + (es ? 'Oposición' : 'Opposition')
         + '</div>';
 
     // Planet cards
@@ -10402,8 +10393,13 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 </button>
         </div>`;
 
-    // ===== TAB: CALENDAR (monthly grid only — transits moved to Hoy tab) =====
-    const calendarTransitsTab = ``;
+    // ===== TAB: CALENDAR (toggle between Gregorian and Lunar views) =====
+    const calendarTransitsTab = `
+        <div style="display:flex;justify-content:center;gap:4px;margin-bottom:10px;">
+            <button id="calViewGregorian" onclick="switchCalView('gregorian')" style="padding:5px 14px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.5);border-radius:14px;color:#c9a840;font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Gregoriano':'Gregorian'}</button>
+            <button id="calViewLunar" onclick="switchCalView('lunar')" style="padding:5px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:14px;color:rgba(255,255,255,0.5);font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Lunar':'Lunar'}</button>
+        </div>
+        <div id="natalLunarCalView" style="display:none;"></div>`;
 
     // ===== TAB: TABLES =====
     // Store natal chart for detail modal
@@ -10634,6 +10630,100 @@ function switchNatalTab(tabName, btn) {
             if (aspSortCol === -1) { sortAspectsTable(0); }
         }, 50);
     }
+}
+
+// Switch between Gregorian and Lunar calendar views in Natal tab
+function switchCalView(view) {
+    var gregBtn = document.getElementById('calViewGregorian');
+    var lunarBtn = document.getElementById('calViewLunar');
+    var calGrid = document.getElementById('natalCalendarGrid');
+    var lunarView = document.getElementById('natalLunarCalView');
+
+    if (view === 'lunar') {
+        if (calGrid) calGrid.style.display = 'none';
+        if (lunarView) { lunarView.style.display = 'block'; renderNatalLunarCal(); }
+        if (gregBtn) { gregBtn.style.background = 'rgba(255,255,255,0.05)'; gregBtn.style.border = '1px solid rgba(255,255,255,0.15)'; gregBtn.style.color = 'rgba(255,255,255,0.5)'; }
+        if (lunarBtn) { lunarBtn.style.background = 'rgba(201,168,64,0.2)'; lunarBtn.style.border = '1px solid rgba(201,168,64,0.5)'; lunarBtn.style.color = '#c9a840'; }
+    } else {
+        if (calGrid) calGrid.style.display = 'block';
+        if (lunarView) lunarView.style.display = 'none';
+        if (gregBtn) { gregBtn.style.background = 'rgba(201,168,64,0.2)'; gregBtn.style.border = '1px solid rgba(201,168,64,0.5)'; gregBtn.style.color = '#c9a840'; }
+        if (lunarBtn) { lunarBtn.style.background = 'rgba(255,255,255,0.05)'; lunarBtn.style.border = '1px solid rgba(255,255,255,0.15)'; lunarBtn.style.color = 'rgba(255,255,255,0.5)'; }
+    }
+}
+
+function renderNatalLunarCal() {
+    var container = document.getElementById('natalLunarCalView');
+    if (!container) return;
+    var L = currentLang === 'es';
+    var today = new Date();
+    today.setHours(12, 0, 0, 0);
+
+    // Find current lunar cycle (new moon to new moon)
+    var cycleStart = null, cycleEnd = null;
+    for (var i = 0; i < newMoonsLocal.length - 1; i++) {
+        if (newMoonsLocal[i] <= today && newMoonsLocal[i + 1] > today) {
+            cycleStart = new Date(newMoonsLocal[i]);
+            cycleEnd = new Date(newMoonsLocal[i + 1]);
+            break;
+        }
+    }
+    if (!cycleStart) { container.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;">' + (L ? 'No se pudo calcular el ciclo lunar' : 'Could not calculate lunar cycle') + '</p>'; return; }
+
+    var cycleDays = Math.round((cycleEnd - cycleStart) / (1000 * 60 * 60 * 24));
+    var currentLunarDay = Math.floor((today - cycleStart) / (1000 * 60 * 60 * 24)) + 1;
+
+    // Phase names by day range
+    function getPhaseInfo(day, total) {
+        var q = total / 4;
+        if (day <= 1) return { name: L ? 'Luna Nueva' : 'New Moon', icon: '🌑', color: '#a8b2d1' };
+        if (day < q) return { name: L ? 'Creciente' : 'Waxing Crescent', icon: '🌒', color: '#7ec8ff' };
+        if (day < q + 1.5) return { name: L ? 'Cuarto Creciente' : 'First Quarter', icon: '🌓', color: '#c9a840' };
+        if (day < q * 2) return { name: L ? 'Gibosa Creciente' : 'Waxing Gibbous', icon: '🌔', color: '#f0e68c' };
+        if (day < q * 2 + 1.5) return { name: L ? 'Luna Llena' : 'Full Moon', icon: '🌕', color: '#ffd700' };
+        if (day < q * 3) return { name: L ? 'Gibosa Menguante' : 'Waning Gibbous', icon: '🌖', color: '#f0c040' };
+        if (day < q * 3 + 1.5) return { name: L ? 'Cuarto Menguante' : 'Last Quarter', icon: '🌗', color: '#c9a840' };
+        return { name: L ? 'Menguante' : 'Waning Crescent', icon: '🌘', color: '#8899aa' };
+    }
+
+    var html = '<div class="personal-natal-card" style="padding:10px;">';
+    html += '<div style="text-align:center;margin-bottom:10px;">';
+    html += '<div style="font-size:0.85em;color:#c9a840;font-weight:600;">' + (L ? 'Ciclo Lunar Actual' : 'Current Lunar Cycle') + '</div>';
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);">' + cycleStart.toLocaleDateString(L ? 'es' : 'en', { day: 'numeric', month: 'short' }) + ' → ' + cycleEnd.toLocaleDateString(L ? 'es' : 'en', { day: 'numeric', month: 'short' }) + ' · ' + cycleDays + (L ? ' días' : ' days') + '</div>';
+    html += '</div>';
+
+    // Grid: 7 columns
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+
+    for (var d = 1; d <= cycleDays; d++) {
+        var dayDate = new Date(cycleStart.getTime() + (d - 1) * 86400000);
+        var isToday = dayDate.toDateString() === today.toDateString();
+        var phase = getPhaseInfo(d, cycleDays);
+        var isPast = dayDate < today && !isToday;
+
+        html += '<div onclick="showPersonalDayDetail(' + dayDate.getFullYear() + ',' + dayDate.getMonth() + ',' + dayDate.getDate() + ')" style="'
+            + 'background:' + (isToday ? 'rgba(201,168,64,0.25)' : 'rgba(255,255,255,0.03)') + ';'
+            + 'border:1px solid ' + (isToday ? 'rgba(201,168,64,0.6)' : 'rgba(255,255,255,0.08)') + ';'
+            + 'border-radius:8px;padding:4px 2px;text-align:center;cursor:pointer;'
+            + (isPast ? 'opacity:0.45;' : '') + '">'
+            + '<div style="font-size:1.1em;">' + phase.icon + '</div>'
+            + '<div style="font-size:0.75em;font-weight:' + (isToday ? '700' : '400') + ';color:' + (isToday ? '#c9a840' : 'rgba(255,255,255,0.7)') + ';">' + d + '</div>'
+            + '<div style="font-size:0.6em;color:rgba(255,255,255,0.35);">' + dayDate.getDate() + '/' + (dayDate.getMonth() + 1) + '</div>'
+            + '</div>';
+    }
+
+    html += '</div>';
+
+    // Phase legend
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:8px;font-size:0.68em;color:rgba(255,255,255,0.4);margin-top:6px;">';
+    html += '<span>🌑 ' + (L ? 'Nueva' : 'New') + '</span>';
+    html += '<span>🌓 ' + (L ? 'Creciente' : '1st Qtr') + '</span>';
+    html += '<span>🌕 ' + (L ? 'Llena' : 'Full') + '</span>';
+    html += '<span>🌗 ' + (L ? 'Menguante' : 'Last Qtr') + '</span>';
+    html += '</div>';
+
+    html += '</div>';
+    container.innerHTML = html;
 }
 
 // Draw pie charts on canvas
@@ -15159,6 +15249,8 @@ window.switchToSolarSystemMode = switchToSolarSystemMode;
 window.switchToAspects2026Mode = switchToAspects2026Mode;
 window.toggleAspect2026Details = toggleAspect2026Details;
 window.showAspect2026Detail = showAspect2026Detail;
+window.switchCalView = switchCalView;
+window.renderNatalLunarCal = renderNatalLunarCal;
 window.togglePlanetDetails = togglePlanetDetails;
 window.fetchEarthWeather = fetchEarthWeather;
 window.fetchEarthquakes = fetchEarthquakes;
@@ -16492,7 +16584,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v196';
+const APP_VERSION = 'v199';
 var _pendingSW = null;
 
 function showUpdateBanner() {
