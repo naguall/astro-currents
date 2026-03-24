@@ -16594,6 +16594,20 @@ function clearAIChat() {
     showAIWelcome();
 }
 
+function aiQuickAction(id) {
+    const isEs = currentLang === 'es';
+    const prompts = {
+        1: isEs ? 'Dame una lectura completa de mi carta astral' : 'Give me a complete reading of my natal chart',
+        2: isEs ? 'Que eventos astronomicos hay en este ciclo lunar?' : 'What astronomical events are in this lunar cycle?',
+        3: isEs ? 'Como me afectan los transitos planetarios de hoy?' : 'How do today\'s planetary transits affect me?'
+    };
+    const input = document.getElementById('aiChatInput');
+    if (input && prompts[id]) {
+        input.value = prompts[id];
+        sendAIMessage();
+    }
+}
+
 function showAIWelcome() {
     const container = document.getElementById('aiChatMessages');
     const isEs = currentLang === 'es';
@@ -16620,9 +16634,9 @@ function showAIWelcome() {
             <div class="ai-msg assistant">
                 ${hasNatal ? '<p style="color:#66bb6a;font-size:0.85em;">✅ ' + (isEs ? 'Carta natal cargada' : 'Natal chart loaded') + '</p>' : '<p style="color:#f39c12;font-size:0.85em;">⚠️ ' + (isEs ? 'Configura tu carta natal en la pestaña Natal' : 'Set up your natal chart in the Natal tab') + '</p>'}
                 <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
-                    <button onclick="document.getElementById('aiChatInput').value='${isEs ? 'Dame una lectura completa de mi carta astral' : 'Give me a complete reading of my natal chart'}';sendAIMessage();" style="padding:10px 14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🔮 ${isEs ? 'Lectura completa de carta astral' : 'Full natal chart reading'}</button>
-                    <button onclick="document.getElementById('aiChatInput').value='${isEs ? '¿Qué eventos astronómicos hay en este ciclo lunar?' : 'What astronomical events are in this lunar cycle?'}';sendAIMessage();" style="padding:10px 14px;background:linear-gradient(135deg,rgba(78,205,196,0.2),rgba(102,126,234,0.15));border:1px solid rgba(78,205,196,0.35);border-radius:10px;color:#7dd3c8;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🌙 ${isEs ? 'Eventos de este ciclo' : 'This cycle\'s events'}</button>
-                    <button onclick="document.getElementById('aiChatInput').value='${isEs ? '¿Cómo me afectan los tránsitos planetarios de hoy?' : 'How do today\\'s planetary transits affect me?'}';sendAIMessage();" style="padding:10px 14px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🪐 ${isEs ? 'Tránsitos de hoy' : 'Today\'s transits'}</button>
+                    <button onclick="aiQuickAction(1)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🔮 ${isEs ? 'Lectura completa de carta astral' : 'Full natal chart reading'}</button>
+                    <button onclick="aiQuickAction(2)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(78,205,196,0.2),rgba(102,126,234,0.15));border:1px solid rgba(78,205,196,0.35);border-radius:10px;color:#7dd3c8;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🌙 ${isEs ? 'Eventos de este ciclo' : 'This cycle events'}</button>
+                    <button onclick="aiQuickAction(3)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">🪐 ${isEs ? 'Tránsitos de hoy' : 'Today transits'}</button>
                 </div>
                 <p style="font-size:0.78em;color:rgba(255,255,255,0.4);line-height:1.5;margin-top:4px;">${isEs ? 'Puedes añadir eventos a tu calendario, preguntarme sobre cualquier aspecto de tu carta natal, tránsitos, fases lunares y más.' : 'You can add events to your calendar, ask me about any aspect of your natal chart, transits, lunar phases and more.'}</p>
             </div>`;
