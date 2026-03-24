@@ -4185,9 +4185,11 @@ async function gcalExportAstroEvents(btn) {
         const astroEvents = [];
         const L = currentLang === 'es';
 
+        // Helper: short planet abbreviation
+        const pAbbr = (name) => getPlanetInitial(name);
+
         // ── 1. ALL LUNAR PHASES FOR 2026 ──
-        // Iterate through all months of 2026 to find new moons and generate cycles
-        const processedPhases = new Set(); // avoid duplicates
+        const processedPhases = new Set();
         for (let m = 0; m < 12; m++) {
             const d = new Date(2026, m, 15);
             const nm = findNearestNewMoon(d);
@@ -4198,21 +4200,21 @@ async function gcalExportAstroEvents(btn) {
             const weeks = calculateLunarCycle(nm);
             weeks.forEach((week, wIdx) => {
                 if (wIdx === 0) {
-                    astroEvents.push({ date: week.startDate, title: L?'🌑 Luna Nueva':'🌑 New Moon', description: `${week.name} - ${week.zodiacSign}` });
+                    astroEvents.push({ date: week.startDate, title: L?'Luna Nueva':'New Moon', description: week.zodiacSign || '' });
                 } else if (wIdx === 1) {
-                    astroEvents.push({ date: week.startDate, title: L?'🌓 Cuarto Creciente':'🌓 First Quarter', description: week.name });
+                    astroEvents.push({ date: week.startDate, title: L?'Cuarto Creciente':'First Quarter', description: '' });
                 } else if (wIdx === 2) {
-                    astroEvents.push({ date: week.startDate, title: L?'🌕 Luna Llena':'🌕 Full Moon', description: `${week.name} - ${week.zodiacSign}` });
+                    astroEvents.push({ date: week.startDate, title: L?'Luna Llena':'Full Moon', description: week.zodiacSign || '' });
                 } else if (wIdx === 3) {
-                    astroEvents.push({ date: week.startDate, title: L?'🌗 Cuarto Menguante':'🌗 Last Quarter', description: week.name });
+                    astroEvents.push({ date: week.startDate, title: L?'Cuarto Menguante':'Last Quarter', description: '' });
                 }
             });
         }
 
         // ── 2. ALL INTERPLANETARY ASPECTS 2026 ──
         interPlanetaryAspects2026.forEach(asp => {
-            const title = `${asp.symbol} ${asp.planet1} ${asp.aspect} ${asp.planet2}`;
-            const desc = asp.meaning || `${asp.planet1} ${asp.aspect} ${asp.planet2} (${asp.degrees} - ${asp.signs})`;
+            const title = `${pAbbr(asp.planet1)} ${asp.symbol} ${pAbbr(asp.planet2)}`;
+            const desc = asp.signs ? `${asp.degrees} ${asp.signs}` : asp.degrees || '';
             astroEvents.push({ date: asp.date, title: title, description: desc, time: asp.time || '' });
         });
 
@@ -4227,22 +4229,24 @@ async function gcalExportAstroEvents(btn) {
 
             const eclipse = getEclipseInfo(d);
             if (eclipse) {
-                astroEvents.push({ date: d, title: `${eclipse.type === 'solar' ? '☀️' : '🌒'} Eclipse: ${eclipse.name}`, description: L ? 'Eclipse - evento astronómico importante' : 'Eclipse - major astronomical event' });
+                const etype = eclipse.type === 'solar' ? (L?'Ecl Solar':'Solar Ecl') : (L?'Ecl Lunar':'Lunar Ecl');
+                astroEvents.push({ date: d, title: etype, description: eclipse.name || '' });
             }
 
             const signChanges = getSignChanges(d);
             signChanges.forEach(sc => {
-                astroEvents.push({ date: d, title: `${sc.symbol} ${sc.planet} → ${sc.toSign}`, description: sc.meaning || '', time: sc.time || '' });
+                astroEvents.push({ date: d, title: `${pAbbr(sc.planet)} → ${sc.toSign}`, description: '', time: sc.time || '' });
             });
 
             const retrogrades = getRetrogrades(d);
             retrogrades.forEach(r => {
-                astroEvents.push({ date: d, title: `${r.symbol} ${r.planet} ${r.isStart ? (L?'Retrógrado':'Retrograde') : (L?'Directo':'Direct')}`, description: L ? `${r.planet} cambia de dirección` : `${r.planet} changes direction` });
+                const dir = r.isStart ? 'R' : 'D';
+                astroEvents.push({ date: d, title: `${pAbbr(r.planet)} ${dir}`, description: '' });
             });
 
             const astroEvent = isAstronomicalEvent(d);
             if (astroEvent) {
-                astroEvents.push({ date: d, title: `☀️ ${astroEvent[L ? 'es' : 'en']}`, description: L ? 'Evento astronómico' : 'Astronomical event' });
+                astroEvents.push({ date: d, title: astroEvent[L ? 'es' : 'en'], description: '' });
             }
         }
 
@@ -4250,7 +4254,8 @@ async function gcalExportAstroEvents(btn) {
         if (typeof majorAspects2026 !== 'undefined') {
             majorAspects2026.forEach(asp => {
                 if (asp.planet1 && asp.planet2) {
-                    astroEvents.push({ date: new Date(asp.date), title: `⭐ ${asp.planet1} ${asp.aspect||''} ${asp.planet2}`, description: asp.meaning || asp.description || '' });
+                    const sym = asp.symbol || asp.aspect || '';
+                    astroEvents.push({ date: new Date(asp.date), title: `${pAbbr(asp.planet1)} ${sym} ${pAbbr(asp.planet2)}`, description: asp.degrees || '' });
                 }
             });
         }
@@ -4271,7 +4276,7 @@ async function gcalExportAstroEvents(btn) {
                 const end = new Date(start.getTime() + 30 * 60 * 1000);
                 gcalEvent = {
                     summary: evt.title,
-                    description: `[Moon Sync] ${evt.description}`,
+                    description: evt.description ? `[Moon Sync] ${evt.description}` : '[Moon Sync]',
                     start: { dateTime: start.toISOString(), timeZone: tz },
                     end: { dateTime: end.toISOString(), timeZone: tz },
                     colorId: colorId,
@@ -4281,7 +4286,7 @@ async function gcalExportAstroEvents(btn) {
             } else {
                 gcalEvent = {
                     summary: evt.title,
-                    description: `[Moon Sync] ${evt.description}`,
+                    description: evt.description ? `[Moon Sync] ${evt.description}` : '[Moon Sync]',
                     start: { date: dateStr },
                     end: { date: dateStr },
                     colorId: colorId,
@@ -4339,6 +4344,84 @@ async function gcalExportAstroEvents(btn) {
 
     } catch(e) {
         console.error('❌ Export error:', e);
+        btn.textContent = '❌ Error';
+        btn.disabled = false;
+        setTimeout(() => { btn.textContent = origText; }, 2000);
+    }
+}
+
+// Delete all Moon Sync exported events from Google Calendar
+async function gcalDeleteMoonSyncEvents(btn) {
+    if (!gcalIsConnected()) {
+        alert(currentLang === 'es' ? 'Conecta Google Calendar primero' : 'Connect Google Calendar first');
+        return;
+    }
+    const L = currentLang === 'es';
+    const confirmMsg = L ? 'Borrar todos los eventos de Moon Sync de Google Calendar?' : 'Delete all Moon Sync events from Google Calendar?';
+    if (!confirm(confirmMsg)) return;
+
+    const origText = btn.textContent;
+    btn.textContent = L ? '⏳ Buscando...' : '⏳ Searching...';
+    btn.disabled = true;
+
+    try {
+        let deleted = 0;
+        let pageToken = '';
+        const eventIds = [];
+
+        // Search for all events with "[Moon Sync]" in description
+        do {
+            let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=250&q=' + encodeURIComponent('[Moon Sync]') + '&timeMin=2026-01-01T00:00:00Z&timeMax=2027-01-01T00:00:00Z';
+            if (pageToken) url += '&pageToken=' + pageToken;
+            const resp = await fetch(url, {
+                headers: { 'Authorization': 'Bearer ' + gcalAccessToken }
+            });
+            if (!resp.ok) break;
+            const data = await resp.json();
+            if (data.items) {
+                data.items.forEach(ev => {
+                    if (ev.description && ev.description.includes('[Moon Sync]')) {
+                        eventIds.push(ev.id);
+                    }
+                });
+            }
+            pageToken = data.nextPageToken || '';
+        } while (pageToken);
+
+        btn.textContent = `⏳ 0/${eventIds.length}`;
+
+        for (let i = 0; i < eventIds.length; i++) {
+            try {
+                const resp = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events/' + eventIds[i], {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + gcalAccessToken }
+                });
+                if (resp.ok || resp.status === 204) deleted++;
+                if (resp.status === 429) {
+                    await new Promise(r => setTimeout(r, 3000));
+                    i--; // retry
+                    continue;
+                }
+            } catch(e) {}
+            if (i % 10 === 0) {
+                btn.textContent = `⏳ ${deleted}/${eventIds.length}`;
+                await new Promise(r => setTimeout(r, 50));
+            }
+            await new Promise(r => setTimeout(r, 150));
+        }
+
+        btn.textContent = `✓ ${deleted} ${L ? 'borrados' : 'deleted'}`;
+        btn.style.color = '#ff6b6b';
+        setTimeout(() => {
+            btn.textContent = origText;
+            btn.style.color = '#ff6b6b';
+            btn.disabled = false;
+        }, 4000);
+
+        gcalFetchEvents();
+
+    } catch(e) {
+        console.error('❌ Delete error:', e);
         btn.textContent = '❌ Error';
         btn.disabled = false;
         setTimeout(() => { btn.textContent = origText; }, 2000);
@@ -15079,8 +15162,13 @@ function openPreferencesModal() {
                             🌙⭐ ${currentLang==='es'?'Exportar 2026 a Google Calendar':'Export 2026 to Google Calendar'}
                         </button>
                     </div>
-                    <div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;">
-                        ${currentLang==='es'?'Fases lunares, eclipses, aspectos planetarios — todo 2026':'Lunar phases, eclipses, planetary aspects — all 2026'}
+                    <div style="margin-top:6px;">
+                        <button onclick="gcalDeleteMoonSyncEvents(this)" style="width:100%;padding:6px 12px;background:rgba(255,107,107,0.06);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.72em;cursor:pointer;">
+                            ${currentLang==='es'?'Borrar eventos Moon Sync de GCal':'Delete Moon Sync events from GCal'}
+                        </button>
+                    </div>
+                    <div style="font-size:0.60em;color:rgba(255,255,255,0.25);text-align:center;margin-top:4px;">
+                        ${currentLang==='es'?'Fases lunares, eclipses, aspectos — formato corto, sin notificaciones':'Lunar phases, eclipses, aspects — short format, no notifications'}
                     </div>
                 ` : `
                     <div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-bottom:8px;">${t('gcalDisconnected')}</div>
@@ -16012,7 +16100,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v180';
+const APP_VERSION = 'v181';
 var _pendingSW = null;
 
 function showUpdateBanner() {
