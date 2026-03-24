@@ -4745,7 +4745,8 @@ function formatDate(date) {
 function formatShortDate(date) {
     const day = date.getDate();
     const month = date.getMonth() + 1;
-    return `${day}/${month}`;
+    const L = currentLang === 'es';
+    return L ? `${day}/${month}` : `${month}/${day}`;
 }
 
 function formatLongDate(date) {
@@ -17423,7 +17424,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v218';
+const APP_VERSION = 'v219';
 var _pendingSW = null;
 
 function showUpdateBanner() {
