@@ -9966,12 +9966,12 @@ function updateCurrentDayInfoForMode(mode) {
                 <div onclick="goToToday()" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid rgba(201,168,64,0.32);background:linear-gradient(160deg,rgba(40,28,5,0.95) 0%,rgba(25,18,3,0.95) 100%);box-shadow:0 0 20px rgba(201,168,64,0.15);">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: #c9a840; text-transform: uppercase; margin-bottom: 1px;">— HOY —</div>
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
-                        <span style="font-size:${String(displayDay).length > 4 ? '1.4em' : '2.4em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
+                        <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji}</div>
                     ${mode === 'lunar' ? `<div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
-                    <div style="font-size: 0.65em; color: rgba(255,255,255,0.5); margin: 2px 0;">${today.getDate()} ${t('months')[today.getMonth()].substring(0,3)}</div>
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
+                    <div style="font-size: 1.1em; color: #e8c84a; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px;">${today.getDate()} ${t('months')[today.getMonth()].substring(0,3)}</div>
                 </div>
                 <!-- Info según modo -->
                 <div style="background: rgba(20,10,40,0.85); padding: 6px 7px; border-radius: 8px; border: 1px solid rgba(201,168,64,0.28); border-top: 2px solid rgba(201,168,64,0.55); min-width: 0; overflow: hidden;">
@@ -15321,12 +15321,12 @@ function renderCalendar() {
                      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(201,168,64,0.15)';">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: #c9a840; text-transform: uppercase; margin-bottom: 1px;">— HOY —</div>
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
-                        <span style="font-size:${String(displayDay).length > 4 ? '1.4em' : '2.4em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
+                        <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji || (calendarMode === 'lunar' ? getMoonSVG(calculateLunarPhase(today), 30) : '☉')}</div>
                     <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
-                    <div style="font-size: 0.65em; color: rgba(255,255,255,0.5); margin: 2px 0;">${today.getDate()} ${t('months')[today.getMonth()].substring(0,3)}</div>
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
+                    <div style="font-size: 1.1em; color: #e8c84a; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px;">${today.getDate()} ${t('months')[today.getMonth()].substring(0,3)}</div>
                 </div>
                 
                 <!-- Luna/Sol/Info Hoy -->
@@ -17425,7 +17425,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v222';
+const APP_VERSION = 'v223';
 var _pendingSW = null;
 
 function showUpdateBanner() {
