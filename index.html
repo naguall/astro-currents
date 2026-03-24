@@ -9078,7 +9078,7 @@ function renderAspects2026Panel() {
     // Header
     html += '<div style="margin-bottom:10px;padding:12px;background:rgba(5,7,30,0.95);border:1px solid rgba(233,30,99,0.3);border-radius:12px;border-top:2px solid rgba(233,30,99,0.6);text-align:center;">'
         + '<div style="font-family:\'Cinzel\',serif;color:#e91e63;font-size:1em;font-weight:600;letter-spacing:2px;margin-bottom:6px;">'
-        + '🪐 ' + (es ? 'ASPECTOS PLANETARIOS 2026' : 'PLANETARY ASPECTS 2026') + '</div>'
+        + '🪐 ' + (es ? 'ASPECTOS 2026' : 'ASPECTS 2026') + '</div>'
         + '</div>';
 
     // Planet cards
@@ -9191,11 +9191,11 @@ function renderAspects2026Panel() {
         html += '</div>'; // end card
     });
 
-    // Major aspects button at bottom
+    // Major aspects and Events buttons at bottom — open AI modal
     html += '<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-    html += '<button onclick="showMajorAspectsModal()" style="padding:12px;background:linear-gradient(135deg,rgba(233,30,99,0.25),rgba(155,89,182,0.2));border:2px solid #e91e63;border-radius:10px;color:#ff69b4;font-size:0.9em;font-weight:bold;cursor:pointer;">'
+    html += '<button onclick="showAI2026Summary(\'major\')" style="padding:12px;background:linear-gradient(135deg,rgba(233,30,99,0.25),rgba(155,89,182,0.2));border:2px solid #e91e63;border-radius:10px;color:#ff69b4;font-size:0.9em;font-weight:bold;cursor:pointer;">'
         + '⭐ ' + (es ? 'Aspectos Mayores' : 'Major Aspects') + '</button>';
-    html += '<button onclick="showHistoricAspectsModal()" style="padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(231,76,60,0.2));border:2px solid #e8c84a;border-radius:10px;color:#e8c84a;font-size:0.9em;font-weight:bold;cursor:pointer;">'
+    html += '<button onclick="showAI2026Summary(\'events\')" style="padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(231,76,60,0.2));border:2px solid #e8c84a;border-radius:10px;color:#e8c84a;font-size:0.9em;font-weight:bold;cursor:pointer;">'
         + '🏛️ ' + (es ? 'Eventos 2026' : 'Events 2026') + '</button>';
     html += '</div>';
 
@@ -9242,6 +9242,37 @@ function showAspect2026Detail(planetName, aspectType, aspectSymbol, withPlanet, 
         ? 'Interpreta este aspecto astrológico del 2026 y cómo me afecta personalmente según mi carta natal: ' + planetName + ' ' + (aspectSymbol||'') + ' ' + (aspectType||'') + ' ' + withPlanet + (dateStr ? ' (fecha: ' + dateStr + ')' : '') + (meaning ? '. Significado: ' + meaning : '')
         : 'Interpret this 2026 astrological aspect and how it affects me personally based on my natal chart: ' + planetName + ' ' + (aspectSymbol||'') + ' ' + (aspectType||'') + ' ' + withPlanet + (dateStr ? ' (date: ' + dateStr + ')' : '') + (meaning ? '. Meaning: ' + meaning : '');
     var readingTitle = planetName + ' ' + (aspectSymbol||'') + ' ' + withPlanet;
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle);
+    }, 100);
+}
+
+function showAI2026Summary(type) {
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    var L = currentLang === 'es';
+
+    var title, prompt, readingTitle;
+    if (type === 'major') {
+        title = L ? '⭐ Aspectos Mayores 2026' : '⭐ Major Aspects 2026';
+        prompt = L
+            ? 'Analiza los aspectos astrológicos mayores del 2026: stelliums, T-cuadraturas, grandes trígonos, conjunciones importantes entre planetas lentos, oposiciones y cuadraturas clave. Explica cómo afectan colectiva e individualmente según mi carta natal. Incluye fechas aproximadas y consejos.'
+            : 'Analyze the major astrological aspects of 2026: stelliums, T-squares, grand trines, important conjunctions between slow planets, key oppositions and squares. Explain how they affect collectively and individually based on my natal chart. Include approximate dates and advice.';
+        readingTitle = title;
+    } else {
+        title = L ? '🏛️ Eventos 2026' : '🏛️ Events 2026';
+        prompt = L
+            ? 'Describe los eventos astrológicos más importantes del 2026: eclipses, retrogradaciones de planetas importantes, ingresos de planetas en nuevos signos, lunas nuevas y llenas significativas, y cualquier configuración rara o poderosa. Explica cómo me afectan personalmente según mi carta natal.'
+            : 'Describe the most important astrological events of 2026: eclipses, important planet retrogrades, planet ingresses into new signs, significant new and full moons, and any rare or powerful configurations. Explain how they affect me personally based on my natal chart.';
+        readingTitle = title;
+    }
+
+    titleEl.textContent = title;
+    var html = '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación AI' : 'AI Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
     setTimeout(function() {
         fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle);
     }, 100);
@@ -10393,13 +10424,13 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 </button>
         </div>`;
 
-    // ===== TAB: CALENDAR (toggle between Gregorian and Lunar views) =====
+    // ===== TAB: CALENDAR (Lunar default, toggle to Gregorian) =====
     const calendarTransitsTab = `
         <div style="display:flex;justify-content:center;gap:4px;margin-bottom:10px;">
-            <button id="calViewGregorian" onclick="switchCalView('gregorian')" style="padding:5px 14px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.5);border-radius:14px;color:#c9a840;font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Gregoriano':'Gregorian'}</button>
-            <button id="calViewLunar" onclick="switchCalView('lunar')" style="padding:5px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:14px;color:rgba(255,255,255,0.5);font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Lunar':'Lunar'}</button>
+            <button id="calViewLunar" onclick="switchCalView('lunar')" style="padding:5px 14px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.5);border-radius:14px;color:#c9a840;font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Lunar':'Lunar'}</button>
+            <button id="calViewGregorian" onclick="switchCalView('gregorian')" style="padding:5px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:14px;color:rgba(255,255,255,0.5);font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Gregoriano':'Gregorian'}</button>
         </div>
-        <div id="natalLunarCalView" style="display:none;"></div>`;
+        <div id="natalLunarCalView"></div>`;
 
     // ===== TAB: TABLES =====
     // Store natal chart for detail modal
@@ -10615,9 +10646,13 @@ function switchNatalTab(tabName, btn) {
     var tabEl = document.getElementById('natalTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
     if (tabEl) tabEl.style.display = 'block';
     if (btn) btn.classList.add('active');
-    // Show/hide calendar grid based on active tab
+    // Show/hide calendar grid based on active tab — lunar is default
     var calGrid = document.getElementById('natalCalendarGrid');
-    if (calGrid) calGrid.style.display = (tabName === 'calendar') ? 'block' : 'none';
+    if (calGrid) calGrid.style.display = 'none'; // hidden by default, switchCalView controls it
+    if (tabName === 'calendar') {
+        // Render lunar view by default
+        setTimeout(function() { renderNatalLunarCal(); }, 50);
+    }
     // Draw charts when tabs are shown
     if (tabName === 'elements') {
         setTimeout(drawNatalPieCharts, 100);
@@ -11785,6 +11820,11 @@ function renderPersonalCalendar() {
     `;
 
     container.innerHTML = calendarHTML;
+
+    // Hide gregorian grid by default, show lunar calendar
+    var _calGrid = document.getElementById('natalCalendarGrid');
+    if (_calGrid) _calGrid.style.display = 'none';
+    setTimeout(function() { renderNatalLunarCal(); }, 100);
 }
 
 function personalPrevMonth() {
@@ -15250,6 +15290,7 @@ window.switchToAspects2026Mode = switchToAspects2026Mode;
 window.toggleAspect2026Details = toggleAspect2026Details;
 window.showAspect2026Detail = showAspect2026Detail;
 window.switchCalView = switchCalView;
+window.showAI2026Summary = showAI2026Summary;
 window.renderNatalLunarCal = renderNatalLunarCal;
 window.togglePlanetDetails = togglePlanetDetails;
 window.fetchEarthWeather = fetchEarthWeather;
@@ -16584,7 +16625,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v199';
+const APP_VERSION = 'v200';
 var _pendingSW = null;
 
 function showUpdateBanner() {
