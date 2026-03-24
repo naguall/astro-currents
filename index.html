@@ -281,11 +281,11 @@
         .day-cell.weekend .day-number { color: var(--gold); }
         .day-right { display: flex; flex-direction: column; align-items: flex-end; flex: 0 0 auto; }
         .day-date { font-size: 0.95em; color: var(--text-dim); text-align: right; line-height: 1; font-weight: bold; }
-        .day-weekday { font-size: 0.5em; color: rgba(136,153,204,0.7); text-transform: uppercase; font-weight: 600; letter-spacing: 0.1px; line-height: 1; }
+        .day-weekday { font-size: 0.55em; color: rgba(136,153,204,0.7); text-transform: uppercase; font-weight: 600; letter-spacing: 0.1px; line-height: 1; }
         .day-cell.weekend .day-weekday { color: rgba(201,168,64,0.65); font-weight: bold; }
         .day-cell.today .day-date, .day-cell.today .day-weekday { color: rgba(255,255,255,0.85); }
 
-        .day-content { width: 100%; font-size: 0.5em; display: flex; flex-direction: row; gap: 2px; overflow: hidden; align-items: flex-start; justify-content: space-between; word-break: break-word; }
+        .day-content { width: 100%; font-size: 0.55em; display: flex; flex-direction: row; gap: 2px; overflow: hidden; align-items: flex-start; justify-content: space-between; word-break: break-word; }
 
         .day-event-item { background: rgba(74,158,255,0.08); padding: 0px 2px; border-radius: 2px; border-left: 2px solid var(--blue-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; font-size: 0.9em; }
         .day-event-item.type-reminder { border-left-color: #e85d7a; background: rgba(232,93,122,0.08); }
@@ -5602,7 +5602,11 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle) 
                 .replace(/\n/g, '<br>');
             // Store reading data globally for safe button access
             var readingKey = '_aiReading_' + Date.now();
-            var chatId = 'ic_' + Date.now().toString(36);
+            // Deterministic chatId based on prompt + profile so same aspect reopens same chat
+            var chatHash = 0;
+            var chatSrc = (getActiveProfileId() || 'default') + '|' + specificPrompt;
+            for (var ci = 0; ci < chatSrc.length; ci++) { chatHash = ((chatHash << 5) - chatHash) + chatSrc.charCodeAt(ci); chatHash |= 0; }
+            var chatId = 'ic_' + Math.abs(chatHash).toString(36);
             window[readingKey] = { title: _readingTitle, text: text, html: '<p>' + formattedHtml + '</p>', prompt: specificPrompt };
             div.innerHTML = '<div style="line-height:1.7;font-size:0.9em;color:rgba(255,255,255,0.88);"><p>' + formattedHtml + '</p></div>'
                 + '<div style="display:flex;gap:8px;margin-top:14px;justify-content:center;border-top:1px solid rgba(201,168,64,0.15);padding-top:10px;">'
@@ -6200,23 +6204,42 @@ function showNatalDetail(type, data) {
             const planet1Name = planetNames[aspect.planet1] || aspect.planet1;
             const planet2Name = planetNames[aspect.planet2] || aspect.planet2;
 
+            // Get sign info for each planet in the aspect
+            var p1Sign = '', p1Degree = '', p2Sign = '', p2Degree = '';
+            if (globalNatalChart.planets) {
+                var p1Data = globalNatalChart.planets[aspect.planet1];
+                var p2Data = globalNatalChart.planets[aspect.planet2];
+                if (p1Data) { p1Sign = p1Data.sign || ''; p1Degree = p1Data.degree + '°' + (p1Data.minute < 10 ? '0' : '') + p1Data.minute + "'"; }
+                if (p2Data) { p2Sign = p2Data.sign || ''; p2Degree = p2Data.degree + '°' + (p2Data.minute < 10 ? '0' : '') + p2Data.minute + "'"; }
+            }
+
             titleEl.textContent = planet1Name + ' ' + aspect.aspect.symbol + ' ' + planet2Name;
 
             html += '<div style="border-bottom: 2px solid ' + aspect.aspect.color + '; padding-bottom: 12px; margin-bottom: 15px;">';
             html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Tipo:' : 'Type:') + '</strong> <span style="color:' + aspect.aspect.color + ';font-weight:700;">' + aspect.aspect.name + '</span></div>';
             html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Orbe:' : 'Orb:') + '</strong> ' + aspect.orbFormatted + '</div>';
-            html += '<div style="font-size:0.9em;"><strong>' + (L ? 'Planetas:' : 'Planets:') + '</strong> ' + (planetSymbols[aspect.planet1] || '') + ' ' + planet1Name + ' — ' + (planetSymbols[aspect.planet2] || '') + ' ' + planet2Name + '</div>';
+            html += '<div style="font-size:0.9em;margin-bottom:10px;"><strong>' + (L ? 'Planetas:' : 'Planets:') + '</strong></div>';
+            html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+            html += '<div style="background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);border-radius:8px;padding:8px 10px;text-align:center;">';
+            html += '<div style="font-size:1.1em;margin-bottom:4px;">' + (planetSymbols[aspect.planet1] || '') + ' ' + planet1Name + '</div>';
+            if (p1Sign) html += '<div style="font-size:0.85em;color:#c39bd3;font-weight:600;">' + p1Sign + ' ' + p1Degree + '</div>';
+            html += '</div>';
+            html += '<div style="background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);border-radius:8px;padding:8px 10px;text-align:center;">';
+            html += '<div style="font-size:1.1em;margin-bottom:4px;">' + (planetSymbols[aspect.planet2] || '') + ' ' + planet2Name + '</div>';
+            if (p2Sign) html += '<div style="font-size:0.85em;color:#c39bd3;font-weight:600;">' + p2Sign + ' ' + p2Degree + '</div>';
+            html += '</div></div>';
             html += '</div>';
 
             // AI interpretation
             html += '<div style="margin-top:12px;"><h4 style="color:' + aspect.aspect.color + ';margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
 
             var _p1 = planet1Name, _p2 = planet2Name, _aType = aspect.aspect.name, _orb = aspect.orbFormatted;
+            var _p1s = p1Sign, _p2s = p2Sign;
             setTimeout(function() {
                 var prompt = L
-                    ? 'Interpreta el aspecto natal ' + _p1 + ' ' + _aType + ' ' + _p2 + ' (orbe: ' + _orb + ') en mi carta natal. Explica: qué energías se combinan, cómo se manifiesta en mi personalidad y vida, si es un aspecto tenso o armónico y qué desafíos o talentos genera, y un consejo práctico para aprovecharlo.'
-                    : 'Interpret the natal aspect ' + _p1 + ' ' + _aType + ' ' + _p2 + ' (orb: ' + _orb + ') in my natal chart. Explain: what energies combine, how it manifests in my personality and life, whether it\'s a tense or harmonic aspect and what challenges or talents it generates, and practical advice.';
-                fetchAIInterpretation(prompt, 'aiInterpDiv', _p1 + ' ' + _aType + ' ' + _p2);
+                    ? 'Interpreta el aspecto natal ' + _p1 + ' en ' + _p1s + ' ' + _aType + ' ' + _p2 + ' en ' + _p2s + ' (orbe: ' + _orb + ') en mi carta natal. Explica: qué energías se combinan considerando los signos, cómo se manifiesta en mi personalidad y vida, si es un aspecto tenso o armónico y qué desafíos o talentos genera, y un consejo práctico para aprovecharlo.'
+                    : 'Interpret the natal aspect ' + _p1 + ' in ' + _p1s + ' ' + _aType + ' ' + _p2 + ' in ' + _p2s + ' (orb: ' + _orb + ') in my natal chart. Explain: what energies combine considering the signs, how it manifests in my personality and life, whether it\'s a tense or harmonic aspect and what challenges or talents it generates, and practical advice.';
+                fetchAIInterpretation(prompt, 'aiInterpDiv', _p1 + ' ' + _p1s + ' ' + _aType + ' ' + _p2 + ' ' + _p2s);
             }, 100);
         }
 
@@ -9678,6 +9701,19 @@ function showBannerAspectDetail(text) {
     var bodyEl = document.getElementById('natalDetailBody');
     var L = currentLang === 'es';
 
+    var prompt = L
+        ? 'Interpreta este aspecto o evento astrológico de hoy y cómo me afecta según mi carta natal: ' + text
+        : 'Interpret this astrological aspect or event today and how it affects me based on my natal chart: ' + text;
+
+    // Generate deterministic chatId for this aspect
+    var chatHash = 0;
+    var chatSrc = (getActiveProfileId() || 'default') + '|' + prompt;
+    for (var ci = 0; ci < chatSrc.length; ci++) { chatHash = ((chatHash << 5) - chatHash) + chatSrc.charCodeAt(ci); chatHash |= 0; }
+    var chatId = 'ic_' + Math.abs(chatHash).toString(36);
+
+    // Check for existing chat
+    var existingChat = getInterpChat(chatId);
+
     titleEl.textContent = text;
     var html = '<div style="border-bottom:2px solid #c9a840;padding-bottom:12px;margin-bottom:15px;">';
     html += '<div style="font-size:0.95em;color:rgba(255,255,255,0.8);line-height:1.5;">' + text + '</div>';
@@ -9686,10 +9722,32 @@ function showBannerAspectDetail(text) {
     bodyEl.innerHTML = html;
     modal.classList.add('show');
 
-    var prompt = L
-        ? 'Interpreta este aspecto o evento astrológico de hoy y cómo me afecta según mi carta natal: ' + text
-        : 'Interpret this astrological aspect or event today and how it affects me based on my natal chart: ' + text;
-    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', text); }, 100);
+    if (existingChat && existingChat.initialResponse) {
+        // Restore previous interpretation and chat
+        var readingKey = '_aiReading_' + chatId;
+        window[readingKey] = { title: text, text: existingChat.initialResponse, html: '', prompt: prompt };
+        var fmtHtml = existingChat.initialResponse
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+        var div = document.getElementById('aiInterpDiv');
+        div.innerHTML = '<div style="line-height:1.7;font-size:0.9em;color:rgba(255,255,255,0.88);"><p>' + fmtHtml + '</p></div>'
+            + '<div style="display:flex;gap:8px;margin-top:14px;justify-content:center;border-top:1px solid rgba(201,168,64,0.15);padding-top:10px;">'
+            + '<button onclick="openInterpretationChat(\'' + readingKey + '\',\'' + chatId + '\',this)" style="flex:1;padding:6px 10px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.35);border-radius:6px;color:#667eea;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">💬 ' + (L ? 'Chat' : 'Chat') + (existingChat.messages.length > 0 ? ' (' + existingChat.messages.length + ')' : '') + '</button>'
+            + '<button onclick="var d=window[\'' + readingKey + '\'];if(d){saveReading(d.title,d.text,d.html||d.text);this.disabled=true;this.innerHTML=\'' + (L ? '✅ Guardada' : '✅ Saved') + '\';}" style="flex:1;padding:6px 10px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.35);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">💾 ' + (L ? 'Guardar' : 'Save') + '</button>'
+            + '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:6px 10px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.35);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;white-space:nowrap;font-weight:600;">📤 ' + (L ? 'Compartir' : 'Share') + '</button>'
+            + '</div>';
+        // Auto-open chat if it has messages
+        if (existingChat.messages.length > 0) {
+            setTimeout(function() {
+                var chatBtn = div.querySelector('button');
+                if (chatBtn) chatBtn.click();
+            }, 200);
+        }
+    } else {
+        setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', text); }, 100);
+    }
 }
 window.showBannerAspectDetail = showBannerAspectDetail;
 
@@ -16444,7 +16502,7 @@ async function handleNotifToggle(enable) {
 function setCellSize(size) {
     // S = whole week in 1 line (7 cols), M = 2 lines (4 cols), L = 3 lines (3 cols)
     const dims = { small: '50px', medium: '100px', large: '140px' };
-    const fonts = { small: '0.5em', medium: '0.75em', large: '0.95em' };
+    const fonts = { small: '0.6em', medium: '0.75em', large: '0.95em' };
     const gridCols = { small: 'repeat(8, 1fr)', medium: 'repeat(auto-fill, minmax(90px, 1fr))', large: 'repeat(auto-fill, minmax(120px, 1fr))' };
     const gaps = { small: '2px', medium: '3px', large: '4px' };
     const paddings = { small: '2px', medium: '5px', large: '8px' };
@@ -17322,7 +17380,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v212';
+const APP_VERSION = 'v213';
 var _pendingSW = null;
 
 function showUpdateBanner() {
