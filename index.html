@@ -3887,6 +3887,16 @@ function initGoogleCalendar() {
             console.log('📅 Google Calendar: token still valid, auto-syncing');
             gcalFetchEvents();
             gcalStartAutoSync();
+        } else if (localStorage.getItem('gcalAccessToken')) {
+            // Token existed but expired — silently request a new one
+            console.log('📅 Google Calendar: token expired, requesting silent refresh...');
+            try {
+                gcalTokenClient.requestAccessToken({prompt: ''});
+            } catch(silentErr) {
+                console.log('📅 Silent refresh failed, user will need to reconnect manually');
+                localStorage.removeItem('gcalAccessToken');
+                localStorage.removeItem('gcalTokenExpiry');
+            }
         }
     } catch(e) {
         console.error('❌ Google Calendar init error:', e);
@@ -4264,7 +4274,9 @@ async function gcalExportAstroEvents(btn) {
                     description: `[Moon Sync] ${evt.description}`,
                     start: { dateTime: start.toISOString(), timeZone: tz },
                     end: { dateTime: end.toISOString(), timeZone: tz },
-                    colorId: colorId
+                    colorId: colorId,
+                    reminders: { useDefault: false, overrides: [] },
+                    transparency: 'transparent'
                 };
             } else {
                 gcalEvent = {
@@ -4272,7 +4284,9 @@ async function gcalExportAstroEvents(btn) {
                     description: `[Moon Sync] ${evt.description}`,
                     start: { date: dateStr },
                     end: { date: dateStr },
-                    colorId: colorId
+                    colorId: colorId,
+                    reminders: { useDefault: false, overrides: [] },
+                    transparency: 'transparent'
                 };
             }
 
@@ -15998,7 +16012,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v179';
+const APP_VERSION = 'v180';
 var _pendingSW = null;
 
 function showUpdateBanner() {
