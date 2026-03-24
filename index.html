@@ -15928,15 +15928,18 @@ function showAIWelcome() {
                 </div>
             </div>`;
     } else {
+        const hasNatal = !!localStorage.getItem('natalChart');
         container.innerHTML = `
             <div class="ai-msg assistant">
-                <p><strong>${isEs ? '✨ ¡Hola! Pregúntame lo que quieras:' : '✨ Hi! Ask me anything:'}</strong></p>
-                <p>🌙 ${isEs ? 'Ciclos lunares y fases' : 'Lunar cycles and phases'}</p>
-                <p>🌊 ${isEs ? 'Mareas y su influencia' : 'Tides and their influence'}</p>
-                <p>⭐ ${isEs ? 'Aspectos planetarios' : 'Planetary aspects'}</p>
-                <p>☀️ ${isEs ? 'Ciclo solar y estaciones' : 'Solar cycle and seasons'}</p>
-                <p>🌍 ${isEs ? 'Actividad sísmica y terrestre' : 'Seismic and earth activity'}</p>
-                <p>🪐 ${isEs ? 'Sistema solar y planetas' : 'Solar system and planets'}</p>
+                <p><strong>${isEs ? '✨ Soy tu astrólogo personal. Conozco tu carta natal completa.' : '✨ I\'m your personal astrologer. I know your complete natal chart.'}</strong></p>
+                ${hasNatal ? '<p style="color:#66bb6a;font-size:0.85em;">✅ ' + (isEs ? 'Carta natal cargada — lectura personalizada activa' : 'Natal chart loaded — personalized reading active') + '</p>' : '<p style="color:#f39c12;font-size:0.85em;">⚠️ ' + (isEs ? 'Configura tu carta natal para lecturas personalizadas' : 'Set up your natal chart for personalized readings') + '</p>'}
+                <p style="margin-top:8px;">${isEs ? 'Pregúntame sobre:' : 'Ask me about:'}</p>
+                <p>🪐 ${isEs ? '"¿Cómo me afectan los tránsitos de hoy?"' : '"How do today\'s transits affect me?"'}</p>
+                <p>☀️ ${isEs ? '"Analiza mi Sol en Leo en Casa X"' : '"Analyze my Sun in Leo in House X"'}</p>
+                <p>💫 ${isEs ? '"¿Qué dice mi Nodo Norte sobre mi destino?"' : '"What does my North Node say about my destiny?"'}</p>
+                <p>❤️ ${isEs ? '"¿Cómo es mi Venus para el amor?"' : '"How does my Venus affect love?"'}</p>
+                <p>🌙 ${isEs ? '"¿Qué significa la Luna en esta fase para mí?"' : '"What does the Moon in this phase mean for me?"'}</p>
+                <p>🔮 ${isEs ? '"Dame una lectura completa de mi carta"' : '"Give me a complete reading of my chart"'}</p>
             </div>`;
     }
 }
@@ -15958,7 +15961,7 @@ function gatherAstroContext() {
     // Current date and location
     ctx += 'Fecha actual: ' + now.toLocaleDateString('es-CR', {weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '\n';
     ctx += 'Hora: ' + now.toLocaleTimeString('es-CR') + '\n';
-    ctx += 'Ubicación del usuario: ' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ' (lat:' + ASTRO_USER_LAT + ', lon:' + ASTRO_USER_LON + ')\n';
+    ctx += 'Ubicación del usuario: ' + (ASTRO_USER_NAME || 'desconocida') + ' (lat:' + ASTRO_USER_LAT + ', lon:' + ASTRO_USER_LON + ')\n';
 
     // Lunar day
     try {
@@ -15978,8 +15981,79 @@ function gatherAstroContext() {
         if (phase) ctx += 'Fase lunar: ' + phase + '\n';
     } catch(e) {}
 
-    // Calendar mode
-    ctx += 'Modo de calendario activo: ' + (calendarMode || 'lunar') + '\n';
+    ctx += '\n';
+
+    // ========== NATAL CHART DATA ==========
+    try {
+        const stored = localStorage.getItem('natalChart');
+        if (stored) {
+            const nc = JSON.parse(stored);
+            const pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith'};
+
+            // Birth data
+            const natal = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+            const activeId = localStorage.getItem('activeProfileId');
+            const profile = natal.find(p => p.id === activeId) || natal[0];
+            if (profile) {
+                ctx += 'DATOS DE NACIMIENTO DEL USUARIO:\n';
+                ctx += 'Nombre: ' + (profile.name || 'Usuario') + '\n';
+                ctx += 'Fecha: ' + (profile.date || localStorage.getItem('natalBirthDate') || '?') + '\n';
+                ctx += 'Hora: ' + (profile.time || localStorage.getItem('natalBirthTime') || '?') + '\n';
+                ctx += 'Ciudad: ' + (profile.city || localStorage.getItem('natalCityName') || '?') + '\n\n';
+            }
+
+            // Planet positions
+            ctx += 'CARTA NATAL COMPLETA — PLANETAS:\n';
+            if (nc.planets) {
+                Object.entries(nc.planets).forEach(function(entry) {
+                    var p = entry[0], d = entry[1];
+                    var house = nc.houses ? getHouseForLongitude(d.longitude, nc.houses.cusps) : '?';
+                    ctx += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "'" + ' (Casa ' + house + ')' + (d.isRetrograde ? ' RETRÓGRADO' : '') + '\n';
+                });
+            }
+
+            // Houses
+            if (nc.houses && nc.houses.cusps) {
+                ctx += '\nCASAS (Cúspides):\n';
+                var houseNames = ['I (ASC)', 'II', 'III', 'IV (IC)', 'V', 'VI', 'VII (DESC)', 'VIII', 'IX', 'X (MC)', 'XI', 'XII'];
+                nc.houses.cusps.forEach(function(cusp, i) {
+                    var info = getZodiacSignWithDegree(cusp);
+                    ctx += 'Casa ' + houseNames[i] + ': ' + info.sign + ' ' + info.degree + '°' + (info.minute<10?'0':'') + info.minute + "'\n";
+                });
+            }
+
+            // Natal aspects
+            if (nc.natalAspects && nc.natalAspects.length > 0) {
+                ctx += '\nASPECTOS NATALES:\n';
+                nc.natalAspects.forEach(function(a) {
+                    ctx += (pN[a.planet1]||a.planet1) + ' ' + a.aspect.name + ' ' + (pN[a.planet2]||a.planet2) + ' (orbe: ' + a.orbFormatted + ')\n';
+                });
+            }
+
+            // Elements and qualities
+            if (nc.elementQuality) {
+                var eq = nc.elementQuality;
+                var ep = eq.elementPercents || {};
+                var qp = eq.qualityPercents || {};
+                ctx += '\nELEMENTOS: Fuego ' + (ep.Fire||0) + '%, Tierra ' + (ep.Earth||0) + '%, Aire ' + (ep.Air||0) + '%, Agua ' + (ep.Water||0) + '%\n';
+                ctx += 'CUALIDADES: Cardinal ' + (qp.Cardinal||0) + '%, Fijo ' + (qp.Fixed||0) + '%, Mutable ' + (qp.Mutable||0) + '%\n';
+            }
+
+            ctx += '\n';
+        }
+    } catch(e) { console.warn('AI context natal error:', e); }
+
+    // ========== TODAY'S TRANSITS ==========
+    try {
+        if (globalTodayTransits && globalTodayTransits.length > 0) {
+            const pN2 = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+            ctx += 'TRÁNSITOS DE HOY SOBRE LA CARTA NATAL:\n';
+            globalTodayTransits.forEach(function(t) {
+                ctx += (pN2[t.transitPlanet]||t.transitPlanet) + ' ' + t.type + ' natal ' + (pN2[t.natalPlanet]||t.natalPlanet) + ' (orbe: ' + t.orb + '°)\n';
+            });
+            ctx += '\n';
+        }
+    } catch(e) {}
 
     return ctx;
 }
@@ -15988,27 +16062,59 @@ function buildSystemPrompt() {
     const isEs = currentLang === 'es';
     const astroCtx = gatherAstroContext();
 
-    return `Eres un asistente experto en astronomía, ciclos cósmicos y astrología integrado en la app "Moon Sync". Respondes de forma clara, precisa y concisa.
+    if (isEs) {
+        return `Eres un astrólogo profesional profundo y un experto en ciclos cósmicos integrado en la app "Moon Sync". Tienes acceso COMPLETO a la carta natal del usuario y a los tránsitos actuales. Usa estos datos para dar lecturas personalizadas, profundas y específicas.
 
-CONTEXTO ASTRONÓMICO ACTUAL:
+DATOS COMPLETOS DEL USUARIO Y CIELO ACTUAL:
 ${astroCtx}
 
-TU ESPECIALIDAD:
-- Ciclos lunares: fases, días lunares, lunas nuevas/llenas, eclipses, su significado e influencia
-- Mareas: cómo la luna y el sol afectan las mareas, mareas vivas y muertas
-- Aspectos planetarios: conjunciones, oposiciones, trígonos, cuadraturas entre planetas
-- Ciclo solar: solsticios, equinoccios, declinación solar, estaciones
-- Sistema solar: posiciones planetarias, datos de planetas
-- Actividad sísmica y terrestre
-- Astrología: cartas natales, tránsitos, casas, signos
+TU ROL:
+Eres como un astrólogo personal que conoce la carta del consultante de memoria. SIEMPRE personaliza tus respuestas usando los datos natales reales del usuario. No des respuestas genéricas — menciona sus planetas específicos, casas, aspectos y cómo los tránsitos actuales los afectan.
 
-REGLAS:
-- Responde en ${isEs ? 'español' : 'inglés'}
-- Sé conciso pero completo (máximo 3-4 párrafos)
-- Usa datos astronómicos reales cuando sea posible
-- Si mencionas aspectos astrológicos, aclara que es una interpretación tradicional
-- Puedes usar emojis relevantes (🌙☀️⭐🌊🪐)
-- Si no sabes algo, dilo honestamente`;
+CAPACIDADES:
+- Interpretar la carta natal completa: planetas en signos y casas, aspectos entre planetas, elementos y cualidades dominantes
+- Analizar tránsitos actuales: cómo los planetas de hoy aspectan la carta natal y qué áreas de vida activan
+- Sinastría y compatibilidad si el usuario pregunta
+- Predicciones basadas en tránsitos y progresiones
+- Significado kármico: Nodo Norte, Quirón, Lilith, planetas retrógrados
+- Ciclos lunares y su efecto en la carta personal
+- Consejos prácticos basados en la energía del momento
+
+ESTILO:
+- Habla como un astrólogo sabio, cálido y profundo
+- Usa los datos reales de la carta — menciona grados, casas, aspectos específicos
+- Da interpretaciones de varias capas: psicológica, espiritual, práctica
+- Conecta los tránsitos del día con la carta natal
+- Sé generoso en la extensión: da lecturas completas y profundas (5-8 párrafos cuando la pregunta lo amerita)
+- Usa emojis astrológicos con moderación (🌙☀️♈♉♊♋♌♍♎♏♐♑♒♓)
+- Responde SIEMPRE en español`;
+    } else {
+        return `You are a deep professional astrologer and cosmic cycles expert integrated in the "Moon Sync" app. You have FULL access to the user's natal chart and current transits. Use this data to give personalized, deep, and specific readings.
+
+USER'S COMPLETE DATA AND CURRENT SKY:
+${astroCtx}
+
+YOUR ROLE:
+You are like a personal astrologer who knows the client's chart by heart. ALWAYS personalize your answers using the user's actual natal data. Don't give generic answers — reference their specific planets, houses, aspects, and how current transits affect them.
+
+CAPABILITIES:
+- Interpret the complete natal chart: planets in signs and houses, aspects between planets, dominant elements and qualities
+- Analyze current transits: how today's planets aspect the natal chart and which life areas they activate
+- Synastry and compatibility if the user asks
+- Predictions based on transits and progressions
+- Karmic meaning: North Node, Chiron, Lilith, retrograde planets
+- Lunar cycles and their effect on the personal chart
+- Practical advice based on the current energy
+
+STYLE:
+- Speak like a wise, warm, and deep astrologer
+- Use real chart data — mention degrees, houses, specific aspects
+- Give multi-layered interpretations: psychological, spiritual, practical
+- Connect the day's transits to the natal chart
+- Be generous with length: give full, deep readings (5-8 paragraphs when warranted)
+- Use astrological emojis sparingly (🌙☀️♈♉♊♋♌♍♎♏♐♑♒♓)
+- Always respond in English`;
+    }
 }
 
 function addAIMessage(role, text) {
@@ -16082,8 +16188,8 @@ async function sendAIMessage() {
             system_instruction: {parts: [{text: systemPrompt}]},
             contents: aiChatHistory,
             generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 1024
+                temperature: 0.8,
+                maxOutputTokens: 4096
             }
         };
 
@@ -16091,7 +16197,7 @@ async function sendAIMessage() {
         let apiUrl;
         const personalKey = getGeminiKey();
         if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + personalKey;
+            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + personalKey;
         } else {
             apiUrl = AI_PROXY_URL;
         }
