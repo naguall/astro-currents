@@ -9461,7 +9461,7 @@ function updateCurrentDayInfoForMode(mode) {
                         <span style="font-size:${String(displayDay).length > 4 ? '1.4em' : '2.4em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(201,168,64,0.65);">${displayDay}</span>
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji}</div>
-                    ${mode === 'lunar' ? `<div style="font-size: 2.2em; margin: 4px 0; color: rgba(255,255,255,0.9); font-weight: 800; letter-spacing: 1px; text-shadow: 0 0 12px rgba(201,168,64,0.3);">${currentLang === 'es' ? 'Sem' : 'Wk'}${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
+                    ${mode === 'lunar' ? `<div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'}${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
 
                 </div>
@@ -14704,7 +14704,7 @@ function renderCalendar() {
                         
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji || (calendarMode === 'lunar' ? getMoonSVG(calculateLunarPhase(today), 30) : '☉')}</div>
-                    <div style="font-size: 2.2em; margin: 4px 0; color: rgba(255,255,255,0.9); font-weight: 800; letter-spacing: 1px; text-shadow: 0 0 12px rgba(201,168,64,0.3);">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'}${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
+                    <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'}${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
                     
                 </div>
@@ -15917,13 +15917,24 @@ async function handleNotifToggle(enable) {
 }
 
 function setCellSize(size) {
-    const sizes = { small: '85px', medium: '110px', large: '140px' };
+    const heights = { small: '85px', medium: '110px', large: '140px' };
+    const widths = { small: '85px', medium: '110px', large: '140px' };
+    const fontScales = { small: '0.7em', medium: '0.82em', large: '0.95em' };
     localStorage.setItem('dayCellSize', size);
-    document.documentElement.style.setProperty('--day-cell-min-height', sizes[size] || '110px');
-    // Update all day-cell elements if they exist
+    document.documentElement.style.setProperty('--day-cell-min-height', heights[size] || '110px');
+    document.documentElement.style.setProperty('--day-cell-min-width', widths[size] || '110px');
+    // Update all day-cell elements
     const dayCells = document.querySelectorAll('.day-cell');
     dayCells.forEach(cell => {
-        cell.style.minHeight = sizes[size] || '110px';
+        cell.style.minHeight = heights[size] || '110px';
+        cell.style.minWidth = widths[size] || '110px';
+        cell.style.fontSize = fontScales[size] || '0.82em';
+    });
+    // Make week containers scroll horizontally if cells are large
+    const weekContainers = document.querySelectorAll('.days-container, .lunar-week > div:not(.week-header)');
+    weekContainers.forEach(c => {
+        c.style.overflowX = size === 'large' ? 'auto' : '';
+        c.style.webkitOverflowScrolling = 'touch';
     });
 }
 
@@ -16776,7 +16787,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v206';
+const APP_VERSION = 'v207';
 var _pendingSW = null;
 
 function showUpdateBanner() {
