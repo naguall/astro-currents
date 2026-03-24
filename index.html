@@ -10424,13 +10424,8 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 </button>
         </div>`;
 
-    // ===== TAB: CALENDAR (Lunar default, toggle to Gregorian) =====
-    const calendarTransitsTab = `
-        <div style="display:flex;justify-content:center;gap:4px;margin-bottom:10px;">
-            <button id="calViewLunar" onclick="switchCalView('lunar')" style="padding:5px 14px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.5);border-radius:14px;color:#c9a840;font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Lunar':'Lunar'}</button>
-            <button id="calViewGregorian" onclick="switchCalView('gregorian')" style="padding:5px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:14px;color:rgba(255,255,255,0.5);font-size:0.78em;font-weight:600;cursor:pointer;">${L?'Gregoriano':'Gregorian'}</button>
-        </div>
-        <div id="natalLunarCalView"></div>`;
+    // ===== TAB: CALENDAR (monthly grid only — transits moved to Hoy tab) =====
+    const calendarTransitsTab = ``;
 
     // ===== TAB: TABLES =====
     // Store natal chart for detail modal
@@ -10646,13 +10641,9 @@ function switchNatalTab(tabName, btn) {
     var tabEl = document.getElementById('natalTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
     if (tabEl) tabEl.style.display = 'block';
     if (btn) btn.classList.add('active');
-    // Show/hide calendar grid based on active tab — lunar is default
+    // Show/hide calendar grid based on active tab
     var calGrid = document.getElementById('natalCalendarGrid');
-    if (calGrid) calGrid.style.display = 'none'; // hidden by default, switchCalView controls it
-    if (tabName === 'calendar') {
-        // Render lunar view by default
-        setTimeout(function() { renderNatalLunarCal(); }, 50);
-    }
+    if (calGrid) calGrid.style.display = (tabName === 'calendar') ? 'block' : 'none';
     // Draw charts when tabs are shown
     if (tabName === 'elements') {
         setTimeout(drawNatalPieCharts, 100);
@@ -11736,10 +11727,10 @@ function renderPersonalCalendar() {
         ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const dayNames = L ? ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-    // Navigation — hidden in Natal mode
+    // Navigation
     const nav = document.querySelector('.navigation');
-    nav.innerHTML = '';
-    nav.style.display = 'none';
+    nav.style.display = '';
+    nav.innerHTML = `<div class="cycle-info"><div class="cycle-number" id="cycleNumber">${monthNames[month]} ${year}</div><div class="cycle-dates" id="cycleDates">${natal.cityName} · ${natal.date}</div></div>`;
 
     // Calendar container
     let container = document.getElementById('personalCalendar');
@@ -11849,11 +11840,6 @@ function renderPersonalCalendar() {
     `;
 
     container.innerHTML = calendarHTML;
-
-    // Hide gregorian grid by default, show lunar calendar
-    var _calGrid = document.getElementById('natalCalendarGrid');
-    if (_calGrid) _calGrid.style.display = 'none';
-    setTimeout(function() { renderNatalLunarCal(); }, 100);
 }
 
 function personalPrevMonth() {
@@ -16654,7 +16640,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v201';
+const APP_VERSION = 'v202';
 var _pendingSW = null;
 
 function showUpdateBanner() {
