@@ -15043,9 +15043,9 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(74,158,255,0.18);">
             ${getMoonSVG(calculateLunarPhase(today), 24)}
             <span style="font-family:'Cinzel',serif;color:#7ec8ff;font-weight:600;letter-spacing:1px;font-size:0.85em;">
-                ${currentLang==='es' ? 'Información Lunar' : 'Lunar Information'}
+                ${currentLang==='es' ? 'Info Lunar' : 'Lunar Info'}
             </span>
-            <span style="color:#8899cc;font-size:0.68em;margin-left:4px;">${formatLongDate(today)} · ${ASTRO_USER_LAT}°N · 🌊 ${findNearestTideStation(ASTRO_USER_LAT,ASTRO_USER_LON)?.n||''} · 📍 ${ASTRO_USER_NAME.split(',')[0]}</span>
+            <span style="color:#8899cc;font-size:0.68em;margin-left:4px;">${ASTRO_USER_LAT}°N · 🌊 ${findNearestTideStation(ASTRO_USER_LAT,ASTRO_USER_LON)?.n||''} · 📍 ${ASTRO_USER_NAME.split(',')[0]}</span>
         </div>
 
         <!-- Posición Sublunar: Mapa 2D + Globo 3D (arriba, como en solar) -->
@@ -17426,7 +17426,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v220';
+const APP_VERSION = 'v221';
 var _pendingSW = null;
 
 function showUpdateBanner() {
