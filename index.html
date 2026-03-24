@@ -7670,7 +7670,23 @@ function renderEarthInfoPanel() {
             <span style="color:#6aaa9e;font-size:0.68em;margin-left:4px;">${formatLongDate(now)} · ${uLat.toFixed(2)}°${uLat>=0?'N':'S'} · 📍 ${ASTRO_USER_NAME.split(',')[0]}</span>
         </div>
 
-        <!-- Meteorología -->
+        <!-- 1. Resonancia Schumann -->
+        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(78,205,196,0.12);">
+            <div style="font-family:'Cinzel',serif;color:#4ecdc4;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
+                ⚡ ${currentLang==='es'?'Resonancia Schumann — Pulso Electromagnético de la Tierra':'Schumann Resonance — Earth\'s Electromagnetic Pulse'}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
+                ${schumannNow.map((f, i) => `
+                    <div style="background:rgba(78,205,196,${i===0?'0.18':'0.08'});border:1px solid rgba(78,205,196,${i===0?'0.4':'0.2'});border-radius:8px;padding:4px 8px;text-align:center;min-width:55px;">
+                        <div style="font-size:0.6em;color:rgba(78,205,196,0.6);">${schumannLabels[i]}</div>
+                        <div style="font-size:${i===0?'1.3em':'0.95em'};font-weight:bold;color:${i===0?'#4ecdc4':'rgba(78,205,196,0.75)'};">${f} Hz</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="font-size:0.65em;color:rgba(78,205,196,0.4);margin-top:4px;text-align:center;">${currentLang==='es'?'Frecuencias electromagnéticas entre la superficie terrestre y la ionosfera':'Electromagnetic frequencies between Earth surface and ionosphere'}</div>
+        </div>
+
+        <!-- 2. Meteorología -->
         <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(78,205,196,0.12);">
             <div style="font-family:'Cinzel',serif;color:#4ecdc4;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
                 🌤️ ${currentLang==='es'?'Meteorología en Tiempo Real':'Real-Time Weather'}
@@ -7680,7 +7696,89 @@ function renderEarthInfoPanel() {
             </div>
         </div>
 
-        <!-- Velocidad en el Espacio (banner destacado) -->
+        <!-- 3. Mareas -->
+        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(79,195,247,0.25);border-radius:10px;border-top:2px solid rgba(79,195,247,0.5);">
+            <div style="font-family:'Cinzel',serif;color:#4FC3F7;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
+                🌊 ${currentLang==='es'?'Mareas — Influencia Gravitacional Luna-Sol':'Tides — Moon-Sun Gravitational Influence'}
+                <span style="font-size:0.78em;color:rgba(79,195,247,0.5);font-weight:400;margin-left:6px;">${nearestStation ? nearestStation.n : ''}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:start;">
+                <div>
+                    <div style="text-align:center;padding:8px;background:rgba(79,195,247,0.08);border-radius:8px;border:1px solid rgba(79,195,247,0.2);">
+                        <div style="font-size:0.65em;color:rgba(79,195,247,0.6);">${currentLang==='es'?'Nivel actual':'Current level'}</div>
+                        <div style="font-size:1.6em;font-weight:bold;color:#4FC3F7;">${currentTideLevel.toFixed(2)} m</div>
+                        ${nextExtreme ? '<div style="font-size:0.65em;color:rgba(255,255,255,0.4);margin-top:3px;">'+(currentLang==='es'?'Próxima':'Next')+': '+(nextExtreme.type==='alta'?'▲ '+(currentLang==='es'?'Pleamar':'High'):' ▼ '+(currentLang==='es'?'Bajamar':'Low'))+' '+nextExtreme.hour+':00</div>' : ''}
+                    </div>
+                    <div style="margin-top:6px;font-size:0.7em;color:rgba(255,255,255,0.45);">
+                        <div>🌙 ${currentLang==='es'?'Fuerza mareal':'Tidal force'}: <span style="color:#4FC3F7;font-weight:bold;">${earthAstro.tidePct}%</span></div>
+                        <div style="margin-top:2px;">${earthAstro.tideLabel}</div>
+                    </div>
+                </div>
+                <div>
+                    <div style="overflow:hidden;width:100%;border-radius:6px;background:rgba(0,10,30,0.5);padding:4px;">
+                        ${renderTideSVG(earthTideCurve, 500, 70)}
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.60em;color:rgba(255,255,255,0.22);margin-top:3px;padding:0 4px;">
+                        <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
+                    </div>
+                    <div style="font-size:0.68em;color:rgba(255,255,255,0.4);margin-top:4px;line-height:1.4;">
+                        ${earthExtremesHTML}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Estaciones del Año 2026 -->
+        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(78,205,196,0.25);border-radius:10px;border-top:2px solid rgba(78,205,196,0.5);">
+            <div style="font-family:'Cinzel',serif;color:#4ecdc4;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
+                🌍 ${currentLang==='es'?'Estaciones del Año 2026':'Seasons of 2026'}
+            </div>
+            <div style="margin-bottom:8px;">
+                <div style="font-size:0.7em;color:${isNorth?'#4ecdc4':'rgba(255,255,255,0.4)'};font-weight:600;margin-bottom:4px;padding-left:2px;">
+                    🌐 ${currentLang==='es'?'Hemisferio Norte':'Northern Hemisphere'} ${isNorth?('⬅ '+(currentLang==='es'?'Tu ubicación':'Your location')):''}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
+                    ${seasons2026.map((s, i) => {
+                        const days = seasonDays[i];
+                        const isCurrent = i === currentSeasonIdx;
+                        const startStr = s.start.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
+                        const endStr = s.end.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
+                        return '<div style="text-align:center;padding:5px;background:' + (isCurrent ? s.color+'22' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isCurrent ? s.color+'66' : 'rgba(255,255,255,0.06)') + ';border-radius:7px;' + (isCurrent ? 'box-shadow:0 0 10px '+s.color+'33;' : '') + '">'
+                            + '<div style="font-size:1.2em;">' + s.icon + '</div>'
+                            + '<div style="font-size:0.75em;font-weight:bold;color:' + (isCurrent ? s.color : 'rgba(255,255,255,0.55)') + ';">' + s.nameN + '</div>'
+                            + '<div style="font-size:0.52em;color:rgba(255,255,255,0.28);margin-top:1px;">' + s.eventN + '</div>'
+                            + '<div style="font-size:0.6em;color:rgba(255,255,255,0.35);margin-top:2px;">' + startStr + ' — ' + endStr + '</div>'
+                            + '<div style="font-size:0.8em;font-weight:bold;color:' + (isCurrent ? s.color : 'rgba(255,255,255,0.45)') + ';margin-top:2px;">' + days + ' ' + (currentLang==='es'?'días':'days') + '</div>'
+                            + (isCurrent ? '<div style="margin-top:3px;"><div style="height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"><div style="width:'+seasonProgress.toFixed(0)+'%;height:100%;background:'+s.color+';border-radius:2px;"></div></div><div style="font-size:0.55em;color:'+s.color+';margin-top:1px;">'+daysRemaining+' '+(currentLang==='es'?'días restantes':'days left')+'</div></div>' : '')
+                            + '</div>';
+                    }).join('')}
+                </div>
+            </div>
+            <div>
+                <div style="font-size:0.7em;color:${!isNorth?'#4ecdc4':'rgba(255,255,255,0.4)'};font-weight:600;margin-bottom:4px;padding-left:2px;">
+                    🌐 ${currentLang==='es'?'Hemisferio Sur':'Southern Hemisphere'} ${!isNorth?('⬅ '+(currentLang==='es'?'Tu ubicación':'Your location')):''}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
+                    ${seasons2026.map((s, i) => {
+                        const days = seasonDays[i];
+                        const isCurrent = i === currentSeasonIdx;
+                        const clrS = s.colorS || s.color;
+                        const startStr = s.start.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
+                        const endStr = s.end.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
+                        return '<div style="text-align:center;padding:5px;background:' + (isCurrent ? clrS+'22' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isCurrent ? clrS+'66' : 'rgba(255,255,255,0.06)') + ';border-radius:7px;' + (isCurrent ? 'box-shadow:0 0 10px '+clrS+'33;' : '') + '">'
+                            + '<div style="font-size:1.2em;">' + s.iconS + '</div>'
+                            + '<div style="font-size:0.75em;font-weight:bold;color:' + (isCurrent ? clrS : 'rgba(255,255,255,0.55)') + ';">' + s.nameS + '</div>'
+                            + '<div style="font-size:0.52em;color:rgba(255,255,255,0.28);margin-top:1px;">' + s.eventS + '</div>'
+                            + '<div style="font-size:0.6em;color:rgba(255,255,255,0.35);margin-top:2px;">' + startStr + ' — ' + endStr + '</div>'
+                            + '<div style="font-size:0.8em;font-weight:bold;color:' + (isCurrent ? clrS : 'rgba(255,255,255,0.45)') + ';margin-top:2px;">' + days + ' ' + (currentLang==='es'?'días':'days') + '</div>'
+                            + (isCurrent ? '<div style="margin-top:3px;"><div style="height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"><div style="width:'+seasonProgress.toFixed(0)+'%;height:100%;background:'+clrS+';border-radius:2px;"></div></div><div style="font-size:0.55em;color:'+clrS+';margin-top:1px;">'+daysRemaining+' '+(currentLang==='es'?'días restantes':'days left')+'</div></div>' : '')
+                            + '</div>';
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Velocidad en el Espacio -->
         <div style="margin-bottom:10px;padding:10px;background:linear-gradient(135deg,rgba(78,205,196,0.12) 0%,rgba(255,224,102,0.08) 100%);border:1px solid rgba(78,205,196,0.3);border-radius:10px;border-left:3px solid #4ecdc4;">
             <div style="font-family:'Cinzel',serif;color:#4ecdc4;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
                 🚀 ${currentLang==='es'?'Velocidad de la Tierra en el Espacio':'Earth\'s Speed Through Space'}
@@ -7716,174 +7814,13 @@ function renderEarthInfoPanel() {
             </div>
         </div>
 
-        <!-- Estaciones del Año 2026 — Ambos Hemisferios -->
-        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(78,205,196,0.25);border-radius:10px;border-top:2px solid rgba(78,205,196,0.5);">
-            <div style="font-family:'Cinzel',serif;color:#4ecdc4;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
-                🌍 ${currentLang==='es'?'Estaciones del Año 2026':'Seasons of 2026'}
-            </div>
-
-            <!-- Hemisferio Norte -->
-            <div style="margin-bottom:8px;">
-                <div style="font-size:0.7em;color:${isNorth?'#4ecdc4':'rgba(255,255,255,0.4)'};font-weight:600;margin-bottom:4px;padding-left:2px;">
-                    🌐 ${currentLang==='es'?'Hemisferio Norte':'Northern Hemisphere'} ${isNorth?('⬅ '+(currentLang==='es'?'Tu ubicación':'Your location')):''}
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
-                    ${seasons2026.map((s, i) => {
-                        const days = seasonDays[i];
-                        const isCurrent = i === currentSeasonIdx;
-                        const startStr = s.start.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
-                        const endStr = s.end.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
-                        return '<div style="text-align:center;padding:5px;background:' + (isCurrent ? s.color+'22' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isCurrent ? s.color+'66' : 'rgba(255,255,255,0.06)') + ';border-radius:7px;' + (isCurrent ? 'box-shadow:0 0 10px '+s.color+'33;' : '') + '">'
-                            + '<div style="font-size:1.2em;">' + s.icon + '</div>'
-                            + '<div style="font-size:0.75em;font-weight:bold;color:' + (isCurrent ? s.color : 'rgba(255,255,255,0.55)') + ';">' + s.nameN + '</div>'
-                            + '<div style="font-size:0.52em;color:rgba(255,255,255,0.28);margin-top:1px;">' + s.eventN + '</div>'
-                            + '<div style="font-size:0.6em;color:rgba(255,255,255,0.35);margin-top:2px;">' + startStr + ' — ' + endStr + '</div>'
-                            + '<div style="font-size:0.8em;font-weight:bold;color:' + (isCurrent ? s.color : 'rgba(255,255,255,0.45)') + ';margin-top:2px;">' + days + ' ' + (currentLang==='es'?'días':'days') + '</div>'
-                            + (isCurrent ? '<div style="margin-top:3px;"><div style="height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"><div style="width:'+seasonProgress.toFixed(0)+'%;height:100%;background:'+s.color+';border-radius:2px;"></div></div><div style="font-size:0.55em;color:'+s.color+';margin-top:1px;">'+daysRemaining+' '+(currentLang==='es'?'días restantes':'days left')+'</div></div>' : '')
-                            + '</div>';
-                    }).join('')}
-                </div>
-            </div>
-
-            <!-- Hemisferio Sur -->
-            <div>
-                <div style="font-size:0.7em;color:${!isNorth?'#4ecdc4':'rgba(255,255,255,0.4)'};font-weight:600;margin-bottom:4px;padding-left:2px;">
-                    🌐 ${currentLang==='es'?'Hemisferio Sur':'Southern Hemisphere'} ${!isNorth?('⬅ '+(currentLang==='es'?'Tu ubicación':'Your location')):''}
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;">
-                    ${seasons2026.map((s, i) => {
-                        const days = seasonDays[i];
-                        const isCurrent = i === currentSeasonIdx;
-                        const clrS = s.colorS || s.color;
-                        const startStr = s.start.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
-                        const endStr = s.end.toLocaleDateString(currentLang==='es'?'es':'en', {month:'short',day:'numeric'});
-                        return '<div style="text-align:center;padding:5px;background:' + (isCurrent ? clrS+'22' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isCurrent ? clrS+'66' : 'rgba(255,255,255,0.06)') + ';border-radius:7px;' + (isCurrent ? 'box-shadow:0 0 10px '+clrS+'33;' : '') + '">'
-                            + '<div style="font-size:1.2em;">' + s.iconS + '</div>'
-                            + '<div style="font-size:0.75em;font-weight:bold;color:' + (isCurrent ? clrS : 'rgba(255,255,255,0.55)') + ';">' + s.nameS + '</div>'
-                            + '<div style="font-size:0.52em;color:rgba(255,255,255,0.28);margin-top:1px;">' + s.eventS + '</div>'
-                            + '<div style="font-size:0.6em;color:rgba(255,255,255,0.35);margin-top:2px;">' + startStr + ' — ' + endStr + '</div>'
-                            + '<div style="font-size:0.8em;font-weight:bold;color:' + (isCurrent ? clrS : 'rgba(255,255,255,0.45)') + ';margin-top:2px;">' + days + ' ' + (currentLang==='es'?'días':'days') + '</div>'
-                            + (isCurrent ? '<div style="margin-top:3px;"><div style="height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"><div style="width:'+seasonProgress.toFixed(0)+'%;height:100%;background:'+clrS+';border-radius:2px;"></div></div><div style="font-size:0.55em;color:'+clrS+';margin-top:1px;">'+daysRemaining+' '+(currentLang==='es'?'días restantes':'days left')+'</div></div>' : '')
-                            + '</div>';
-                    }).join('')}
-                </div>
-            </div>
-        </div>
-
-        <!-- Resonancia Schumann -->
-        <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(78,205,196,0.12);">
-            <div style="font-family:'Cinzel',serif;color:#4ecdc4;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
-                ⚡ ${currentLang==='es'?'Resonancia Schumann — Pulso Electromagnético de la Tierra':'Schumann Resonance — Earth\'s Electromagnetic Pulse'}
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
-                ${schumannNow.map((f, i) => `
-                    <div style="background:rgba(78,205,196,${i===0?'0.18':'0.08'});border:1px solid rgba(78,205,196,${i===0?'0.4':'0.2'});border-radius:8px;padding:4px 8px;text-align:center;min-width:55px;">
-                        <div style="font-size:0.6em;color:rgba(78,205,196,0.6);">${schumannLabels[i]}</div>
-                        <div style="font-size:${i===0?'1.3em':'0.95em'};font-weight:bold;color:${i===0?'#4ecdc4':'rgba(78,205,196,0.75)'};">${f} Hz</div>
-                    </div>
-                `).join('')}
-            </div>
-            <div style="font-size:0.65em;color:rgba(78,205,196,0.4);margin-top:4px;text-align:center;">${currentLang==='es'?'Frecuencias electromagnéticas entre la superficie terrestre y la ionosfera':'Electromagnetic frequencies between Earth surface and ionosphere'}</div>
-        </div>
-
-        <!-- Inclinación Axial y Ángulo Solar -->
-        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(255,149,0,0.25);border-radius:10px;border-top:2px solid rgba(255,149,0,0.5);">
-            <div style="font-family:'Cinzel',serif;color:#ff9500;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
-                🌍 ${currentLang==='es'?'Inclinación Axial y Ángulo Solar':'Axial Tilt & Solar Angle'}
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                <!-- Axial tilt -->
-                <div style="text-align:center;padding:6px;background:rgba(255,149,0,0.08);border-radius:8px;border:1px solid rgba(255,149,0,0.2);">
-                    <div style="font-size:0.65em;color:rgba(255,149,0,0.6);">🌍 ${currentLang==='es'?'Inclinación axial':'Axial tilt'}</div>
-                    <div style="font-size:1.4em;font-weight:bold;color:#ff9500;">${axialTilt}°</div>
-                    <div style="font-size:0.58em;color:rgba(255,255,255,0.35);margin-top:2px;">${currentLang==='es'?'Causa las estaciones':'Causes the seasons'}</div>
-                </div>
-                <!-- Solar declination -->
-                <div style="text-align:center;padding:6px;background:rgba(255,224,102,0.08);border-radius:8px;border:1px solid rgba(255,224,102,0.2);">
-                    <div style="font-size:0.65em;color:rgba(255,224,102,0.6);">☀️ ${currentLang==='es'?'Declinación solar':'Solar declination'}</div>
-                    <div style="font-size:1.4em;font-weight:bold;color:#ffe066;">${sunDecl2 > 0 ? '+' : ''}${sunDecl2.toFixed(2)}°</div>
-                    <div style="font-size:0.58em;color:rgba(255,255,255,0.35);margin-top:2px;">${sunDecl2 > 0 ? (currentLang==='es'?'Sol en hemisferio norte':'Sun in northern hemisphere') : (currentLang==='es'?'Sol en hemisferio sur':'Sun in southern hemisphere')}</div>
-                </div>
-                <!-- Noon elevation -->
-                <div style="text-align:center;padding:6px;background:rgba(255,107,107,0.08);border-radius:8px;border:1px solid rgba(255,107,107,0.2);">
-                    <div style="font-size:0.65em;color:rgba(255,107,107,0.6);">📐 ${currentLang==='es'?'Elevación al mediodía':'Noon elevation'}</div>
-                    <div style="font-size:1.4em;font-weight:bold;color:#ff6b6b;">${solarNoonElevation.toFixed(1)}°</div>
-                    <div style="font-size:0.58em;color:rgba(255,255,255,0.35);margin-top:2px;">${currentLang==='es'?'Ángulo máx. del sol hoy':'Max sun angle today'}</div>
-                </div>
-            </div>
-            <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.72em;">
-                <div style="color:rgba(255,255,255,0.5);">☀️ ${currentLang==='es'?'Elevación actual':'Current elevation'}: <span style="color:${currentSolarElevation > 0 ? '#ffe066' : '#7ec8ff'};">${currentSolarElevation.toFixed(1)}° ${currentSolarElevation < 0 ? (currentLang==='es'?'(bajo horizonte)':'(below horizon)') : ''}</span></div>
-                <div style="color:rgba(255,255,255,0.5);">⚡ ${currentLang==='es'?'Energía solar':'Solar energy'}: <span style="color:#ffe066;">${solarEnergyPct}%</span></div>
-            </div>
-            <div style="margin-top:6px;padding:5px 8px;background:${tiltColor}15;border-radius:6px;border-left:3px solid ${tiltColor};">
-                <div style="font-size:0.72em;color:${tiltColor};">${tiltEffect}</div>
-            </div>
-        </div>
-
-        <!-- Duración del Día (LOD) -->
-        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(126,200,255,0.25);border-radius:10px;border-top:2px solid rgba(126,200,255,0.5);">
-            <div style="font-family:'Cinzel',serif;color:#7ec8ff;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
-                ⏱️ ${currentLang==='es'?'Duración Real del Día — Rotación Terrestre':'True Length of Day — Earth Rotation'}
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="text-align:center;padding:8px;background:rgba(126,200,255,0.08);border-radius:8px;border:1px solid rgba(126,200,255,0.2);">
-                    <div style="font-size:0.65em;color:rgba(126,200,255,0.6);">⏱️ ${currentLang==='es'?'Duración real hoy':'Actual day length today'}</div>
-                    <div style="font-size:1.2em;font-weight:bold;color:#7ec8ff;">${lodHours}h ${lodMins}m ${lodSecs}s</div>
-                    <div style="font-size:0.7em;color:rgba(255,255,255,0.4);margin-top:3px;">${currentLang==='es'?'Exceso sobre 24h':'Excess over 24h'}: <span style="color:#ff6b6b;">+${lodExcessMs.toFixed(2)} ms</span></div>
-                    <div style="font-size:0.6em;color:rgba(255,255,255,0.3);margin-top:2px;">${currentLang==='es'?'Variación estacional':'Seasonal variation'}: ${lodSeasonal > 0 ? '+' : ''}${lodSeasonal.toFixed(2)} ms</div>
-                </div>
-                <div style="padding:8px;background:rgba(126,200,255,0.05);border-radius:8px;border:1px solid rgba(126,200,255,0.15);">
-                    <div style="font-size:0.65em;color:rgba(126,200,255,0.6);margin-bottom:4px;">📊 ${currentLang==='es'?'Datos históricos':'Historical data'}</div>
-                    <div style="font-size:0.68em;color:rgba(255,255,255,0.45);line-height:1.6;">
-                        🦕 ${currentLang==='es'?'Hace 400M años':'400M years ago'}: <span style="color:#4ecdc4;">${dayLength400Mya}h/${currentLang==='es'?'día':'day'} (${daysInYear400Mya} ${currentLang==='es'?'días/año':'days/yr'})</span><br>
-                        🌙 ${currentLang==='es'?'Desaceleración':'Deceleration'}: <span style="color:#ff9500;">+2.3 ms/${currentLang==='es'?'siglo':'century'}</span><br>
-                        🌊 ${currentLang==='es'?'Causa':'Cause'}: <span style="color:rgba(255,255,255,0.5);">${currentLang==='es'?'Fricción de mareas Luna-Sol':'Moon-Sun tidal friction'}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Actividad Sísmica -->
+        <!-- 6. Actividad Sísmica -->
         <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(255,107,107,0.25);border-radius:10px;border-top:2px solid rgba(255,107,107,0.5);max-height:400px;overflow-y:scroll;-webkit-overflow-scrolling:touch;">
             <div style="font-family:'Cinzel',serif;color:#ff6b6b;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;position:sticky;top:0;background:rgba(5,7,30,0.98);padding-bottom:6px;z-index:1;">
                 🌋 ${currentLang==='es'?'Actividad Sísmica — Últimas 24 Horas':'Seismic Activity — Last 24 Hours'}
             </div>
             <div id="earthSeismicData" style="text-align:center;color:rgba(255,107,107,0.5);font-size:0.8em;">
                 ${currentLang==='es'?'Cargando datos sísmicos...':'Loading seismic data...'}
-            </div>
-        </div>
-
-        <!-- Mareas -->
-        <div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid rgba(79,195,247,0.25);border-radius:10px;border-top:2px solid rgba(79,195,247,0.5);">
-            <div style="font-family:'Cinzel',serif;color:#4FC3F7;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">
-                🌊 ${currentLang==='es'?'Mareas — Influencia Gravitacional Luna-Sol':'Tides — Moon-Sun Gravitational Influence'}
-                <span style="font-size:0.78em;color:rgba(79,195,247,0.5);font-weight:400;margin-left:6px;">${nearestStation ? nearestStation.n : ''}</span>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:start;">
-                <!-- Tide info -->
-                <div>
-                    <div style="text-align:center;padding:8px;background:rgba(79,195,247,0.08);border-radius:8px;border:1px solid rgba(79,195,247,0.2);">
-                        <div style="font-size:0.65em;color:rgba(79,195,247,0.6);">${currentLang==='es'?'Nivel actual':'Current level'}</div>
-                        <div style="font-size:1.6em;font-weight:bold;color:#4FC3F7;">${currentTideLevel.toFixed(2)} m</div>
-                        ${nextExtreme ? '<div style="font-size:0.65em;color:rgba(255,255,255,0.4);margin-top:3px;">'+(currentLang==='es'?'Próxima':'Next')+': '+(nextExtreme.type==='alta'?'▲ '+(currentLang==='es'?'Pleamar':'High'):' ▼ '+(currentLang==='es'?'Bajamar':'Low'))+' '+nextExtreme.hour+':00</div>' : ''}
-                    </div>
-                    <div style="margin-top:6px;font-size:0.7em;color:rgba(255,255,255,0.45);">
-                        <div>🌙 ${currentLang==='es'?'Fuerza mareal':'Tidal force'}: <span style="color:#4FC3F7;font-weight:bold;">${earthAstro.tidePct}%</span></div>
-                        <div style="margin-top:2px;">${earthAstro.tideLabel}</div>
-                    </div>
-                </div>
-                <!-- Tide curve -->
-                <div>
-                    <div style="overflow:hidden;width:100%;border-radius:6px;background:rgba(0,10,30,0.5);padding:4px;">
-                        ${renderTideSVG(earthTideCurve, 500, 70)}
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:0.60em;color:rgba(255,255,255,0.22);margin-top:3px;padding:0 4px;">
-                        <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
-                    </div>
-                    <div style="font-size:0.68em;color:rgba(255,255,255,0.4);margin-top:4px;line-height:1.4;">
-                        ${earthExtremesHTML}
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -8158,7 +8095,7 @@ function switchToEarthMode() {
     if (pas) pas.style.display = 'none';
 
     // Update title
-    document.getElementById('calendarTitle').innerHTML = currentLang==='es' ? '🌍 Tierra en Vivo' : '🌍 Earth Live';
+    document.getElementById('calendarTitle').innerHTML = currentLang==='es' ? 'Tierra en Vivo' : 'Earth Live';
 
     // Navigation: empty for Earth mode
     const nav = document.querySelector('.navigation');
@@ -8262,7 +8199,7 @@ function switchToSolarSystemMode() {
     if (pas2) pas2.style.display = 'none';
 
     // Update title
-    document.getElementById('calendarTitle').innerHTML = currentLang==='es' ? '☀️ Sistema Solar' : '☀️ Solar System';
+    document.getElementById('calendarTitle').innerHTML = currentLang==='es' ? 'Sistema Solar' : 'Solar System';
 
     // Navigation
     const nav = document.querySelector('.navigation');
@@ -9987,7 +9924,7 @@ function switchToPersonalMode() {
         if (el) el.style.display = 'none';
     });
 
-    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? '🔮 Calendario Personal' : '🔮 Personal Calendar';
+    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? 'Carta Natal' : 'Natal Chart';
 
     updateModeButtons();
 
@@ -16252,7 +16189,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v183';
+const APP_VERSION = 'v184';
 var _pendingSW = null;
 
 function showUpdateBanner() {
