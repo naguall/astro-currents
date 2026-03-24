@@ -4738,7 +4738,7 @@ function formatDate(date) {
 
 function formatShortDate(date) {
     const day = date.getDate();
-    const month = t('months')[date.getMonth()];
+    const month = date.getMonth() + 1;
     return `${day}/${month}`;
 }
 
@@ -17380,7 +17380,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v214';
+const APP_VERSION = 'v215';
 var _pendingSW = null;
 
 function showUpdateBanner() {
