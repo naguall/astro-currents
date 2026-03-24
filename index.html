@@ -14437,48 +14437,62 @@ function renderSubsolarGlobe(lat, lon) {
 
 // ── Refresh sublunar position on tab click ──────────
 function refreshAllLiveData() {
+    refreshSublunaryFull();
+    // Ensure timers are running
+    startSublunaryRefresh();
+}
+
+// ── Auto-refresh sublunar position ──────────
+let _sublunaryTimer = null;
+let _sublunaryCoordsTimer = null;
+
+// Fast coords-only refresh (every 10s) — updates header text + globe rotation
+function refreshSublunaryCoords() {
     const now = new Date();
     const astroNow = getAstroData(now);
     const lat = parseFloat(astroNow.sublunarLat);
     const lon = getSublunaryLonDeg(now);
+    // Update header coords
+    const coordsEl = document.getElementById('sublunaryHeaderCoords');
+    if (coordsEl) {
+        var L = currentLang === 'es';
+        coordsEl.textContent = 'Lat: ' + astroNow.sublunarLat + '°' + astroNow.sublunarDir + ' · Lon: ' + lon.toFixed(1) + '°';
+    }
+    // Rotate globe smoothly
+    renderSublunaryGlobe(lat, lon);
+}
+
+// Full refresh (every 30s) — updates map SVG, info box, globe, coords, panels
+function refreshSublunaryFull() {
+    const now = new Date();
+    const astroNow = getAstroData(now);
+    const lat = parseFloat(astroNow.sublunarLat);
+    const lon = getSublunaryLonDeg(now);
+    console.log(`[Moon Position Update] ${now.toLocaleTimeString()} - Lat: ${lat.toFixed(2)}°, Lon: ${lon.toFixed(2)}°`);
     const mapEl = document.getElementById('sublunaryMapContainer');
     if (mapEl) mapEl.innerHTML = renderSublunaryMap(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
     const infoEl = document.getElementById('sublunaryInfoBox');
     if (infoEl) infoEl.innerHTML = renderSublunaryInfoBox(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
-    // Update header coords text
-    const coordsEl = document.getElementById('sublunaryHeaderCoords');
-    if (coordsEl) {
-        var L = currentLang === 'es';
-        coordsEl.textContent = (L?'Lat':'Lat') + ': ' + astroNow.sublunarLat + '°' + astroNow.sublunarDir + ' · ' + (L?'Lon':'Lon') + ': ' + lon.toFixed(1) + '°';
+    refreshSublunaryCoords();
+    // Also refresh solar panel if visible
+    const solarPanel = document.getElementById('solarInfoPanel');
+    if (solarPanel && solarPanel.style.display !== 'none') {
+        renderSolarInfoPanel();
     }
-    renderSublunaryGlobe(lat, lon);
+    // Also refresh earth panel if visible
+    const earthPanel = document.getElementById('earthInfoPanel');
+    if (earthPanel && earthPanel.style.display !== 'none') {
+        renderEarthInfoPanel();
+    }
 }
 
-// ── Auto-refresh sublunar position every 3 minutes ──────────
-let _sublunaryTimer = null;
 function startSublunaryRefresh() {
     if (_sublunaryTimer) clearInterval(_sublunaryTimer);
-    _sublunaryTimer = setInterval(() => {
-        const now = new Date();
-        const lat = parseFloat(getAstroData(now).sublunarLat);
-        const lon = getSublunaryLonDeg(now);
-        console.log(`[Moon Position Update] ${now.toLocaleTimeString()} - Lat: ${lat.toFixed(2)}°, Lon: ${lon.toFixed(2)}°`);
-        const mapEl = document.getElementById('sublunaryMapContainer');
-        if (mapEl) mapEl.innerHTML = renderSublunaryMap(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
-        const infoEl = document.getElementById('sublunaryInfoBox');
-        if (infoEl) infoEl.innerHTML = renderSublunaryInfoBox(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
-        renderSublunaryGlobe(lat, lon);
-        // Also refresh solar panel if visible
-        const solarPanel = document.getElementById('solarInfoPanel');
-        if (solarPanel && solarPanel.style.display !== 'none') {
-            renderSolarInfoPanel();
-        }
-        // Also refresh earth panel if visible
-        const earthPanel = document.getElementById('earthInfoPanel');
-        if (earthPanel && earthPanel.style.display !== 'none') {
-            renderEarthInfoPanel();
-        }
-    }, 60 * 1000); // every 1 minute for smoother globe rotation
+    if (_sublunaryCoordsTimer) clearInterval(_sublunaryCoordsTimer);
+    // Fast coords + globe every 10 seconds
+    _sublunaryCoordsTimer = setInterval(refreshSublunaryCoords, 10 * 1000);
+    // Full map+info refresh every 30 seconds
+    _sublunaryTimer = setInterval(refreshSublunaryFull, 30 * 1000);
 }
 
 
@@ -15259,6 +15273,9 @@ if (calendarMode === 'solar') {
 } else {
     renderCalendar();
 }
+
+// Start sublunar position auto-refresh (coords every 10s, full every 30s)
+startSublunaryRefresh();
 
 // Update planet button counters
 updatePlanetButtonCounters();
@@ -17057,7 +17074,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v210';
+const APP_VERSION = 'v211';
 var _pendingSW = null;
 
 function showUpdateBanner() {
