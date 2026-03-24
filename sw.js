@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v165';
+const CACHE_NAME = 'moon-sync-v178';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -24,7 +24,7 @@ function clearEverything() {
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
+  // Don't skipWaiting here — let the page control when to activate
 });
 
 self.addEventListener('activate', e => {
@@ -68,6 +68,9 @@ self.addEventListener('notificationclose', e => {
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'CLEAR_BADGES') {
     e.waitUntil(clearEverything());
+  }
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
 

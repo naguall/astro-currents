@@ -447,6 +447,7 @@
         .natal-tab-content { animation: fadeInTab 0.3s ease; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes planetWobble { 0%,100% { transform: perspective(200px) rotateY(-15deg); } 50% { transform: perspective(200px) rotateY(15deg); } }
         .planet-spin { animation: planetWobble var(--spin-duration, 20s) ease-in-out infinite; transform-origin: center; }
         .planet-spin-reverse { animation: planetWobble var(--spin-duration, 20s) ease-in-out infinite reverse; transform-origin: center; }
@@ -648,7 +649,7 @@
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:5px 12px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:20px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;">Solar</button>
                 <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="personalButtonLabel">Natal</span></button>
-                <button id="earthModeBtn" onclick="switchToEarthMode()" style="position:relative;padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="earthButtonLabel">Tierra</span><span id="earthUpdateBadge" style="display:none;position:absolute;top:-6px;right:-4px;background:#FF3B30;color:#fff;font-size:0.5em;font-weight:800;padding:1px 4px;border-radius:6px;line-height:1.2;box-shadow:0 1px 4px rgba(255,59,48,0.6);border:1.5px solid #0a0a2e;letter-spacing:0.3px;">NEW</span></button>
+                <button id="earthModeBtn" onclick="switchToEarthMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="ssButtonLabel">S.S</span></button>
                 <!-- HIDDEN: Gregorian button (kept for future use) -->
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="display:none;padding:5px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;flex-shrink:0;font-size:0.85em;"><span id="gregorianButtonLabel">Gregoriano</span></button>
@@ -7955,8 +7956,6 @@ function fetchEarthquakes(lat, lon, containerId) {
             + '</div>';
 
         container.innerHTML = html;
-        // Show update badge on Earth tab if user is not on Earth mode
-        showEarthUpdateBadge();
     }).catch(err => {
         console.log('Earthquake fetch error:', err);
         const container = document.getElementById(containerId);
@@ -7966,17 +7965,6 @@ function fetchEarthquakes(lat, lon, containerId) {
             + '<br><button onclick="fetchEarthquakes(' + lat + ',' + lon + ',\'' + containerId + '\')" style="margin-top:6px;padding:4px 12px;background:rgba(255,107,107,0.2);border:1px solid rgba(255,107,107,0.4);border-radius:6px;color:#ff6b6b;cursor:pointer;font-size:0.9em;">'
             + (currentLang==='es'?'🔄 Reintentar':'🔄 Retry') + '</button></div>';
     });
-}
-
-function showEarthUpdateBadge() {
-    if (calendarMode === 'earth') return; // Don't show if already on Earth tab
-    var badge = document.getElementById('earthUpdateBadge');
-    if (badge) badge.style.display = 'inline-block';
-}
-
-function clearEarthUpdateBadge() {
-    var badge = document.getElementById('earthUpdateBadge');
-    if (badge) badge.style.display = 'none';
 }
 
 function switchToSolarMode() {
@@ -8027,7 +8015,6 @@ function switchToGregorianMode() {
 function switchToEarthMode() {
     calendarMode = 'earth';
     localStorage.setItem('calendarMode', 'earth');
-    clearEarthUpdateBadge();
 
     document.body.classList.remove('solar-mode');
     document.body.classList.remove('gregorian-mode');
@@ -15974,39 +15961,87 @@ function forceAppUpdate() {
 }
 window.forceAppUpdate = forceAppUpdate;
 
-// Register Service Worker with force-update mechanism
-const APP_VERSION = 'v165';
+// Register Service Worker with update notification
+const APP_VERSION = 'v178';
+var _pendingSW = null;
+
+function showUpdateBanner() {
+    if (document.getElementById('appUpdateBanner')) return;
+    var L = currentLang === 'es';
+    var banner = document.createElement('div');
+    banner.id = 'appUpdateBanner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#667eea,#764ba2);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideDown 0.4s ease;';
+    banner.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:white;font-size:0.85em;">'
+        + '<span style="font-size:1.2em;">🚀</span>'
+        + '<div><strong>' + (L ? 'Nueva versión disponible' : 'New version available') + '</strong>'
+        + '<div style="font-size:0.8em;opacity:0.8;">' + (L ? 'Toca actualizar para obtener las últimas mejoras' : 'Tap update to get the latest improvements') + '</div></div></div>'
+        + '<div style="display:flex;gap:6px;">'
+        + '<button onclick="applyAppUpdate()" style="padding:6px 16px;background:white;border:none;border-radius:20px;color:#764ba2;font-weight:700;font-size:0.82em;cursor:pointer;">' + (L ? 'Actualizar' : 'Update') + '</button>'
+        + '<button onclick="this.parentElement.parentElement.remove()" style="padding:6px 10px;background:rgba(255,255,255,0.2);border:none;border-radius:20px;color:white;font-size:0.82em;cursor:pointer;">✕</button>'
+        + '</div>';
+    document.body.prepend(banner);
+    // Also set app badge
+    if (navigator.setAppBadge) navigator.setAppBadge(1).catch(function(){});
+}
+
+function applyAppUpdate() {
+    if (_pendingSW) {
+        _pendingSW.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+        window.location.reload();
+    }
+}
+
 if ('serviceWorker' in navigator) {
-    // Force update: check for new SW on every page load
-    navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
-        .then(registration => {
-            console.log('✅ SW registered:', registration.scope);
-            // Check for updates immediately
-            registration.update();
-            // Listen for new SW waiting
-            registration.addEventListener('updatefound', () => {
-                const newSW = registration.installing;
-                if (newSW) {
-                    newSW.addEventListener('statechange', () => {
-                        if (newSW.state === 'activated') {
-                            console.log('🔄 New SW activated, reloading...');
-                            window.location.reload();
-                        }
-                    });
+    function handleSWRegistration(registration) {
+        console.log('✅ SW registered:', registration.scope);
+        registration.update();
+        // Listen for new SW
+        registration.addEventListener('updatefound', function() {
+            var newSW = registration.installing;
+            if (!newSW) return;
+            newSW.addEventListener('statechange', function() {
+                if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New SW installed but waiting — show update banner
+                    _pendingSW = newSW;
+                    console.log('🔄 New version available!');
+                    showUpdateBanner();
                 }
             });
-        })
-        .catch(error => {
+        });
+        // Check if there's already a waiting SW
+        if (registration.waiting) {
+            _pendingSW = registration.waiting;
+            showUpdateBanner();
+        }
+    }
+
+    navigator.serviceWorker.register('/moon-sync/sw.js', { updateViaCache: 'none' })
+        .then(handleSWRegistration)
+        .catch(function(error) {
             console.log('❌ SW registration failed, trying relative path:', error);
             navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-                .then(r => { console.log('✅ SW registered (relative):', r.scope); r.update(); })
-                .catch(e => console.log('❌ SW failed completely:', e));
+                .then(handleSWRegistration)
+                .catch(function(e) { console.log('❌ SW failed completely:', e); });
         });
 
-    // Force clear ALL old caches on load
+    // When new SW takes control, reload
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+        console.log('🔄 New SW active, reloading...');
+        window.location.reload();
+    });
+
+    // Periodically check for updates (every 30 minutes)
+    setInterval(function() {
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+            if (reg) reg.update();
+        });
+    }, 1800000);
+
+    // Force clear old caches
     if (caches) {
-        caches.keys().then(keys => {
-            keys.forEach(key => {
+        caches.keys().then(function(keys) {
+            keys.forEach(function(key) {
                 if (key !== 'moon-sync-' + APP_VERSION) {
                     caches.delete(key);
                     console.log('🗑️ Deleted old cache:', key);
