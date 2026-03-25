@@ -1085,12 +1085,15 @@
 
     <!-- Modal de Ciclo de Mareas -->
     <div id="tideCycleModal" class="modal" onclick="if(event.target===this)closeTideCycleModal()">
-        <div class="modal-content" style="max-width: 700px;">
-            <div class="modal-header">
-                <h2 id="tideCycleTitle">Ciclo de Mareas</h2>
-                <span class="close" onclick="closeTideCycleModal()">&times;</span>
+        <div class="modal-content" style="max-width: 700px; display:flex; flex-direction:column; max-height:85vh;">
+            <div style="position:sticky;top:0;z-index:10;background:#0d1117;border-bottom:1px solid rgba(78,205,196,0.15);padding:10px 15px;flex-shrink:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <h2 id="tideCycleTitle" style="margin:0;font-size:1.1em;">Ciclo de Mareas</h2>
+                    <span class="close" onclick="closeTideCycleModal()" style="position:static;font-size:1.5em;">&times;</span>
+                </div>
+                <div id="tideCycleLocationHeader" style="text-align:center;font-size:0.78em;color:rgba(78,205,196,0.7);margin-top:4px;font-weight:600;letter-spacing:0.5px;"></div>
             </div>
-            <div id="tideCycleBody" style="padding: 15px;">
+            <div id="tideCycleBody" style="padding: 15px; overflow-y:auto; flex:1;">
                 <!-- Filled by JS -->
             </div>
         </div>
@@ -2122,6 +2125,13 @@ function openTideCycleModal() {
     var phaseName = phaseData.phaseName;
 
     titleEl.textContent = L ? 'Ciclo Lunar de Mareas' : 'Lunar Tide Cycle';
+
+    // Update sticky location header
+    var locHeader = document.getElementById('tideCycleLocationHeader');
+    if (locHeader) {
+        var locName = ASTRO_USER_NAME ? ASTRO_USER_NAME.split(',')[0] : '';
+        locHeader.textContent = locName ? '📍 ' + locName : '';
+    }
 
     // Find first new moon of 2026 and first new moon of 2027 from newMoonsLocal
     var startDate = null, endDate = null;
@@ -18818,7 +18828,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v311';
+const APP_VERSION = 'v312';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -19092,6 +19102,7 @@ DOMTokenList.prototype.add = function() {
         </div>
     </div>
     <div class="ai-chat-messages" id="aiChatMessages"></div>
+    <div id="aiQuickActions" style="display:none;padding:8px 16px;background:rgba(5,7,30,0.98);border-top:1px solid rgba(102,126,234,0.15);flex-shrink:0;"></div>
     <div class="ai-chat-input-bar">
         <button id="aiVoiceBtn" onclick="toggleAIChatVoice()" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1.2em;cursor:pointer;flex-shrink:0;" title="Voice input">🎙️</button>
         <textarea id="aiChatInput" rows="1" placeholder="Escribe aquí..." style="text-align:center;" oninput="this.style.textAlign=this.value?'left':'center';this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';" onfocus="if(!this.value)this.style.textAlign='left';" onblur="if(!this.value)this.style.textAlign='center';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}"></textarea>
@@ -19579,11 +19590,14 @@ function showAIWelcome() {
     } else {
         container.innerHTML = `
             <div class="ai-msg assistant">
-                <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
-                    <button onclick="aiQuickAction(1)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">${isEs ? 'Lectura completa de carta astral' : 'Full natal chart reading'}</button>
-                    <button onclick="aiQuickAction(3)" style="padding:10px 14px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.85em;font-weight:600;cursor:pointer;text-align:left;">${isEs ? 'Tránsitos de hoy' : 'Today transits'}</button>
-                </div>
+                <p style="color:rgba(255,255,255,0.5);font-size:0.85em;text-align:center;">${isEs ? 'Escribe una pregunta o usa los botones de abajo' : 'Type a question or use the buttons below'}</p>
             </div>`;
+        // Show quick action buttons in the sticky area above input
+        var qa = document.getElementById('aiQuickActions');
+        if (qa) {
+            qa.style.display = 'flex';
+            qa.innerHTML = '<div style="display:flex;gap:8px;width:100%;"><button onclick="aiQuickAction(1)" style="flex:1;padding:10px 12px;background:linear-gradient(135deg,rgba(102,126,234,0.25),rgba(118,75,162,0.25));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#c4b5fd;font-size:0.82em;font-weight:600;cursor:pointer;text-align:center;">' + (isEs ? 'Lectura completa' : 'Full reading') + '</button><button onclick="aiQuickAction(3)" style="flex:1;padding:10px 12px;background:linear-gradient(135deg,rgba(255,224,102,0.15),rgba(255,149,0,0.15));border:1px solid rgba(255,224,102,0.3);border-radius:10px;color:#ffd54f;font-size:0.82em;font-weight:600;cursor:pointer;text-align:center;">' + (isEs ? 'Tránsitos de hoy' : 'Today transits') + '</button></div>';
+        }
     }
 }
 
@@ -20102,6 +20116,10 @@ async function sendAIMessage() {
         showAIWelcome();
         return;
     }
+
+    // Hide quick action buttons
+    var qa = document.getElementById('aiQuickActions');
+    if (qa) qa.style.display = 'none';
 
     // Clear welcome message on first real message
     if (aiChatHistory.length === 0) {
