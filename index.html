@@ -14597,9 +14597,9 @@ function renderSublunaryInfoBox(latStr, lonDeg, userLat, userLon) {
     var setStr = mrs.set ? mrs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
 
     return '<div style="padding:8px 14px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;">'
+        + '<span style="font-size:1.15em;font-weight:bold;color:#7ec8ff;">🌙↑ ' + riseStr + '  &nbsp;  🌙↓ ' + setStr + '</span>'
         + '<span style="font-size:0.95em;font-weight:bold;color:#4ecdc4;">' + cityLabel + ' ↔ Sublunar: ' + Math.round(distToUser).toLocaleString() + ' km</span>'
         + '<span style="font-size:0.95em;font-weight:bold;color:#c9a840;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</span>'
-        + '<span style="font-size:0.95em;color:rgba(200,215,255,0.8);">🌙↑ ' + riseStr + '  &nbsp;  🌙↓ ' + setStr + '</span>'
         + '</div>';
 }
 
@@ -15297,6 +15297,27 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
         <!-- 4-column symmetric grid -->
         <div class="astro-info-grid">
 
+            <!-- Mareas fuerza -->
+            <div class="astro-card" style="margin-bottom:0;">
+                <h4 style="font-size:0.75em;">🌊 ${currentLang==='es'?'Mareas':'Tides'}</h4>
+                <div class="astro-value" style="color:#4FC3F7">${astro.tidePct}%</div>
+                <div class="astro-label">${astro.tideLabel}</div>
+                <div class="astro-bar-bg">
+                    <div class="astro-bar-fill" style="width:${astro.tidePct}%;background:#4FC3F7;"></div>
+                </div>
+            </div>
+
+            <!-- Curva de Marea -->
+            <div class="astro-card" style="margin-bottom:0;">
+                <h4 style="font-size:0.75em;">🌊 ${currentLang==='es'?'Curva de Marea':'Tide Curve'}</h4>
+                <div class="tide-curve-container" style="overflow:hidden;width:100%;">${renderTideSVG(tideCurve, 400, 60)}</div>
+                <div id="tideExtremesDisplay" style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:5px;">${extremesHTML || 'Calculando...'}</div>
+                <div id="tideApiStatus" style="font-size:0.58em;color:rgba(78,205,196,0.45);margin-top:2px;">⟳ actualizando con datos reales...</div>
+                <div style="display:flex;justify-content:space-between;font-size:0.60em;color:rgba(255,255,255,0.22);margin-top:3px;">
+                    <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
+                </div>
+            </div>
+
             <!-- Distancia -->
             <div class="astro-card" style="margin-bottom:0;">
                 <h4 style="font-size:0.75em;">📏 ${currentLang==='es'?'Distancia':'Distance'}</h4>
@@ -15319,27 +15340,6 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
                 <div class="astro-label" style="margin-top:4px;">${astro.distFromUser}° de tu cenit (${Math.round(parseFloat(astro.distFromUser)*111)} km)</div>
             </div>
 
-            <!-- Mareas fuerza -->
-            <div class="astro-card" style="margin-bottom:0;">
-                <h4 style="font-size:0.75em;">🌊 ${currentLang==='es'?'Mareas':'Tides'}</h4>
-                <div class="astro-value" style="color:#4FC3F7">${astro.tidePct}%</div>
-                <div class="astro-label">${astro.tideLabel}</div>
-                <div class="astro-bar-bg">
-                    <div class="astro-bar-fill" style="width:${astro.tidePct}%;background:#4FC3F7;"></div>
-                </div>
-            </div>
-
-            <!-- Curva de Marea — 4ta columna -->
-            <div class="astro-card" style="margin-bottom:0;">
-                <h4 style="font-size:0.75em;">🌊 ${currentLang==='es'?'Curva de Marea':'Tide Curve'}</h4>
-                <div class="tide-curve-container" style="overflow:hidden;width:100%;">${renderTideSVG(tideCurve, 400, 60)}</div>
-                <div id="tideExtremesDisplay" style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:5px;">${extremesHTML || 'Calculando...'}</div>
-                <div id="tideApiStatus" style="font-size:0.58em;color:rgba(78,205,196,0.45);margin-top:2px;">⟳ actualizando con datos reales...</div>
-                <div style="display:flex;justify-content:space-between;font-size:0.60em;color:rgba(255,255,255,0.22);margin-top:3px;">
-                    <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
-                </div>
-
-            </div>
         </div>
 
     </div>`;
@@ -17658,7 +17658,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v250';
+const APP_VERSION = 'v251';
 var _pendingSW = null;
 
 function showUpdateBanner() {
