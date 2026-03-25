@@ -7350,7 +7350,8 @@ function showMajorAspectsModal() {
     if (majorAspects.stelliums && majorAspects.stelliums.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #c9a840; border-bottom: 2px solid #c9a840; padding-bottom: 8px;">' + (currentLang==="es"?"★ Stelliums (3+ planetas en mismo signo)":"★ Stelliums (3+ planets in same sign)") + '</h3>';
         majorAspects.stelliums.forEach(s => {
-            html += `<div style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700;">`;
+            var clickTxt = ('Stellium ' + s.sign + ': ' + s.planets.join(', ') + ' (' + s.startDate + ' - ' + s.endDate + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700; cursor:pointer;">`;
             html += `<strong style="color: #FFD700;">${s.sign}</strong>: ${s.planets.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Período':'Period'}: ${s.startDate} - ${s.endDate}</small>`;
             html += `</div>`;
@@ -7362,7 +7363,8 @@ function showMajorAspectsModal() {
     if (majorAspects.tSquares && majorAspects.tSquares.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #ff6b6b; border-bottom: 2px solid #ff6b6b; padding-bottom: 8px;">⊥ T-Squares</h3>';
         majorAspects.tSquares.forEach(t => {
-            html += `<div style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b;">`;
+            var clickTxt = ('T-Cuadrada: ' + t.apex + (currentLang==='es'?' opuesto a ':' opposed to ') + t.base.join(', ') + ' (' + t.dates + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b; cursor:pointer;">`;
             html += `<strong style="color: #ff6b6b;">${t.apex}</strong> ${currentLang==='es'?'opuesto a':'opposed to'} ${t.base.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Activo aproximadamente':'Active approximately'}: ${t.dates}</small>`;
             html += `</div>`;
@@ -7374,7 +7376,8 @@ function showMajorAspectsModal() {
     if (majorAspects.grandTrines && majorAspects.grandTrines.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #51cf66; border-bottom: 2px solid #51cf66; padding-bottom: 8px;">△ Grand Trines</h3>';
         majorAspects.grandTrines.forEach(g => {
-            html += `<div style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66;">`;
+            var clickTxt = ('Gran Trígono: ' + g.planets.join(' - ') + ' en ' + g.element + ' (' + g.dates + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66; cursor:pointer;">`;
             html += `<strong style="color: #51cf66;">${g.planets.join(' - ')}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Elemento':'Element'}: ${g.element} • ${currentLang==='es'?'Períodos':'Periods'}: ${g.dates}</small>`;
             html += `</div>`;
@@ -7386,7 +7389,8 @@ function showMajorAspectsModal() {
     if (majorAspects.majorOppositions && majorAspects.majorOppositions.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 8px;">' + (currentLang==="es"?"☍ Oposiciones Mayores":"☍ Major Oppositions") + '</h3>';
         majorAspects.majorOppositions.forEach(o => {
-            html += `<div style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6;">`;
+            var clickTxt = (o.planet1 + ' ☍ oposición ' + o.planet2 + ' (' + o.date + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6; cursor:pointer;">`;
             html += `<strong style="color: #9b59b6;">${o.planet1}</strong> ☍ <strong style="color: #9b59b6;">${o.planet2}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==="es"?"Signo exacto":"Exact sign"}: ${o.date}</small>`;
             html += `</div>`;
@@ -7476,7 +7480,8 @@ function showMajorAspectsModal() {
     if (majorAspects.stelliums && majorAspects.stelliums.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #c9a840; border-bottom: 2px solid #c9a840; padding-bottom: 8px;">' + (currentLang==="es"?"★ Stelliums (3+ planetas en mismo signo)":"★ Stelliums (3+ planets in same sign)") + '</h3>';
         majorAspects.stelliums.forEach(s => {
-            html += `<div style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700;">`;
+            var clickTxt = ('Stellium ' + s.sign + ': ' + s.planets.join(', ') + ' (' + s.startDate + ' - ' + s.endDate + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(201,168,64,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #FFD700; cursor:pointer;">`;
             html += `<strong style="color: #FFD700;">${s.sign}</strong>: ${s.planets.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Período':'Period'}: ${s.startDate} - ${s.endDate}</small>`;
             html += `</div>`;
@@ -7488,7 +7493,8 @@ function showMajorAspectsModal() {
     if (majorAspects.tSquares && majorAspects.tSquares.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #ff6b6b; border-bottom: 2px solid #ff6b6b; padding-bottom: 8px;">⊥ T-Squares</h3>';
         majorAspects.tSquares.forEach(t => {
-            html += `<div style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b;">`;
+            var clickTxt = ('T-Cuadrada: ' + t.apex + (currentLang==='es'?' opuesto a ':' opposed to ') + t.base.join(', ') + ' (' + t.dates + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(255,107,107,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #ff6b6b; cursor:pointer;">`;
             html += `<strong style="color: #ff6b6b;">${t.apex}</strong> ${currentLang==='es'?'opuesto a':'opposed to'} ${t.base.join(', ')}<br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Activo aproximadamente':'Active approximately'}: ${t.dates}</small>`;
             html += `</div>`;
@@ -7500,7 +7506,8 @@ function showMajorAspectsModal() {
     if (majorAspects.grandTrines && majorAspects.grandTrines.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #51cf66; border-bottom: 2px solid #51cf66; padding-bottom: 8px;">△ Grand Trines</h3>';
         majorAspects.grandTrines.forEach(g => {
-            html += `<div style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66;">`;
+            var clickTxt = ('Gran Trígono: ' + g.planets.join(' - ') + ' en ' + g.element + ' (' + g.dates + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(81,207,102,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #51cf66; cursor:pointer;">`;
             html += `<strong style="color: #51cf66;">${g.planets.join(' - ')}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==='es'?'Elemento':'Element'}: ${g.element} • ${currentLang==='es'?'Períodos':'Periods'}: ${g.dates}</small>`;
             html += `</div>`;
@@ -7512,7 +7519,8 @@ function showMajorAspectsModal() {
     if (majorAspects.majorOppositions && majorAspects.majorOppositions.length > 0) {
         html += '<div style="margin-bottom: 20px;"><h3 style="color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 8px;">' + (currentLang==="es"?"☍ Oposiciones Mayores":"☍ Major Oppositions") + '</h3>';
         majorAspects.majorOppositions.forEach(o => {
-            html += `<div style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6;">`;
+            var clickTxt = (o.planet1 + ' ☍ oposición ' + o.planet2 + ' (' + o.date + ')').replace(/'/g, "\\'");
+            html += `<div onclick="showBannerAspectDetail('${clickTxt}')" style="background: rgba(155,89,182,0.15); padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #9b59b6; cursor:pointer;">`;
             html += `<strong style="color: #9b59b6;">${o.planet1}</strong> ☍ <strong style="color: #9b59b6;">${o.planet2}</strong><br>`;
             html += `<small style="color: #a8b2d1;">${currentLang==="es"?"Signo exacto":"Exact sign"}: ${o.date}</small>`;
             html += `</div>`;
@@ -17514,7 +17522,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v231';
+const APP_VERSION = 'v232';
 var _pendingSW = null;
 
 function showUpdateBanner() {
