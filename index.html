@@ -313,7 +313,7 @@
         .ai-typing span { animation: aiDot 1.4s infinite; } .ai-typing span:nth-child(2) { animation-delay: 0.2s; } .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes aiDot { 0%,60%,100% { opacity: 0.3; } 30% { opacity: 1; } }
 
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100vh; background-color: rgba(2,2,15,0.88); flex-direction: column; justify-content: center; align-items: center; overflow: auto; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100vh; background-color: rgba(2,2,15,0.88); flex-direction: column; justify-content: flex-start; align-items: center; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 0; }
         .modal.show { display: flex; }
         .modal-content {
             background: linear-gradient(170deg, rgba(7,9,42,0.99) 0%, rgba(4,5,25,0.99) 100%);
@@ -556,9 +556,8 @@
                 -webkit-overflow-scrolling: touch;
             }
             .modal-header { margin-bottom: 10px !important; padding-bottom: 8px !important; }
-            /* Long-content modals: outer scrolls, inner centered via margin:auto */
-            #aspectsModal, #majorAspectsModal, #historicAspectsModal { justify-content: flex-start !important; align-items: center !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; padding: 20px 10px !important; padding-top: max(env(safe-area-inset-top, 20px), 20px) !important; }
-            #aspectsModal .modal-content, #majorAspectsModal .modal-content, #historicAspectsModal .modal-content { max-height: none !important; overflow-y: visible !important; margin: auto !important; width: 95% !important; flex-shrink: 0 !important; }
+            /* Mobile modals: ensure safe-area padding */
+            .modal { padding-top: max(env(safe-area-inset-top, 20px), 20px) !important; }
             .modal-header h2 { font-size: 0.9em !important; line-height: 1.2; }
             
             /* ── Planet buttons: 2 per row ── */
@@ -1062,6 +1061,19 @@
                 <span class="close" onclick="closeSavedReadingsModal()">&times;</span>
             </div>
             <div id="savedReadingsBody" style="padding: 20px;">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ciclo de Mareas -->
+    <div id="tideCycleModal" class="modal" onclick="if(event.target===this)closeTideCycleModal()">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 id="tideCycleTitle">🌊 Ciclo de Mareas</h2>
+                <span class="close" onclick="closeTideCycleModal()">&times;</span>
+            </div>
+            <div id="tideCycleBody" style="padding: 15px;">
                 <!-- Filled by JS -->
             </div>
         </div>
@@ -2079,6 +2091,94 @@ function get186CycleData() {
     }
     return data;
 }
+
+// ========== TIDE CYCLE MODAL ==========
+function openTideCycleModal() {
+    var L = currentLang === 'es';
+    var modal = document.getElementById('tideCycleModal');
+    var titleEl = document.getElementById('tideCycleTitle');
+    var bodyEl = document.getElementById('tideCycleBody');
+    var today = new Date();
+    var astro = getAstroData(today);
+    var phase = calculateLunarPhase(today);
+    var phaseName = getLunarPhaseName(phase);
+
+    titleEl.textContent = '🌊 ' + (L ? 'Ciclo Lunar de Mareas' : 'Lunar Tide Cycle');
+
+    // Generate 7-day tide forecast
+    var forecastHTML = '';
+    for (var d = 0; d < 7; d++) {
+        var fDate = new Date(today);
+        fDate.setDate(fDate.getDate() + d);
+        var fCurve = getTideCurveForLocation(fDate, ASTRO_USER_LAT, ASTRO_USER_LON);
+        var fExtremes = getTideExtremes(fCurve);
+        var fAstro = getAstroData(fDate);
+        var fPhase = calculateLunarPhase(fDate);
+        var dayLabel = d === 0 ? (L ? 'HOY' : 'TODAY') : fDate.toLocaleDateString(L ? 'es' : 'en', {weekday:'short', day:'numeric'});
+        var strengthColor = fAstro.tidePct > 70 ? '#FF6B6B' : fAstro.tidePct > 45 ? '#f0e68c' : '#4FC3F7';
+
+        forecastHTML += '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin-bottom:8px;border-left:3px solid ' + strengthColor + ';">';
+        forecastHTML += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+        forecastHTML += '<span style="font-weight:bold;color:' + (d===0?'#c9a840':'rgba(255,255,255,0.85)') + ';font-size:0.95em;">' + dayLabel + '</span>';
+        forecastHTML += '<span style="color:' + strengthColor + ';font-weight:bold;font-size:0.85em;">' + fAstro.tidePct + '% — ' + fAstro.tideLabel + '</span>';
+        forecastHTML += '</div>';
+        forecastHTML += '<div style="overflow:hidden;width:100%;margin-bottom:4px;">' + renderTideSVG(fCurve, 500, 50) + '</div>';
+        forecastHTML += '<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.78em;">';
+        fExtremes.forEach(function(e) {
+            var icon = e.type === 'alta' ? '▲' : '▼';
+            var col = e.type === 'alta' ? '#4FC3F7' : '#01579B';
+            forecastHTML += '<span style="color:' + col + ';">' + icon + ' ' + (e.hour < 10 ? '0' : '') + e.hour + ':00 (' + e.level.toFixed(1) + 'm)</span>';
+        });
+        forecastHTML += '</div>';
+        forecastHTML += '</div>';
+    }
+
+    // Current cycle info
+    var cycleType = astro.tidePct > 70 ? (L ? 'Mareas Vivas (Spring Tides)' : 'Spring Tides') :
+                    astro.tidePct > 45 ? (L ? 'Mareas Moderadas' : 'Moderate Tides') :
+                    (L ? 'Mareas Muertas (Neap Tides)' : 'Neap Tides');
+    var cycleDesc = astro.tidePct > 70 ?
+        (L ? 'Luna nueva o llena — Sol y Luna alinean fuerzas gravitacionales, produciendo las mareas más altas y bajas del ciclo.' :
+             'New or full Moon — Sun and Moon align gravitational forces, producing the highest and lowest tides of the cycle.') :
+        astro.tidePct > 45 ?
+        (L ? 'Transición entre mareas vivas y muertas. Amplitudes moderadas.' :
+             'Transition between spring and neap tides. Moderate amplitudes.') :
+        (L ? 'Cuarto creciente o menguante — Sol y Luna forman ángulo de 90°, sus fuerzas se contrarrestan parcialmente, produciendo mareas de menor amplitud.' :
+             'First or third quarter — Sun and Moon at 90° angle, their forces partially cancel, producing smaller tidal ranges.');
+
+    var html = '';
+    // Header with current info
+    html += '<div style="background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2);border-radius:10px;padding:12px;margin-bottom:15px;">';
+    html += '<div style="font-size:1.1em;font-weight:bold;color:#4FC3F7;margin-bottom:6px;">' + cycleType + '</div>';
+    html += '<div style="font-size:0.88em;color:rgba(255,255,255,0.75);line-height:1.5;margin-bottom:8px;">' + cycleDesc + '</div>';
+    html += '<div style="display:flex;gap:15px;flex-wrap:wrap;font-size:0.82em;">';
+    html += '<span style="color:#c9a840;">🌙 ' + (L ? 'Fase' : 'Phase') + ': ' + phaseName + '</span>';
+    html += '<span style="color:#7ec8ff;">📏 ' + (L ? 'Distancia' : 'Distance') + ': ' + astro.distance.toLocaleString() + ' km</span>';
+    html += '<span style="color:#4FC3F7;">💪 ' + (L ? 'Fuerza' : 'Strength') + ': ' + astro.tidePct + '%</span>';
+    html += '</div></div>';
+
+    // Harmonic components explanation
+    html += '<div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;margin-bottom:15px;font-size:0.8em;color:rgba(255,255,255,0.55);line-height:1.5;">';
+    html += '<strong style="color:rgba(255,255,255,0.7);">' + (L ? 'Componentes Armónicas' : 'Harmonic Components') + ':</strong> ';
+    html += 'M2 (' + (L ? 'principal lunar' : 'principal lunar') + ') · S2 (' + (L ? 'principal solar' : 'principal solar') + ') · K1 (' + (L ? 'diurna luni-solar' : 'luni-solar diurnal') + ') · O1 (' + (L ? 'diurna lunar' : 'lunar diurnal') + ') · N2 (' + (L ? 'elíptica lunar' : 'lunar elliptic') + ')';
+    html += '</div>';
+
+    // 7-day forecast
+    html += '<h3 style="color:#c9a840;font-size:0.95em;margin-bottom:10px;font-family:Cinzel,serif;">📅 ' + (L ? 'Pronóstico 7 Días' : '7-Day Forecast') + '</h3>';
+    html += forecastHTML;
+
+    // Location
+    html += '<div style="text-align:center;font-size:0.72em;color:rgba(255,255,255,0.3);margin-top:10px;">📍 ' + ASTRO_USER_NAME.split(',')[0] + '</div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+}
+
+function closeTideCycleModal() {
+    document.getElementById('tideCycleModal').classList.remove('show');
+}
+window.openTideCycleModal = openTideCycleModal;
+window.closeTideCycleModal = closeTideCycleModal;
 
 // Cache for 18.6yr data (computed once)
 let _cycle186Cache = null;
@@ -15366,9 +15466,9 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
                 </div>
             </div>
 
-            <!-- Curva de Marea -->
-            <div class="astro-card" style="margin-bottom:0;">
-                <h4 style="font-size:0.75em;">🌊 ${currentLang==='es'?'Curva de Marea':'Tide Curve'}</h4>
+            <!-- Curva de Marea (clickable) -->
+            <div class="astro-card" style="margin-bottom:0;cursor:pointer;" onclick="openTideCycleModal()">
+                <h4 style="font-size:0.75em;">🌊 ${currentLang==='es'?'Curva de Marea':'Tide Curve'} <span style="font-size:0.7em;color:rgba(255,255,255,0.3);">▸</span></h4>
                 <div class="tide-curve-container" style="overflow:hidden;width:100%;">${renderTideSVG(tideCurve, 400, 60)}</div>
                 <div id="tideExtremesDisplay" style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:5px;">${extremesHTML || 'Calculando...'}</div>
                 <div id="tideApiStatus" style="font-size:0.58em;color:rgba(78,205,196,0.45);margin-top:2px;">⟳ actualizando con datos reales...</div>
@@ -17977,7 +18077,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v270';
+const APP_VERSION = 'v271';
 var _pendingSW = null;
 
 function showUpdateBanner() {
