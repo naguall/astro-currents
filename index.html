@@ -15489,18 +15489,8 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
         <!-- 4-column symmetric grid -->
         <div class="astro-info-grid">
 
-            <!-- Mareas fuerza -->
-            <div class="astro-card" style="margin-bottom:0;">
-                <h4 style="font-size:0.75em;">${currentLang==='es'?'Mareas':'Tides'}</h4>
-                <div class="astro-value" style="color:#4FC3F7">${astro.tidePct}%</div>
-                <div class="astro-label">${astro.tideLabel}</div>
-                <div class="astro-bar-bg">
-                    <div class="astro-bar-fill" style="width:${astro.tidePct}%;background:#4FC3F7;"></div>
-                </div>
-            </div>
-
-            <!-- Curva de Marea (clickable) -->
-            <div class="astro-card" style="margin-bottom:0;cursor:pointer;" onclick="openTideCycleModal()">
+            <!-- Curva de Marea (clickable, spans 2 columns) -->
+            <div class="astro-card" style="margin-bottom:0;cursor:pointer;grid-column:span 2;" onclick="openTideCycleModal()">
                 <h4 style="font-size:0.75em;">${currentLang==='es'?'Curva de Marea':'Tide Curve'} <span style="font-size:0.7em;color:rgba(255,255,255,0.3);">▸</span></h4>
                 <div class="tide-curve-container" style="overflow:hidden;width:100%;">${renderTideSVG(tideCurve, 400, 60)}</div>
                 <div id="tideExtremesDisplay" style="font-size:0.72em;color:rgba(255,255,255,0.5);margin-top:5px;">${extremesHTML || 'Calculando...'}</div>
@@ -18115,7 +18105,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v280';
+const APP_VERSION = 'v281';
 var _pendingSW = null;
 
 function showUpdateBanner() {
