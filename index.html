@@ -10342,8 +10342,20 @@ function updateCurrentDayInfoForMode(mode) {
         const bannerAspBg2 = calendarMode === 'lunar' ? 'rgba(10,20,45,0.85)' : 'rgba(20,10,40,0.85)';
 
         currentDayInfoDiv.style.display = 'block';
+
+        // HOY bar — compact horizontal in solar/gregorian, full center column in lunar
+        const hoyBarHTML = (mode === 'solar' || mode === 'gregorian') ? `
+            <div onclick="goToToday()" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:5px 8px;border-radius:8px;border:1px solid ${bannerHoyBorder2}50;background:${bannerHoyBg2};margin-bottom:5px;">
+                <span style="font-size:0.45em;font-weight:800;letter-spacing:2px;color:${bannerHoyText2};text-transform:uppercase;">— HOY —</span>
+                <span style="font-size:1.4em;">${displayEmoji}</span>
+                <span style="font-size:0.85em;font-weight:800;color:#e8c84a;">${displayDay}</span>
+                <span style="font-size:0.4em;color:#8899cc;">${displayInfo}</span>
+                <span style="font-size:0.7em;color:${getMonthColor(today.getMonth())};font-weight:800;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</span>
+            </div>` : '';
+
         currentDayInfoDiv.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
+            ${hoyBarHTML}
+            <div style="display: grid; grid-template-columns: ${(mode === 'solar' || mode === 'gregorian') ? '1fr 1fr' : '1fr 1.3fr 1fr'}; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
                 <!-- Eventos -->
                 <div style="background: ${bannerEvtBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerEvtColor2}44; border-top: 2px solid ${bannerEvtColor2}; min-width: 0; overflow: hidden;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerEvtColor2}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
@@ -10359,17 +10371,18 @@ function updateCurrentDayInfoForMode(mode) {
                     </div>
                     ` : `<div style="font-size: 0.6em; color: ${bannerEvtColor2}77; font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
                 </div>
-                <!-- HOY Centro -->
+                ${(mode === 'solar' || mode === 'gregorian') ? '' : `
+                <!-- HOY Centro (lunar only) -->
                 <div onclick="goToToday()" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder2}50;background:${bannerHoyBg2};box-shadow:0 0 20px ${bannerHoyBorder2}25;">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: ${bannerHoyText2}; text-transform: uppercase; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid ${bannerHoyBorder2}30;">— HOY —</div>
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
                         <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(232,200,74,0.65);">${displayDay}</span>
                     </div>
                     <div style="margin: 3px 0; display:flex; justify-content:center; font-size: 2em;">${displayEmoji}</div>
-                    ${mode === 'lunar' ? `<div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
+                    <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
                     <div style="font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
-                </div>
+                </div>`}
                 <!-- Info según modo -->
                 <div style="background: ${bannerAspBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor2}44; border-top: 2px solid ${bannerAspColor2}88; min-width: 0; overflow: hidden;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerAspColor2}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
@@ -14182,14 +14195,14 @@ function renderSolarInfoPanel() {
         + (currentLang==='es'?'Posición Subsolar — Punto sobre la Tierra':'Subsolar Point — Position over Earth')
         + '<span style="font-size:0.78em;color:#a08040;font-weight:400;margin-left:8px;">' + (currentLang==='es'?'Dec':'Dec') + ': ' + sunDecl.toFixed(1) + '°' + (sunDecl>=0?'N':'S') + ' · ' + (currentLang==='es'?'Lon':'Lon') + ': ' + Math.abs(subsolarLon).toFixed(1) + '°' + (subsolarLon>=0?'E':'W') + '</span>'
         + '</div>';
+    const solarListHTML = '<div id="solarRiseSetListContainer" style="display:none;max-height:300px;overflow-y:auto;margin-bottom:10px;padding:8px;background:rgba(255,149,0,0.04);border:1px solid rgba(255,149,0,0.15);border-radius:8px;"></div>';
     const gridHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">'
         + '<div id="subsolarMapContainer">' + mapSVG + '</div>'
         + '<div><canvas id="subsolarGlobe" width="260" height="180" style="border-radius:8px;border:1px solid rgba(255,149,0,0.25);display:block;width:100%;"></canvas></div>'
-        + '</div>'
-        + '<div id="solarRiseSetListContainer" style="display:none;max-height:300px;overflow-y:auto;margin-bottom:10px;padding:8px;background:rgba(255,149,0,0.04);border:1px solid rgba(255,149,0,0.15);border-radius:8px;"></div>';
+        + '</div>';
 
     panel.innerHTML = '<div style="background:linear-gradient(160deg,rgba(25,15,0,0.98) 0%,rgba(15,8,0,0.98) 100%); border-radius:12px; border:1px solid rgba(255,149,0,0.28); border-top:2px solid rgba(255,149,0,0.55); box-shadow:0 0 22px rgba(255,149,0,0.09); padding:8px 10px; font-size:0.78em;">'
-        + headerHTML + titleHTML + gridHTML + infoHTML + '</div>';
+        + headerHTML + solarListHTML + titleHTML + gridHTML + infoHTML + '</div>';
 
     // Render 3D globe after DOM update — match height to 2D map
     setTimeout(() => {
@@ -18558,7 +18571,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v294';
+const APP_VERSION = 'v295';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -19183,6 +19196,46 @@ window.sendHoyInterpMessage = sendHoyInterpMessage;
 window.shareHoyInterp = shareHoyInterp;
 window.saveHoyInterp = saveHoyInterp;
 
+function getLunarPhaseIcon(date) {
+    var phase = calculateLunarPhase(date);
+    // Check if this day is an exact phase day (within ~6 degrees = ~0.5 day)
+    if (phase < 6 || phase >= 354) return '🌑'; // Luna Nueva
+    if (phase > 84 && phase < 96) return '🌓';  // Cuarto Creciente
+    if (phase > 174 && phase < 186) return '🌕'; // Luna Llena
+    if (phase > 264 && phase < 276) return '🌗'; // Cuarto Menguante
+    return '';
+}
+
+function getLunarPhaseName(icon, isEs) {
+    if (icon === '🌑') return isEs ? 'Luna Nueva' : 'New Moon';
+    if (icon === '🌓') return isEs ? 'Cuarto Creciente' : 'First Quarter';
+    if (icon === '🌕') return isEs ? 'Luna Llena' : 'Full Moon';
+    if (icon === '🌗') return isEs ? 'Cuarto Menguante' : 'Last Quarter';
+    return '';
+}
+
+// Solar sign month colors (Aries=Mar to Pisces=Feb)
+var solarMonthColors = [
+    'rgba(255,80,80,0.08)',    // Jan (Capricorn/Aquarius)
+    'rgba(120,80,255,0.08)',   // Feb (Aquarius/Pisces)
+    'rgba(80,200,120,0.08)',   // Mar (Pisces/Aries)
+    'rgba(255,100,100,0.08)',  // Apr (Aries/Taurus)
+    'rgba(180,255,120,0.08)',  // May (Taurus/Gemini)
+    'rgba(255,255,100,0.08)',  // Jun (Gemini/Cancer)
+    'rgba(200,220,255,0.08)',  // Jul (Cancer/Leo)
+    'rgba(255,180,60,0.08)',   // Aug (Leo/Virgo)
+    'rgba(180,160,120,0.08)',  // Sep (Virgo/Libra)
+    'rgba(255,120,180,0.08)',  // Oct (Libra/Scorpio)
+    'rgba(200,60,60,0.08)',    // Nov (Scorpio/Sagittarius)
+    'rgba(100,60,200,0.08)'   // Dec (Sagittarius/Capricorn)
+];
+var solarMonthBorders = [
+    'rgba(255,80,80,0.2)',  'rgba(120,80,255,0.2)', 'rgba(80,200,120,0.2)',
+    'rgba(255,100,100,0.2)','rgba(180,255,120,0.2)','rgba(255,255,100,0.2)',
+    'rgba(200,220,255,0.2)','rgba(255,180,60,0.2)', 'rgba(180,160,120,0.2)',
+    'rgba(255,120,180,0.2)','rgba(200,60,60,0.2)',  'rgba(100,60,200,0.2)'
+];
+
 function toggleLunarRiseSetList() {
     var container = document.getElementById('lunarRiseSetListContainer');
     if (!container) return;
@@ -19194,25 +19247,48 @@ function toggleLunarRiseSetList() {
     var year = new Date().getFullYear();
     var timeFmt = {hour:'2-digit',minute:'2-digit',hour12:false};
     var locale = isEs ? 'es' : 'en';
-    var html = '<div style="font-size:0.72em;color:#7ec8ff;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + (isEs ? 'Amaneceres y Anocheceres Lunares ' : 'Moonrise & Moonset ') + year + '</div>';
+    var html = '<div style="font-size:0.72em;color:#7ec8ff;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + (isEs ? 'Salida y Puesta Lunar ' : 'Moonrise & Moonset ') + year + '</div>';
     html += '<table style="width:100%;border-collapse:collapse;font-size:0.72em;">';
-    html += '<thead><tr style="color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(74,158,255,0.15);"><th style="text-align:left;padding:3px 6px;">' + (isEs?'Fecha':'Date') + '</th><th style="padding:3px 6px;">🌙↑</th><th style="padding:3px 6px;">🌙↓</th></tr></thead><tbody>';
+    html += '<thead><tr style="color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(74,158,255,0.15);"><th style="text-align:left;padding:3px 6px;">' + (isEs?'Fecha':'Date') + '</th><th style="padding:3px 6px;">' + (isEs?'Fase':'Phase') + '</th><th style="padding:3px 6px;">' + (isEs?'Salida':'Rise') + '</th><th style="padding:3px 6px;">' + (isEs?'Puesta':'Set') + '</th></tr></thead><tbody>';
     var today = new Date();
     today.setHours(0,0,0,0);
-    for (var i = 0; i < 365; i++) {
+    var prevMonth = -1;
+    for (var i = 0; i < 366; i++) {
         var d = new Date(year, 0, 1 + i);
         if (d.getFullYear() !== year) break;
+        var curMonth = d.getMonth();
+        // Month separator row with solar month color
+        if (curMonth !== prevMonth) {
+            var monthName = d.toLocaleDateString(locale, {month:'long'});
+            html += '<tr><td colspan="4" style="padding:5px 6px;font-weight:700;color:' + solarMonthBorders[curMonth].replace('0.2','0.9') + ';background:' + solarMonthColors[curMonth].replace('0.08','0.15') + ';border-top:2px solid ' + solarMonthBorders[curMonth] + ';font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">' + monthName + '</td></tr>';
+            prevMonth = curMonth;
+        }
         var mrs = getMoonRiseSet(d, ASTRO_USER_LAT, ASTRO_USER_LON);
         var rStr = mrs.rise ? mrs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
-        var sStr = mrs.set ? mrs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
+        // For moonset, also check next day if no set found same day
+        var sStr = '--:--';
+        if (mrs.set) {
+            sStr = mrs.set.toLocaleTimeString(locale, timeFmt);
+        } else {
+            // Moon may set next day — scan extended
+            var nextD = new Date(d.getTime() + 86400000);
+            var mrs2 = getMoonRiseSet(nextD, ASTRO_USER_LAT, ASTRO_USER_LON);
+            if (mrs2.set && mrs2.set.getDate() === nextD.getDate() && mrs.rise) {
+                sStr = mrs2.set.toLocaleTimeString(locale, timeFmt) + '*';
+            }
+        }
+        var phaseIcon = getLunarPhaseIcon(d);
+        var phaseName = phaseIcon ? getLunarPhaseName(phaseIcon, isEs) : '';
         var isToday = d.getTime() === today.getTime();
-        var bg = isToday ? 'background:rgba(74,158,255,0.15);font-weight:700;' : (i%2===0 ? 'background:rgba(255,255,255,0.02);' : '');
-        html += '<tr style="' + bg + 'color:#ccc;"><td style="padding:3px 6px;">' + d.toLocaleDateString(locale, {day:'2-digit',month:'short'}) + (isToday ? ' ◀' : '') + '</td><td style="padding:3px 6px;text-align:center;color:#7ec8ff;">' + rStr + '</td><td style="padding:3px 6px;text-align:center;color:#5a9abf;">' + sStr + '</td></tr>';
+        var monthBg = solarMonthColors[curMonth];
+        var bg = isToday ? 'background:rgba(74,158,255,0.18);font-weight:700;' : 'background:' + monthBg + ';';
+        var phaseCell = phaseIcon ? '<span style="font-size:1.2em;">' + phaseIcon + '</span> <span style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + phaseName + '</span>' : '';
+        html += '<tr style="' + bg + 'color:#ccc;border-bottom:1px solid rgba(255,255,255,0.03);"><td style="padding:3px 6px;white-space:nowrap;">' + d.toLocaleDateString(locale, {weekday:'short',day:'2-digit',month:'short'}).replace(/^\w/, function(c){return c.toUpperCase();}) + (isToday ? ' ◀' : '') + '</td><td style="padding:3px 6px;text-align:center;">' + phaseCell + '</td><td style="padding:3px 6px;text-align:center;color:#7ec8ff;">' + rStr + '</td><td style="padding:3px 6px;text-align:center;color:#5a9abf;">' + sStr + '</td></tr>';
     }
     html += '</tbody></table>';
+    html += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);margin-top:4px;text-align:right;">* ' + (isEs ? 'puesta al día siguiente' : 'sets next day') + '</div>';
     container.innerHTML = html;
     container.style.display = 'block';
-    // Scroll to today
     setTimeout(function() {
         var rows = container.querySelectorAll('tr');
         for (var r = 0; r < rows.length; r++) {
@@ -19236,14 +19312,21 @@ function toggleSolarRiseSetList() {
     var year = new Date().getFullYear();
     var timeFmt = {hour:'2-digit',minute:'2-digit',hour12:false};
     var locale = isEs ? 'es' : 'en';
-    var html = '<div style="font-size:0.72em;color:#ff9500;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + (isEs ? 'Amaneceres y Atardeceres Solares ' : 'Sunrise & Sunset ') + year + '</div>';
+    var html = '<div style="font-size:0.72em;color:#ff9500;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">' + (isEs ? 'Amanecer y Atardecer Solar ' : 'Sunrise & Sunset ') + year + '</div>';
     html += '<table style="width:100%;border-collapse:collapse;font-size:0.72em;">';
-    html += '<thead><tr style="color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,149,0,0.15);"><th style="text-align:left;padding:3px 6px;">' + (isEs?'Fecha':'Date') + '</th><th style="padding:3px 6px;">☀️↑</th><th style="padding:3px 6px;">☀️↓</th><th style="padding:3px 6px;">' + (isEs?'Duración':'Duration') + '</th></tr></thead><tbody>';
+    html += '<thead><tr style="color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,149,0,0.15);"><th style="text-align:left;padding:3px 6px;">' + (isEs?'Fecha':'Date') + '</th><th style="padding:3px 6px;">' + (isEs?'Amanecer':'Sunrise') + '</th><th style="padding:3px 6px;">' + (isEs?'Atardecer':'Sunset') + '</th><th style="padding:3px 6px;">' + (isEs?'Duración':'Duration') + '</th></tr></thead><tbody>';
     var today = new Date();
     today.setHours(0,0,0,0);
-    for (var i = 0; i < 365; i++) {
+    var prevMonth = -1;
+    for (var i = 0; i < 366; i++) {
         var d = new Date(year, 0, 1 + i);
         if (d.getFullYear() !== year) break;
+        var curMonth = d.getMonth();
+        if (curMonth !== prevMonth) {
+            var monthName = d.toLocaleDateString(locale, {month:'long'});
+            html += '<tr><td colspan="4" style="padding:5px 6px;font-weight:700;color:' + solarMonthBorders[curMonth].replace('0.2','0.9') + ';background:' + solarMonthColors[curMonth].replace('0.08','0.15') + ';border-top:2px solid ' + solarMonthBorders[curMonth] + ';font-size:0.9em;text-transform:uppercase;letter-spacing:1px;">' + monthName + '</td></tr>';
+            prevMonth = curMonth;
+        }
         var srs = getSunRiseSet(d, ASTRO_USER_LAT, ASTRO_USER_LON);
         var rStr = srs.rise ? srs.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
         var sStr = srs.set ? srs.set.toLocaleTimeString(locale, timeFmt) : '--:--';
@@ -19253,13 +19336,13 @@ function toggleSolarRiseSetList() {
             dur = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
         }
         var isToday = d.getTime() === today.getTime();
-        var bg = isToday ? 'background:rgba(255,149,0,0.15);font-weight:700;' : (i%2===0 ? 'background:rgba(255,255,255,0.02);' : '');
-        html += '<tr style="' + bg + 'color:#ccc;"><td style="padding:3px 6px;">' + d.toLocaleDateString(locale, {day:'2-digit',month:'short'}) + (isToday ? ' ◀' : '') + '</td><td style="padding:3px 6px;text-align:center;color:#ff9500;">' + rStr + '</td><td style="padding:3px 6px;text-align:center;color:#ff6600;">' + sStr + '</td><td style="padding:3px 6px;text-align:center;color:rgba(255,255,255,0.5);">' + dur + '</td></tr>';
+        var monthBg = solarMonthColors[curMonth];
+        var bg = isToday ? 'background:rgba(255,149,0,0.18);font-weight:700;' : 'background:' + monthBg + ';';
+        html += '<tr style="' + bg + 'color:#ccc;border-bottom:1px solid rgba(255,255,255,0.03);"><td style="padding:3px 6px;white-space:nowrap;">' + d.toLocaleDateString(locale, {weekday:'short',day:'2-digit',month:'short'}).replace(/^\w/, function(c){return c.toUpperCase();}) + (isToday ? ' ◀' : '') + '</td><td style="padding:3px 6px;text-align:center;color:#ff9500;">' + rStr + '</td><td style="padding:3px 6px;text-align:center;color:#ff6600;">' + sStr + '</td><td style="padding:3px 6px;text-align:center;color:rgba(255,255,255,0.5);">' + dur + '</td></tr>';
     }
     html += '</tbody></table>';
     container.innerHTML = html;
     container.style.display = 'block';
-    // Scroll to today
     setTimeout(function() {
         var rows = container.querySelectorAll('tr');
         for (var r = 0; r < rows.length; r++) {
