@@ -13656,7 +13656,8 @@ function generateGregorianMonth() {
         planetaryEvents.interPlanetaryAspects.slice(0,1).forEach(asp => {
             const p1 = getPlanetInitial(asp.planet1);
             const p2 = getPlanetInitial(asp.planet2);
-            html += `<div onclick="event.stopPropagation(); window.handleInterAspectClick(${date.getTime()}, null)" style="color:#7ec8ff;font-size:0.65em;cursor:pointer;font-weight:bold;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
+            const ipaClickTxt = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
+            html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:#7ec8ff;font-size:0.65em;cursor:pointer;font-weight:bold;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
         });
         
         // Sign changes (limit 2)
@@ -14226,7 +14227,8 @@ function generateSolarWeeks(sign) {
                             ${interAspects.map(asp => {
                                 const p1 = getPlanetInitial(asp.planet1);
                                 const p2 = getPlanetInitial(asp.planet2);
-                                return `<div onclick="event.stopPropagation(); window.handleInterAspectClick(${dayDate.getTime()}, ${realLunarDay})" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.75em;white-space:nowrap;text-align:right;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
+                                const ipaClickTxt = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
+                                return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.75em;white-space:nowrap;text-align:right;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
                             }).join('')}
                             ${retrogrades.map(r => {
                                 const planetInit = getPlanetInitial(r.planet);
@@ -15740,7 +15742,8 @@ function renderCalendar() {
                             ${interAspects.map(asp => {
                                 const p1 = getPlanetInitial(asp.planet1);
                                 const p2 = getPlanetInitial(asp.planet2);
-                                return `<div onclick="event.stopPropagation(); window.handleInterAspectClick(${day.date.getTime()}, ${day.lunarDay})" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.75em;white-space:nowrap;text-align:right;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
+                                const ipaClickTxt = (tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')).replace(/'/g, "\\'");
+                                return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${ipaClickTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.75em;white-space:nowrap;text-align:right;" title="${asp.planet1} ${asp.symbol} ${asp.planet2}">${p1} ${asp.symbol} ${p2}</div>`;
                             }).join('')}
                             ${retrogrades.map(r => {
                                 const planetInit = getPlanetInitial(r.planet);
@@ -17906,7 +17909,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v263';
+const APP_VERSION = 'v264';
 var _pendingSW = null;
 
 function showUpdateBanner() {
