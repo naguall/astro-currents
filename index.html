@@ -13981,14 +13981,16 @@ function renderSolarInfoPanel() {
     panel.style.display = 'block';
 
     // Header banner matching lunar design
-    const headerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,149,0,0.18);flex-wrap:wrap;">'
+    const headerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,149,0,0.18);">'
+        + '<div style="display:flex;align-items:center;gap:6px;">'
         + '<span style="font-size:1.5em;">☀️</span>'
         + '<span style="font-family:\'Cinzel\',serif;color:#ff9500;font-weight:600;letter-spacing:1px;font-size:0.85em;">'
         + (currentLang==='es' ? 'Info Solar' : 'Solar Info')
-        + '</span>'
-        + '<span style="margin-left:auto;color:#ff9500;font-size:0.78em;font-weight:bold;">☀️↑ ' + sunRiseStr + ' &nbsp; ☀️↓ ' + sunSetStr + '</span>'
+        + '</span></div>'
+        + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'
+        + '<span style="color:#ff9500;font-size:0.78em;font-weight:bold;">☀️↑ ' + sunRiseStr + ' &nbsp; ☀️↓ ' + sunSetStr + '</span>'
         + '<span style="color:#a08040;font-size:0.68em;">· 📍 ' + ASTRO_USER_NAME.split(',')[0] + '</span>'
-        + '</div>';
+        + '</div></div>';
 
     // Subsolar position title
     const titleHTML = '<div style="font-family:\'Cinzel\',serif;color:#ff9500;font-size:0.78em;font-weight:600;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">'
@@ -15270,13 +15272,17 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
     <div style="background:linear-gradient(160deg,rgba(5,10,40,0.98) 0%,rgba(4,7,28,0.98) 100%); border-radius:12px; border:1px solid rgba(74,158,255,0.28); border-top:2px solid rgba(74,158,255,0.55); box-shadow:0 0 22px rgba(74,158,255,0.09); padding:8px 10px; font-size:0.78em;">
 
         <!-- Header -->
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(74,158,255,0.18);flex-wrap:wrap;">
-            ${getMoonSVG(calculateLunarPhase(today), 24)}
-            <span style="font-family:'Cinzel',serif;color:#7ec8ff;font-weight:600;letter-spacing:1px;font-size:0.85em;">
-                ${currentLang==='es' ? 'Info Lunar' : 'Lunar Info'}
-            </span>
-            <span style="margin-left:auto;color:#7ec8ff;font-size:0.78em;font-weight:bold;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet}</span>
-            <span style="color:#8899cc;font-size:0.68em;">· 📍 ${ASTRO_USER_NAME.split(',')[0]}</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(74,158,255,0.18);">
+            <div style="display:flex;align-items:center;gap:6px;">
+                ${getMoonSVG(calculateLunarPhase(today), 24)}
+                <span style="font-family:'Cinzel',serif;color:#7ec8ff;font-weight:600;letter-spacing:1px;font-size:0.85em;">
+                    ${currentLang==='es' ? 'Info Lunar' : 'Lunar Info'}
+                </span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                <span style="color:#7ec8ff;font-size:0.78em;font-weight:bold;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet}</span>
+                <span style="color:#8899cc;font-size:0.68em;">· 📍 ${ASTRO_USER_NAME.split(',')[0]}</span>
+            </div>
         </div>
 
         <!-- Posición Sublunar: Mapa 2D + Globo 3D (arriba, como en solar) -->
@@ -17667,7 +17673,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v258';
+const APP_VERSION = 'v259';
 var _pendingSW = null;
 
 function showUpdateBanner() {
