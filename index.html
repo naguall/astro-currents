@@ -4767,18 +4767,18 @@ function formatShortDate(date) {
 // Alternating month colors for gregorian dates in calendars
 function getMonthColor(monthIndex) {
     const colors = [
-        '#7ec8ff', // Ene - azul cielo
-        '#e8c84a', // Feb - amarillo dorado
-        '#80cbc4', // Mar - turquesa
-        '#f0a0c0', // Abr - rosa claro
-        '#a8b8ff', // May - lavanda
-        '#f5c76b', // Jun - ámbar
-        '#7ecba0', // Jul - verde menta
-        '#d4a5f5', // Ago - lila
-        '#7ec8ff', // Sep - azul cielo
-        '#e8c84a', // Oct - amarillo dorado
-        '#80cbc4', // Nov - turquesa
-        '#f0a0c0'  // Dic - rosa claro
+        '#e8c84a', // Ene - amarillo
+        '#7ec8ff', // Feb - celeste
+        '#e8c84a', // Mar - amarillo
+        '#7ec8ff', // Abr - celeste
+        '#e8c84a', // May - amarillo
+        '#7ec8ff', // Jun - celeste
+        '#e8c84a', // Jul - amarillo
+        '#7ec8ff', // Ago - celeste
+        '#e8c84a', // Sep - amarillo
+        '#7ec8ff', // Oct - celeste
+        '#e8c84a', // Nov - amarillo
+        '#7ec8ff'  // Dic - celeste
     ];
     return colors[monthIndex % 12];
 }
@@ -17514,7 +17514,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v230';
+const APP_VERSION = 'v231';
 var _pendingSW = null;
 
 function showUpdateBanner() {
