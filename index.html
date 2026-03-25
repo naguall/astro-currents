@@ -2124,16 +2124,8 @@ function openTideCycleModal() {
 
     var totalDays = Math.round((endDate - startDate) / 86400000) + 1;
 
-    // Current info header
-    var html = '';
-    html += '<div style="background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2);border-radius:10px;padding:12px;margin-bottom:15px;">';
-    html += '<div style="display:flex;gap:15px;flex-wrap:wrap;font-size:0.82em;">';
-    html += '<span style="color:#c9a840;">' + (L ? 'Fase' : 'Phase') + ': ' + phaseName + '</span>';
-    html += '<span style="color:#7ec8ff;">' + (L ? 'Distancia' : 'Distance') + ': ' + astro.distance.toLocaleString() + ' km</span>';
-    html += '<span style="color:#4FC3F7;">' + (L ? 'Fuerza' : 'Strength') + ': ' + astro.tidePct + '%</span>';
-    html += '</div></div>';
-
     // Forecast title with location on the right
+    var html = '';
     var locationName = ASTRO_USER_NAME ? ASTRO_USER_NAME.split(',')[0] : '';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
     html += '<h3 style="color:#c9a840;font-size:0.95em;margin:0;font-family:Cinzel,serif;">' + (L ? 'Mareas 2026' : 'Tides 2026') + '</h3>';
@@ -18122,7 +18114,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v278';
+const APP_VERSION = 'v279';
 var _pendingSW = null;
 
 function showUpdateBanner() {
