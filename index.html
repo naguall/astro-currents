@@ -18141,10 +18141,194 @@ function setUserLocation(lat, lon, name) {
     }
 }
 
+// ========== LEAFLET MAP + GOOGLE PLACES ==========
+var _locLeafletMap = null;
+var _locLeafletLoaded = false;
+var _locMapMarker = null;
+var _locMapPendingLatLon = null;
+var _googlePlacesLoaded = false;
+var _googlePlacesService = null;
+var _gpSearchTimer = null;
+
+function loadLeaflet(cb) {
+    if (_locLeafletLoaded) { cb(); return; }
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(link);
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    script.onload = function() { _locLeafletLoaded = true; cb(); };
+    script.onerror = function() { console.log('Leaflet load failed'); };
+    document.head.appendChild(script);
+}
+
+function initLocMap() {
+    if (_locLeafletMap) {
+        _locLeafletMap.invalidateSize();
+        _locLeafletMap.setView([ASTRO_USER_LAT, ASTRO_USER_LON], 10);
+        return;
+    }
+    var mapEl = document.getElementById('locMap');
+    if (!mapEl) return;
+    _locLeafletMap = L.map(mapEl, { zoomControl: true, attributionControl: false }).setView([ASTRO_USER_LAT, ASTRO_USER_LON], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(_locLeafletMap);
+    // Show confirm button when map moves
+    _locLeafletMap.on('moveend', function() {
+        document.getElementById('locMapConfirm').style.display = 'block';
+    });
+    setTimeout(function() { _locLeafletMap.invalidateSize(); }, 200);
+}
+
+function confirmMapLocation() {
+    if (!_locLeafletMap) return;
+    var center = _locLeafletMap.getCenter();
+    var lat = Math.round(center.lat * 100) / 100;
+    var lon = Math.round(center.lng * 100) / 100;
+    // Reverse geocode the point
+    var lang = currentLang === 'es' ? 'es' : 'en';
+    document.getElementById('locMapConfirm').textContent = currentLang==='es' ? 'Buscando...' : 'Searching...';
+    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + center.lat + '&lon=' + center.lng + '&format=json&zoom=14&addressdetails=1', {
+        headers: { 'Accept-Language': lang }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var name = '';
+        if (data && data.address) {
+            var a = data.address;
+            var place = a.beach || a.village || a.town || a.city || a.hamlet || a.suburb || a.municipality || a.county || '';
+            var country = a.country || '';
+            name = place ? (place + (country ? ', ' + country : '')) : '';
+        }
+        if (!name) name = lat.toFixed(2) + '°' + (lat>=0?'N':'S') + ', ' + Math.abs(lon).toFixed(2) + '°' + (lon>=0?'E':'W');
+        setUserLocation(lat, lon, name);
+        closeLocationSelector();
+    })
+    .catch(function() {
+        var name = lat.toFixed(2) + '°' + (lat>=0?'N':'S') + ', ' + Math.abs(lon).toFixed(2) + '°' + (lon>=0?'E':'W');
+        setUserLocation(lat, lon, name);
+        closeLocationSelector();
+    });
+}
+
+// Google Places
+function saveGoogleApiKey() {
+    var key = document.getElementById('googleApiKeyInput').value.trim();
+    if (!key) return;
+    localStorage.setItem('googlePlacesKey', key);
+    loadGooglePlaces(key);
+}
+
+function loadGooglePlaces(key) {
+    if (_googlePlacesLoaded || !key) return;
+    var script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + key + '&libraries=places&callback=onGooglePlacesReady';
+    script.onerror = function() { console.log('Google Places load failed'); };
+    document.head.appendChild(script);
+}
+
+window.onGooglePlacesReady = function() {
+    _googlePlacesLoaded = true;
+    _googlePlacesService = new google.maps.places.AutocompleteService();
+    console.log('Google Places API ready');
+};
+
+function searchGooglePlaces(q) {
+    if (!_googlePlacesLoaded || !_googlePlacesService || q.length < 3) return;
+    clearTimeout(_gpSearchTimer);
+    _gpSearchTimer = setTimeout(function() {
+        _googlePlacesService.getPlacePredictions({
+            input: q,
+            types: ['geocode', 'establishment']
+        }, function(predictions, status) {
+            var container = document.getElementById('googlePlacesResults');
+            if (status !== 'OK' || !predictions || !predictions.length) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+            container.innerHTML = '<div style="padding:4px 8px;font-size:0.65em;color:rgba(255,255,255,0.3);">Google Places</div>' +
+                predictions.slice(0, 8).map(function(p, i) {
+                    return '<button onclick="selectGooglePlace(' + i + ')" data-placeid="' + p.place_id + '"'
+                        + ' style="display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid rgba(255,255,255,0.06);color:#e8eaf6;padding:8px;cursor:pointer;font-size:0.82em;"'
+                        + ' onmouseover="this.style.background=\'rgba(74,158,255,0.15)\'"'
+                        + ' onmouseout="this.style.background=\'none\'">'
+                        + p.description + '</button>';
+                }).join('');
+            window._gpPredictions = predictions;
+        });
+    }, 300);
+}
+
+window.selectGooglePlace = function(index) {
+    var prediction = window._gpPredictions && window._gpPredictions[index];
+    if (!prediction) return;
+    var geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ placeId: prediction.place_id }, function(results, status) {
+        if (status === 'OK' && results[0]) {
+            var loc = results[0].geometry.location;
+            var lat = Math.round(loc.lat() * 100) / 100;
+            var lon = Math.round(loc.lng() * 100) / 100;
+            var name = prediction.structured_formatting ?
+                prediction.structured_formatting.main_text + (prediction.structured_formatting.secondary_text ? ', ' + prediction.structured_formatting.secondary_text : '') :
+                prediction.description;
+            // Trim name to place + country
+            var parts = name.split(',');
+            if (parts.length > 3) name = parts[0].trim() + ', ' + parts[parts.length - 1].trim();
+            setUserLocation(lat, lon, name);
+            document.getElementById('googlePlacesResults').style.display = 'none';
+            closeLocationSelector();
+        }
+    });
+};
+
+// Patch openLocationSelector to init map
+var _origOpenLocSelector = openLocationSelector;
+openLocationSelector = function() {
+    _origOpenLocSelector();
+    // Load Leaflet and init map
+    loadLeaflet(function() {
+        setTimeout(initLocMap, 100);
+    });
+    // Load Google Places if key exists
+    var gKey = localStorage.getItem('googlePlacesKey');
+    if (gKey) {
+        document.getElementById('googleApiKeyInput').value = gKey;
+        loadGooglePlaces(gKey);
+    }
+};
+
+// Patch filterCities to also trigger Google Places search
+var _origFilterCities = filterCities;
+filterCities = function(q) {
+    _origFilterCities(q);
+    if (_googlePlacesLoaded) {
+        searchGooglePlaces(q);
+    } else {
+        var gpr = document.getElementById('googlePlacesResults');
+        if (gpr) gpr.style.display = 'none';
+    }
+    // Pan map to search results if possible
+    if (_locLeafletMap && q.length >= 3) {
+        // Will pan when user selects a result
+    }
+};
+
+// Patch selectCity to also pan map
+var _origSelectCity = selectCity;
+selectCity = function(lat, lon, name) {
+    if (_locLeafletMap) {
+        _locLeafletMap.setView([lat, lon], 12);
+    }
+    _origSelectCity(lat, lon, name);
+};
+
 window.openLocationSelector = openLocationSelector;
 window.closeLocationSelector = closeLocationSelector;
 window.filterCities = filterCities;
 window.selectCity = selectCity;
+window.confirmMapLocation = confirmMapLocation;
+window.saveGoogleApiKey = saveGoogleApiKey;
 window.requestGPS = requestGPS;
 window.setUserLocation = setUserLocation;
 
@@ -18215,7 +18399,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v285';
+const APP_VERSION = 'v286';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -18348,16 +18532,35 @@ if ('serviceWorker' in navigator) {
                 <button onclick="requestGPS()" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08));border:1px solid rgba(78,205,196,0.45);border-radius:8px;color:#4ecdc4;font-size:0.9em;font-weight:600;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;">
                     🛰️ <span id="gpsBtn">Usar mi ubicación actual (GPS)</span>
                 </button>
+                <!-- Interactive Map -->
+                <div id="locMapContainer" style="width:100%;height:200px;border-radius:8px;overflow:hidden;margin-bottom:10px;border:1px solid rgba(74,158,255,0.25);position:relative;">
+                    <div id="locMap" style="width:100%;height:100%;"></div>
+                    <div id="locMapPin" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);z-index:999;font-size:24px;pointer-events:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">📍</div>
+                    <button id="locMapConfirm" onclick="confirmMapLocation()" style="display:none;position:absolute;bottom:8px;left:50%;transform:translateX(-50%);z-index:999;padding:6px 16px;background:rgba(78,205,196,0.9);border:none;border-radius:6px;color:#fff;font-size:0.82em;font-weight:600;cursor:pointer;">Seleccionar este punto</button>
+                </div>
                 <!-- Search -->
-                <div style="margin-bottom:8px;">
+                <div style="margin-bottom:8px;position:relative;">
                     <input id="citySearch" type="text" placeholder="Buscar cualquier lugar del mundo..." oninput="filterCities(this.value)"
                         style="width:100%;padding:10px 12px;background:rgba(5,8,40,0.9);border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#e8eaf6;font-size:0.88em;box-sizing:border-box;"/>
+                    <div id="googlePlacesResults" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1400;background:rgba(5,8,40,0.98);border:1px solid rgba(74,158,255,0.4);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;"></div>
                 </div>
-                <div id="cityList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
+                <div id="cityList" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
                 <!-- Current -->
-                <div style="margin-top:12px;padding:8px 10px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.25);border-radius:6px;font-size:0.78em;color:#8899cc;">
+                <div style="margin-top:8px;padding:8px 10px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.25);border-radius:6px;font-size:0.78em;color:#8899cc;">
                     <span id="currentLocDisplay"></span>
                 </div>
+                <!-- Google API Key toggle -->
+                <details style="margin-top:8px;">
+                    <summary style="font-size:0.72em;color:rgba(255,255,255,0.3);cursor:pointer;">Google Places API (opcional)</summary>
+                    <div style="margin-top:6px;display:flex;gap:6px;">
+                        <input id="googleApiKeyInput" type="text" placeholder="API Key de Google Places..."
+                            value="" style="flex:1;padding:6px 8px;background:rgba(5,8,40,0.9);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#e8eaf6;font-size:0.78em;box-sizing:border-box;"/>
+                        <button onclick="saveGoogleApiKey()" style="padding:6px 12px;background:rgba(78,205,196,0.2);border:1px solid rgba(78,205,196,0.4);border-radius:6px;color:#4ecdc4;font-size:0.78em;cursor:pointer;">OK</button>
+                    </div>
+                    <div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:4px;line-height:1.4;">
+                        Activa Google Places Autocomplete para buscar playas, lugares y puntos de interés con la base de datos de Google Maps. Gratis hasta ~70k búsquedas/mes.
+                    </div>
+                </details>
             </div>
         </div>
     </div>
