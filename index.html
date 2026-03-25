@@ -18897,7 +18897,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v321';
+const APP_VERSION = 'v322';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -19670,11 +19670,7 @@ function showAIWelcome() {
                 </div>
             </div>`;
     } else {
-        container.innerHTML = `
-            <div class="ai-msg assistant" style="margin-top:0;">
-                <p><strong>${isEs ? '¡Hola! Soy tu asistente de ciclos cósmicos.' : 'Hi! I\'m your cosmic cycles assistant.'}</strong></p>
-                <p style="color:rgba(255,255,255,0.5);font-size:0.85em;">${isEs ? 'Pregúntame sobre tu carta natal, tránsitos, fases lunares o cualquier tema astrológico.' : 'Ask me about your natal chart, transits, lunar phases or any astrological topic.'}</p>
-            </div>`;
+        container.innerHTML = '';
         // Show quick action buttons in the sticky area (won't be pushed by keyboard)
         var qa = document.getElementById('aiQuickActions');
         if (qa) {
