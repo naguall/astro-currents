@@ -12146,8 +12146,8 @@ function drawNatalWheel(canvasId) {
         var signColors = ['#d35400','#2e7d32','#c8a415','#1565c0','#d35400','#2e7d32','#c8a415','#1565c0','#d35400','#2e7d32','#c8a415','#1565c0'];
 
         // ===== BACKGROUND =====
-        svg += '<rect width="'+S+'" height="'+S+'" fill="#fefefe" rx="4"/>';
-        svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+(R_outer+1)+'" fill="#fff" stroke="#333" stroke-width="1.5"/>';
+        svg += '<rect width="'+S+'" height="'+S+'" fill="#0d1117" rx="4"/>';
+        svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+(R_outer+1)+'" fill="#fff" stroke="#555" stroke-width="1.5"/>';
 
         // ===== ZODIAC SIGN RING =====
         svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_signOuter+'" fill="#f5f2ec" stroke="#555" stroke-width="1.2"/>';
@@ -12224,7 +12224,7 @@ function drawNatalWheel(canvasId) {
             // AC / MC / DC / IC labels outside chart
             [{lon:nc.houses.ascendant,t:'AC'},{lon:nc.houses.mc,t:'MC'},{lon:(nc.houses.ascendant+180)%360,t:'DC'},{lon:(nc.houses.mc+180)%360,t:'IC'}].forEach(function(lb) {
                 var la = L2A(lb.lon);
-                svg += '<text x="'+px(R_signOuter+12,la)+'" y="'+py(R_signOuter+12,la)+'" fill="#222" font-size="11" font-weight="bold" font-family="system-ui,sans-serif" text-anchor="middle" dominant-baseline="central">'+lb.t+'</text>';
+                svg += '<text x="'+px(R_signOuter+14,la)+'" y="'+py(R_signOuter+14,la)+'" fill="#ffffff" font-size="12" font-weight="bold" font-family="system-ui,sans-serif" text-anchor="middle" dominant-baseline="central">'+lb.t+'</text>';
             });
         }
 
@@ -18759,7 +18759,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v330';
+const APP_VERSION = 'v331';
 var _pendingSW = null;
 
 function showUpdateBanner() {
