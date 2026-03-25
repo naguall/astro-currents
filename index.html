@@ -2143,7 +2143,7 @@ function openTideCycleModal() {
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
     html += '<h3 style="color:#c9a840;font-size:0.95em;margin:0;font-family:Cinzel,serif;">' + (L ? 'Pronóstico Ciclo Lunar' : 'Lunar Cycle Forecast') + '</h3>';
     if (locationName) {
-        html += '<span style="font-size:0.75em;color:rgba(255,255,255,0.4);">' + locationName + '</span>';
+        html += '<span onclick="closeTideCycleModal();setTimeout(function(){openLocationSelector();window._reopenTideAfterLoc=true;},250);" style="font-size:0.75em;color:rgba(255,255,255,0.4);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">📍 ' + locationName + ' ▾</span>';
     }
     html += '</div>';
 
@@ -14140,7 +14140,7 @@ function renderSolarInfoPanel() {
         + '</span></div>'
         + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'
         + '<span style="color:#ff9500;font-size:0.78em;font-weight:bold;">☀️↑ ' + sunRiseStr + ' &nbsp; ☀️↓ ' + sunSetStr + '</span>'
-        + '<span style="color:#a08040;font-size:0.68em;">· 📍 ' + ASTRO_USER_NAME.split(',')[0] + '</span>'
+        + '<span onclick="openLocationSelector()" style="color:#a08040;font-size:0.68em;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">· ' + ASTRO_USER_NAME.split(',')[0] + ' ▾</span>'
         + '</div></div>';
 
     // Subsolar position title
@@ -15464,7 +15464,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
                 <span style="color:#7ec8ff;font-size:0.78em;font-weight:bold;">🌙↑ ${headerRise} &nbsp; 🌙↓ ${headerSet}</span>
-                <span style="color:#8899cc;font-size:0.68em;">· 📍 ${ASTRO_USER_NAME.split(',')[0]}</span>
+                <span onclick="openLocationSelector()" style="color:#8899cc;font-size:0.68em;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">· ${ASTRO_USER_NAME.split(',')[0]} ▾</span>
             </div>
         </div>
 
@@ -18040,6 +18040,11 @@ function setUserLocation(lat, lon, name) {
     if (calendarMode === 'solar') {
         renderSolarInfoPanel();
     }
+    // Reopen tide modal if it was closed for location change
+    if (window._reopenTideAfterLoc) {
+        window._reopenTideAfterLoc = false;
+        setTimeout(function() { openTideCycleModal(); }, 300);
+    }
 }
 
 window.openLocationSelector = openLocationSelector;
@@ -18116,7 +18121,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v276';
+const APP_VERSION = 'v277';
 var _pendingSW = null;
 
 function showUpdateBanner() {
