@@ -10361,7 +10361,7 @@ function updateCurrentDayInfoForMode(mode) {
                     ` : `<div style="font-size: 0.6em; color: ${bannerEvtColor2}77; font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
                 </div>
                 <!-- HOY Centro -->
-                <div onclick="goToToday()" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder2}50;background:${bannerHoyBg2};box-shadow:0 0 20px ${bannerHoyBorder2}25;">
+                <div onclick="goToToday()" style="display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder2}50;background:${bannerHoyBg2};box-shadow:0 0 20px ${bannerHoyBorder2}25;">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: ${bannerHoyText2}; text-transform: uppercase; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid ${bannerHoyBorder2}30;">— HOY —</div>
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
                         <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(232,200,74,0.65);">${displayDay}</span>
@@ -10370,6 +10370,7 @@ function updateCurrentDayInfoForMode(mode) {
                     ${mode === 'lunar' ? `<div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${displayDay}</div>` : ''}
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
                     <div style="font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
+                    ${(() => { var sg = getSignForDate(today); if(sg) { var sd = sg.start; var ed = sg.end; var sm = currentLang==='es' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return '<div style="font-size:0.55em;margin-top:4px;color:'+sg.color+';font-weight:700;opacity:0.9;">'+sg.symbol+' '+sg.name+'</div><div style="font-size:0.42em;color:'+sg.color+';opacity:0.6;">'+sd.getDate()+' '+sm[sd.getMonth()]+' - '+ed.getDate()+' '+sm[ed.getMonth()]+'</div>'; } return ''; })()}
                 </div>
                 <!-- Info según modo -->
                 <div style="background: ${bannerAspBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor2}44; border-top: 2px solid ${bannerAspColor2}88; min-width: 0; overflow: hidden;">
@@ -15886,7 +15887,7 @@ function renderCalendar() {
                     ` : `<div style="font-size: 0.6em; color: ${bannerEvtColor}77; font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
                 </div>
                 <!-- HOY Centro -->
-                <div onclick="goToCurrentCycle()" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder}50;background:${bannerHoyBg};box-shadow:0 0 20px ${bannerHoyBorder}25;"
+                <div onclick="goToCurrentCycle()" style="display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder}50;background:${bannerHoyBg};box-shadow:0 0 20px ${bannerHoyBorder}25;"
                      onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 0 28px ${bannerHoyBorder}40';"
                      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px ${bannerHoyBorder}25';">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: ${bannerHoyText}; text-transform: uppercase; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid ${bannerHoyBorder}30;">— HOY —</div>
@@ -15897,6 +15898,7 @@ function renderCalendar() {
                     <div style="font-size: 0.75em; margin: 2px 0; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.5px;">${calendarMode === 'lunar' ? `${currentLang === 'es' ? 'Sem' : 'Wk'} ${currentWeekIndex + 1} ${currentLang === 'es' ? 'Día' : 'Day'} ${weekDayNumber}` : ''}</div>
                     <div style="font-size: 0.47em; opacity: 0.60; color: #8899cc;">${displayInfo}</div>
                     <div style="font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; margin-top: 3px; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
+                    ${(() => { var sg = getSignForDate(today); if(sg) { var sd = sg.start; var ed = sg.end; var sm = currentLang==='es' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return '<div style="font-size:0.55em;margin-top:4px;color:'+sg.color+';font-weight:700;opacity:0.9;">'+sg.symbol+' '+sg.name+'</div><div style="font-size:0.42em;color:'+sg.color+';opacity:0.6;">'+sd.getDate()+' '+sm[sd.getMonth()]+' - '+ed.getDate()+' '+sm[ed.getMonth()]+'</div>'; } return ''; })()}
                 </div>
 
                 <!-- Luna/Sol/Info Hoy -->
@@ -18559,7 +18561,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v297';
+const APP_VERSION = 'v298';
 var _pendingSW = null;
 
 function showUpdateBanner() {
