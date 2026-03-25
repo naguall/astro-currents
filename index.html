@@ -17953,19 +17953,71 @@ function closeLocationSelector() {
     document.getElementById('locationModal').classList.remove('show');
 }
 
+var _locSearchTimer = null;
 function filterCities(q) {
-    const list = document.getElementById('cityList');
-    const filtered = q.length < 2
+    var list = document.getElementById('cityList');
+    clearTimeout(_locSearchTimer);
+
+    // Show local results immediately
+    var localFiltered = q.length < 2
         ? _allCities.slice(0, 20)
-        : _allCities.filter(c => c.n.toLowerCase().includes(q.toLowerCase())).slice(0, 25);
-    list.innerHTML = filtered.map(city => `
-        <button onclick="selectCity(${city.lat},${city.lon},'${city.n.replace(/'/g,'\'')}')"
-            style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e8eaf6;padding:7px 10px;cursor:pointer;text-align:left;font-size:0.82em;transition:all 0.15s;"
-            onmouseover="this.style.background='rgba(74,158,255,0.15)'"
-            onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-            📍 ${city.n} <span style="color:#8899cc;font-size:0.85em;">(${city.lat}°, ${city.lon}°)</span>
-        </button>`
-    ).join('');
+        : _allCities.filter(function(c) { return c.n.toLowerCase().includes(q.toLowerCase()); }).slice(0, 15);
+    renderCityResults(localFiltered, list);
+
+    // If 3+ chars, also search Nominatim after a short debounce
+    if (q.length >= 3) {
+        _locSearchTimer = setTimeout(function() {
+            searchNominatimPlaces(q, list, localFiltered);
+        }, 400);
+    }
+}
+
+function searchNominatimPlaces(q, listEl, localResults) {
+    var lang = currentLang === 'es' ? 'es' : 'en';
+    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) + '&format=json&limit=15&addressdetails=1&accept-language=' + lang, {
+        headers: { 'Accept-Language': lang }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data || !data.length) return;
+        // Build results from Nominatim
+        var seen = {};
+        // Mark local results as seen to avoid duplicates
+        localResults.forEach(function(c) { seen[Math.round(c.lat*10) + ',' + Math.round(c.lon*10)] = true; });
+        var nominatimResults = [];
+        data.forEach(function(item) {
+            var lat = parseFloat(parseFloat(item.lat).toFixed(2));
+            var lon = parseFloat(parseFloat(item.lon).toFixed(2));
+            var key = Math.round(lat*10) + ',' + Math.round(lon*10);
+            if (seen[key]) return;
+            seen[key] = true;
+            var a = item.address || {};
+            var place = a.city || a.town || a.village || a.hamlet || a.municipality || a.county || item.name || '';
+            var country = a.country || '';
+            var region = a.state || a.region || '';
+            var name = place;
+            if (region && region !== place) name += ', ' + region;
+            if (country) name += ', ' + country;
+            if (!name) name = item.display_name ? item.display_name.split(',').slice(0,3).join(',') : (lat + '°, ' + lon + '°');
+            nominatimResults.push({ lat: lat, lon: lon, n: name });
+        });
+        // Combine: local first, then Nominatim
+        var combined = localResults.concat(nominatimResults).slice(0, 25);
+        renderCityResults(combined, listEl);
+    })
+    .catch(function() { /* keep local results on error */ });
+}
+
+function renderCityResults(cities, listEl) {
+    listEl.innerHTML = cities.map(function(city) {
+        var safeName = city.n.replace(/'/g, "\\'");
+        return '<button onclick="selectCity(' + city.lat + ',' + city.lon + ',\'' + safeName + '\')"'
+            + ' style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e8eaf6;padding:7px 10px;cursor:pointer;text-align:left;font-size:0.82em;transition:all 0.15s;"'
+            + ' onmouseover="this.style.background=\'rgba(74,158,255,0.15)\'"'
+            + ' onmouseout="this.style.background=\'rgba(255,255,255,0.04)\'">'
+            + city.n + ' <span style="color:#8899cc;font-size:0.85em;">(' + city.lat + '°, ' + city.lon + '°)</span>'
+            + '</button>';
+    }).join('');
 }
 
 function selectCity(lat, lon, name) {
@@ -18131,7 +18183,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v283';
+const APP_VERSION = 'v284';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -18266,7 +18318,7 @@ if ('serviceWorker' in navigator) {
                 </button>
                 <!-- Search -->
                 <div style="margin-bottom:8px;">
-                    <input id="citySearch" type="text" placeholder="Buscar ciudad..." oninput="filterCities(this.value)"
+                    <input id="citySearch" type="text" placeholder="Buscar cualquier lugar del mundo..." oninput="filterCities(this.value)"
                         style="width:100%;padding:10px 12px;background:rgba(5,8,40,0.9);border:1px solid rgba(74,158,255,0.35);border-radius:8px;color:#e8eaf6;font-size:0.88em;box-sizing:border-box;"/>
                 </div>
                 <div id="cityList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;"></div>
