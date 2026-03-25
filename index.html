@@ -11396,18 +11396,6 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                 </button>
         </div>
         <div class="personal-natal-card" style="margin-top:8px;">
-            <h3>📊 ${L ? 'Planetas' : 'Planets'}</h3>
-            <div style="overflow-x:auto;">
-                <table class="natal-data-table" id="chartPlanetsTable">
-                    <thead><tr>
-                        <th>${L?'Planeta':'Planet'}</th><th>${L?'Signo':'Sign'}</th><th>${L?'Grado':'Degree'}</th>
-                        <th>${L?'Casa':'House'}</th><th>${L?'Vel.':'Spd'}</th><th>${L?'Dec.':'Dec'}</th>
-                    </tr></thead>
-                    <tbody id="chartPlanetsBody"></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="personal-natal-card" style="margin-top:8px;">
             <h3>⚲ ${L ? 'Grilla de Aspectos' : 'Aspect Grid'}</h3>
             <div id="aspectGridContainer" style="overflow-x:auto;padding:4px;"></div>
         </div>`;
@@ -11604,6 +11592,11 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <h3>🌟 ${L ? 'Tránsitos de Hoy' : "Today's Transits"} — ${today.toLocaleDateString(L?'es':'en', {day:'numeric',month:'long'})}</h3>
             ${majorTransits.length > 0 ? '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L ? 'Aspectos Mayores' : 'Major Aspects') + '</div>' + majorTransits.map(function(t, idx){ return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\', ' + idx + ')" style="cursor:pointer;" onmouseover="this.style.opacity=\'0.7\'" onmouseout="this.style.opacity=\'1\'"><span style="font-size:1.1em;">' + t.transitSymbol + '</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span style="font-size:1.1em;">' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.5);margin-left:4px;">' + (planetNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (L ? 'Sin aspectos mayores hoy' : 'No major aspects today') + '</div>'}
             ${moonTransits.length > 0 ? '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (L ? 'Luna transitando' : 'Moon transiting') + '</div>' + moonTransits.map(function(t, idx){ var gIdx = majorTransits.length + idx; return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\', ' + gIdx + ')" style="opacity:0.7;cursor:pointer;" onmouseover="this.style.opacity=\'0.5\'" onmouseout="this.style.opacity=\'0.7\'"><span>☽</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span>' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.4);margin-left:4px;">' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : ''}
+        </div>
+        <div style="text-align:center;margin-top:10px;">
+            <button onclick="interpretarHoyCompleto()" style="padding:12px 20px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.9em;font-weight:700;cursor:pointer;width:90%;max-width:400px;">
+                ✨ ${L ? 'Interpretación de Hoy' : "Today's Interpretation"}
+            </button>
         </div>
         <div class="personal-natal-card" style="text-align:center;margin-top:8px;">
             <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Carta Natal' : 'Natal Chart'}</div>
@@ -16915,10 +16908,10 @@ function openPreferencesModal() {
         <!-- AI Assistant -->
         <div style="margin-bottom:16px;">
             <div style="font-size:0.85em;font-weight:700;color:#b388ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">
-                ✨ ${currentLang==='es'?'Asistente AI':'AI Assistant'}
+                ✨ ${currentLang==='es'?'Asistente Moon Sync':'Moon Sync Assistant'}
             </div>
             <div style="padding:10px 12px;background:rgba(179,136,255,0.04);border:1px solid rgba(179,136,255,0.2);border-radius:8px;">
-                <div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ${currentLang==='es'?'Asistente AI activo (integrado)':'AI Assistant active (built-in)'}</div>
+                <div style="font-size:0.75em;color:#b388ff;margin-bottom:4px;">✓ ${currentLang==='es'?'Asistente Moon Sync activo (integrado)':'Moon Sync Assistant active (built-in)'}</div>
                 <div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-bottom:8px;">Gemini 2.5 Flash Lite</div>
                 ${localStorage.getItem('geminiApiKey')
                     ? '<div style="font-size:0.72em;color:#80cbc4;margin-bottom:6px;">🔑 ' + (currentLang==='es'?'Usando tu API key personal':'Using your personal API key') + '</div>'
@@ -18557,7 +18550,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v292';
+const APP_VERSION = 'v293';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -18798,8 +18791,8 @@ DOMTokenList.prototype.add = function() {
         <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:1.3em;">✨</span>
             <div>
-                <div style="font-weight:700;color:white;font-size:0.95em;" id="aiChatTitle">AI Assistant</div>
-                <div style="font-size:0.7em;color:rgba(255,255,255,0.4);" id="aiChatSubtitle">Ciclos cósmicos</div>
+                <div style="font-weight:700;color:white;font-size:0.95em;" id="aiChatTitle">Moon Sync Assistant</div>
+                <div style="font-size:0.7em;color:rgba(255,255,255,0.4);" id="aiChatSubtitle"></div>
             </div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -18961,8 +18954,8 @@ function openAIChat() {
     const modal = document.getElementById('aiChatModal');
     modal.classList.add('show');
     document.getElementById('aiChatFab').style.display = 'none';
-    document.getElementById('aiChatTitle').textContent = currentLang === 'es' ? 'Asistente AI' : 'AI Assistant';
-    document.getElementById('aiChatSubtitle').textContent = currentLang === 'es' ? 'Cosmos, Tierra, mareas, sismos & astrología' : 'Cosmos, Earth, tides, quakes & astrology';
+    document.getElementById('aiChatTitle').textContent = currentLang === 'es' ? 'Asistente Moon Sync' : 'Moon Sync Assistant';
+    document.getElementById('aiChatSubtitle').textContent = '';
 
     if (aiChatHistory.length === 0) {
         showAIWelcome();
@@ -19028,6 +19021,22 @@ function aiInterpretHoyTransit(idx) {
     const text = tName + ' en tránsito ' + (t.symbol||'') + ' ' + aspName + ' ' + nName + ' natal';
     aiInterpretAspect(text);
 }
+
+function interpretarHoyCompleto() {
+    const isEs = currentLang === 'es';
+    const prompt = isEs
+        ? 'Dame una interpretación completa y detallada del día de hoy para mi perfil natal. Incluye: todos los tránsitos planetarios activos hoy y cómo me afectan personalmente, la fase lunar actual y su influencia, la energía general del día, consejos prácticos, y cualquier advertencia importante. Hazlo personalizado según mi carta natal.'
+        : 'Give me a complete and detailed interpretation of today for my natal profile. Include: all active planetary transits today and how they affect me personally, the current lunar phase and its influence, the general energy of the day, practical advice, and any important warnings. Make it personalized based on my natal chart.';
+    openAIChat();
+    setTimeout(function() {
+        var input = document.getElementById('aiChatInput');
+        if (input) {
+            input.value = prompt;
+            sendAIMessage();
+        }
+    }, 300);
+}
+window.interpretarHoyCompleto = interpretarHoyCompleto;
 
 function showAIWelcome() {
     const container = document.getElementById('aiChatMessages');
