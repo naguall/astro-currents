@@ -4764,6 +4764,25 @@ function formatShortDate(date) {
     return L ? `${day}/${month}` : `${month}/${day}`;
 }
 
+// Alternating month colors for gregorian dates in calendars
+function getMonthColor(monthIndex) {
+    const colors = [
+        '#7ec8ff', // Ene - azul claro
+        '#c9a840', // Feb - dorado
+        '#7ec8ff', // Mar - azul claro
+        '#e8c84a', // Abr - amarillo
+        '#7ec8ff', // May - azul claro
+        '#c9a840', // Jun - dorado
+        '#7ec8ff', // Jul - azul claro
+        '#e8c84a', // Ago - amarillo
+        '#7ec8ff', // Sep - azul claro
+        '#c9a840', // Oct - dorado
+        '#7ec8ff', // Nov - azul claro
+        '#e8c84a'  // Dic - amarillo
+    ];
+    return colors[monthIndex % 12];
+}
+
 function formatLongDate(date) {
     return `${date.getDate()} ${t('months')[date.getMonth()]} ${date.getFullYear()}`;
 }
@@ -11523,7 +11542,7 @@ function renderNatalLunarCal() {
                 + ' onclick="handleDayClick(this)">'
                 + '<div class="day-header" style="display:flex;justify-content:space-between;align-items:baseline;width:100%;">'
                 + '<div class="day-number">' + day.lunarDay + '</div>'
-                + '<div style="font-size:0.7em;color:rgba(255,255,255,0.6);font-weight:600;white-space:nowrap;">' + formatShortDate(day.date) + ' <span class="day-weekday-label">' + weekday + '</span></div>'
+                + '<div style="font-size:0.7em;color:' + getMonthColor(day.date.getMonth()) + ';font-weight:600;white-space:nowrap;">' + formatShortDate(day.date) + ' <span class="day-weekday-label">' + weekday + '</span></div>'
                 + '</div>'
                 + '<div class="day-content">'
                 + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;align-items:flex-start;">' + eventsHTML + moreEvents + '</div>'
@@ -14118,7 +14137,7 @@ function generateSolarWeeks(sign) {
                     
                     <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                         <div class="day-number">${dayCounter}</div>
-                        <div style="font-size: 0.7em; color: rgba(255,255,255,0.6); font-weight: 600; white-space:nowrap;">${formatShortDate(dayDate)} <span class="day-weekday-label">${weekday}</span></div>
+                        <div style="font-size: 0.7em; color: ${getMonthColor(dayDate.getMonth())}; font-weight: 600; white-space:nowrap;">${formatShortDate(dayDate)} <span class="day-weekday-label">${weekday}</span></div>
                     </div>
                     
                     <div class="day-content">
@@ -15582,7 +15601,7 @@ function renderCalendar() {
                     
                     <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                         <div class="day-number">${day.lunarDay}</div>
-                        <div style="font-size: 0.7em; color: rgba(255,255,255,0.6); font-weight: 600; white-space:nowrap;">${formatShortDate(day.date)} <span class="day-weekday-label">${weekday}</span></div>
+                        <div style="font-size: 0.7em; color: ${getMonthColor(day.date.getMonth())}; font-weight: 600; white-space:nowrap;">${formatShortDate(day.date)} <span class="day-weekday-label">${weekday}</span></div>
                     </div>
                     
                     <div class="day-content">
@@ -17561,7 +17580,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v225';
+const APP_VERSION = 'v226';
 var _pendingSW = null;
 
 function showUpdateBanner() {
