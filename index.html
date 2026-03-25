@@ -2134,37 +2134,66 @@ function openTideCycleModal() {
     }
     html += '</div>';
 
-    // Generate full year: first new moon 2026 to first new moon 2027
-    var prevWeekIndex = -1;
+    // Pre-compute all phase perfection days for the entire range
+    // A perfection day is the day closest to elongation 0° (new), 90° (first quarter), 180° (full), 270° (last quarter)
     var phaseLabels = L ? {0:'Luna Nueva', 1:'Cuarto Creciente', 2:'Luna Llena', 3:'Cuarto Menguante'} : {0:'New Moon', 1:'First Quarter', 2:'Full Moon', 3:'Last Quarter'};
     var phaseColors = {0:'#a0a0a0', 1:'#c9a840', 2:'#fffbe6', 3:'#7ec8ff'};
     var phaseElongations = {0: 0, 1: 90, 2: 180, 3: 270};
+    var targets = [0, 90, 180, 270];
 
+    // Build map of perfection days: dateKey -> phaseIndex
+    var perfectionMap = {};
+    for (var d = 0; d < totalDays; d++) {
+        var scanDate = new Date(startDate);
+        scanDate.setDate(scanDate.getDate() + d);
+        scanDate.setHours(0,0,0,0);
+        var elong = calculateLunarPhase(scanDate);
+
+        for (var ti = 0; ti < targets.length; ti++) {
+            var target = targets[ti];
+            var diff = Math.abs(elong - target);
+            if (diff > 180) diff = 360 - diff;
+            if (diff < 8) {
+                // Check if this day is closer than neighbors
+                var prevD = new Date(scanDate); prevD.setDate(prevD.getDate() - 1);
+                var nextD = new Date(scanDate); nextD.setDate(nextD.getDate() + 1);
+                var prevElong = calculateLunarPhase(prevD);
+                var nextElong = calculateLunarPhase(nextD);
+                var prevDiff = Math.abs(prevElong - target); if (prevDiff > 180) prevDiff = 360 - prevDiff;
+                var nextDiff = Math.abs(nextElong - target); if (nextDiff > 180) nextDiff = 360 - nextDiff;
+                if (diff <= prevDiff && diff <= nextDiff) {
+                    var key = scanDate.getFullYear() + '-' + (scanDate.getMonth()+1) + '-' + scanDate.getDate();
+                    perfectionMap[key] = ti; // 0=new, 1=first quarter, 2=full, 3=last quarter
+                }
+            }
+        }
+    }
+
+    // Generate full year: first new moon 2026 to first new moon 2027
     for (var d = 0; d < totalDays; d++) {
         var fDate = new Date(startDate);
         fDate.setDate(fDate.getDate() + d);
         fDate.setHours(0,0,0,0);
         var fExtremes = getTideExtremes(getTideCurveForLocation(fDate, ASTRO_USER_LAT, ASTRO_USER_LON));
         var fAstro = getAstroData(fDate);
-        var fPhaseData = getPhaseData(fDate);
         var isToday = (fDate.getTime() === today.getTime());
         var dayLabel = isToday ? (L ? 'HOY' : 'TODAY') : fDate.toLocaleDateString(L ? 'es' : 'en', {weekday:'short', day:'numeric', month:'short'});
         var strengthColor = fAstro.tidePct > 70 ? '#FF6B6B' : fAstro.tidePct > 45 ? '#f0e68c' : '#4FC3F7';
 
-        // Is this the first day of a new phase? (phase perfection day)
-        // d===0 is always a new moon (list starts from new moon), so it's a phase day too
-        var isPhaseDay = (d === 0) || (prevWeekIndex !== -1 && fPhaseData.weekIndex !== prevWeekIndex);
+        // Check if this is a phase perfection day
+        var dateKey = fDate.getFullYear() + '-' + (fDate.getMonth()+1) + '-' + fDate.getDate();
+        var perfPhase = perfectionMap.hasOwnProperty(dateKey) ? perfectionMap[dateKey] : -1;
+        var isPhaseDay = (perfPhase >= 0);
 
-        // Insert phase marker banner when phase changes
+        // Insert phase marker banner on perfection days
         if (isPhaseDay) {
-            var pColor = phaseColors[fPhaseData.weekIndex] || '#c9a840';
-            var pSvg = getMoonSVG(phaseElongations[fPhaseData.weekIndex], 18);
+            var pColor = phaseColors[perfPhase] || '#c9a840';
+            var pSvg = getMoonSVG(phaseElongations[perfPhase], 18);
             html += '<div style="text-align:center;padding:6px 0;margin:4px 0;">';
             html += '<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,64,0.12);border:1px solid ' + pColor + ';border-radius:12px;padding:3px 14px;font-size:0.78em;color:' + pColor + ';font-weight:bold;">';
-            html += pSvg + ' ' + phaseLabels[fPhaseData.weekIndex];
+            html += pSvg + ' ' + phaseLabels[perfPhase];
             html += '</span></div>';
         }
-        prevWeekIndex = fPhaseData.weekIndex;
 
         // Day row
         var todayBorder = isToday ? 'border:1px solid #c9a840;' : '';
@@ -2174,7 +2203,7 @@ function openTideCycleModal() {
         // Top row: phase icon only on perfection day, otherwise just day label | strength %
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
         if (isPhaseDay) {
-            var daySvg = getMoonSVG(phaseElongations[fPhaseData.weekIndex], 16);
+            var daySvg = getMoonSVG(phaseElongations[perfPhase], 16);
             html += '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:bold;color:' + (isToday?'#c9a840':'rgba(255,255,255,0.85)') + ';font-size:0.88em;">' + daySvg + ' ' + dayLabel + '</span>';
         } else {
             html += '<span style="font-weight:bold;color:' + (isToday?'#c9a840':'rgba(255,255,255,0.85)') + ';font-size:0.88em;">' + dayLabel + '</span>';
@@ -18102,7 +18131,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v282';
+const APP_VERSION = 'v283';
 var _pendingSW = null;
 
 function showUpdateBanner() {
