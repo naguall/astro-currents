@@ -18142,70 +18142,88 @@ function setUserLocation(lat, lon, name) {
 }
 
 // ========== LEAFLET MAP + GOOGLE PLACES ==========
-var _locLeafletMap = null;
-var _locLeafletLoaded = false;
+var _locGoogleMap = null;
 var _locMapMarker = null;
 var _locMapPendingLatLon = null;
 var _googlePlacesLoaded = false;
 var _googlePlacesService = null;
 var _gpSearchTimer = null;
+var _googleMapsLoaded = false;
 
-function loadLeaflet(cb) {
-    if (_locLeafletLoaded) { cb(); return; }
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-    document.head.appendChild(link);
+function loadGoogleMaps(cb) {
+    if (_googleMapsLoaded) { cb(); return; }
+    var gKey = localStorage.getItem('googlePlacesKey') || 'AIzaSyAedPie2Vi9ZqiTOsZMZHyQPKI-nyUMoSE';
+    if (!gKey) return;
+    if (window.google && window.google.maps) { _googleMapsLoaded = true; cb(); return; }
     var script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-    script.onload = function() { _locLeafletLoaded = true; cb(); };
-    script.onerror = function() { console.log('Leaflet load failed'); };
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + gKey + '&libraries=places&callback=onGoogleMapsReady';
+    script.onerror = function() { console.log('Google Maps load failed'); };
+    window._googleMapsReadyCb = cb;
     document.head.appendChild(script);
 }
 
+window.onGoogleMapsReady = function() {
+    _googleMapsLoaded = true;
+    _googlePlacesLoaded = true;
+    _googlePlacesService = new google.maps.places.AutocompleteService();
+    console.log('Google Maps + Places API ready');
+    if (window._googleMapsReadyCb) { window._googleMapsReadyCb(); window._googleMapsReadyCb = null; }
+};
+
 function initLocMap() {
-    if (_locLeafletMap) {
-        _locLeafletMap.invalidateSize();
-        _locLeafletMap.setView([ASTRO_USER_LAT, ASTRO_USER_LON], 10);
-        return;
-    }
     var mapEl = document.getElementById('locMap');
     if (!mapEl) return;
-    _locLeafletMap = L.map(mapEl, { zoomControl: true, attributionControl: false }).setView([ASTRO_USER_LAT, ASTRO_USER_LON], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(_locLeafletMap);
-    // Show confirm button when map moves
-    _locLeafletMap.on('moveend', function() {
+    if (_locGoogleMap) {
+        _locGoogleMap.setCenter({ lat: ASTRO_USER_LAT, lng: ASTRO_USER_LON });
+        _locGoogleMap.setZoom(10);
+        google.maps.event.trigger(_locGoogleMap, 'resize');
+        return;
+    }
+    _locGoogleMap = new google.maps.Map(mapEl, {
+        center: { lat: ASTRO_USER_LAT, lng: ASTRO_USER_LON },
+        zoom: 10,
+        mapTypeId: 'hybrid',
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'greedy',
+        styles: [
+            { elementType: 'labels.text.fill', stylers: [{ color: '#ffffff' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#000000' }, { weight: 2 }] }
+        ]
+    });
+    _locGoogleMap.addListener('dragend', function() {
         document.getElementById('locMapConfirm').style.display = 'block';
     });
-    setTimeout(function() { _locLeafletMap.invalidateSize(); }, 200);
+    _locGoogleMap.addListener('zoom_changed', function() {
+        document.getElementById('locMapConfirm').style.display = 'block';
+    });
 }
 
 function confirmMapLocation() {
-    if (!_locLeafletMap) return;
-    var center = _locLeafletMap.getCenter();
-    var lat = Math.round(center.lat * 100) / 100;
-    var lon = Math.round(center.lng * 100) / 100;
-    // Reverse geocode the point
+    if (!_locGoogleMap) return;
+    var center = _locGoogleMap.getCenter();
+    var lat = Math.round(center.lat() * 100) / 100;
+    var lon = Math.round(center.lng() * 100) / 100;
     var lang = currentLang === 'es' ? 'es' : 'en';
     document.getElementById('locMapConfirm').textContent = currentLang==='es' ? 'Buscando...' : 'Searching...';
-    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + center.lat + '&lon=' + center.lng + '&format=json&zoom=14&addressdetails=1', {
-        headers: { 'Accept-Language': lang }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+    // Use Google Geocoder for reverse geocoding
+    var geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: { lat: center.lat(), lng: center.lng() } }, function(results, status) {
         var name = '';
-        if (data && data.address) {
-            var a = data.address;
-            var place = a.beach || a.village || a.town || a.city || a.hamlet || a.suburb || a.municipality || a.county || '';
-            var country = a.country || '';
-            name = place ? (place + (country ? ', ' + country : '')) : '';
+        if (status === 'OK' && results[0]) {
+            var comps = results[0].address_components;
+            var locality = '', country = '';
+            for (var i = 0; i < comps.length; i++) {
+                var types = comps[i].types;
+                if (types.indexOf('locality') >= 0) locality = comps[i].long_name;
+                else if (types.indexOf('sublocality') >= 0 && !locality) locality = comps[i].long_name;
+                else if (types.indexOf('administrative_area_level_2') >= 0 && !locality) locality = comps[i].long_name;
+                else if (types.indexOf('natural_feature') >= 0 && !locality) locality = comps[i].long_name;
+                if (types.indexOf('country') >= 0) country = comps[i].long_name;
+            }
+            if (locality) name = locality + (country ? ', ' + country : '');
         }
-        if (!name) name = lat.toFixed(2) + '°' + (lat>=0?'N':'S') + ', ' + Math.abs(lon).toFixed(2) + '°' + (lon>=0?'E':'W');
-        setUserLocation(lat, lon, name);
-        closeLocationSelector();
-    })
-    .catch(function() {
-        var name = lat.toFixed(2) + '°' + (lat>=0?'N':'S') + ', ' + Math.abs(lon).toFixed(2) + '°' + (lon>=0?'E':'W');
+        if (!name) name = lat.toFixed(2) + '\u00b0' + (lat>=0?'N':'S') + ', ' + Math.abs(lon).toFixed(2) + '\u00b0' + (lon>=0?'E':'W');
         setUserLocation(lat, lon, name);
         closeLocationSelector();
     });
@@ -18216,21 +18234,19 @@ function saveGoogleApiKey() {
     var key = document.getElementById('googleApiKeyInput').value.trim();
     if (!key) return;
     localStorage.setItem('googlePlacesKey', key);
-    loadGooglePlaces(key);
+    // Reload page to apply new key
+    location.reload();
 }
 
 function loadGooglePlaces(key) {
-    if (_googlePlacesLoaded || !key) return;
-    var script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + key + '&libraries=places&callback=onGooglePlacesReady';
-    script.onerror = function() { console.log('Google Places load failed'); };
-    document.head.appendChild(script);
+    // Now handled by loadGoogleMaps which loads both Maps + Places
+    if (!_googleMapsLoaded && key) {
+        loadGoogleMaps(function() {});
+    }
 }
 
 window.onGooglePlacesReady = function() {
-    _googlePlacesLoaded = true;
-    _googlePlacesService = new google.maps.places.AutocompleteService();
-    console.log('Google Places API ready');
+    // Legacy callback, now handled by onGoogleMapsReady
 };
 
 function searchGooglePlaces(q) {
@@ -18282,19 +18298,17 @@ window.selectGooglePlace = function(index) {
     });
 };
 
-// Patch openLocationSelector to init map
+// Patch openLocationSelector to init Google Map
 var _origOpenLocSelector = openLocationSelector;
 openLocationSelector = function() {
     _origOpenLocSelector();
-    // Load Leaflet and init map
-    loadLeaflet(function() {
+    // Load Google Maps (includes Places) and init map
+    loadGoogleMaps(function() {
         setTimeout(initLocMap, 100);
     });
-    // Load Google Places if key exists
     var gKey = localStorage.getItem('googlePlacesKey') || 'AIzaSyAedPie2Vi9ZqiTOsZMZHyQPKI-nyUMoSE';
     if (gKey) {
         document.getElementById('googleApiKeyInput').value = gKey;
-        loadGooglePlaces(gKey);
     }
 };
 
@@ -18309,7 +18323,7 @@ filterCities = function(q) {
         if (gpr) gpr.style.display = 'none';
     }
     // Pan map to search results if possible
-    if (_locLeafletMap && q.length >= 3) {
+    if (_locGoogleMap && q.length >= 3) {
         // Will pan when user selects a result
     }
 };
@@ -18317,8 +18331,9 @@ filterCities = function(q) {
 // Patch selectCity to also pan map
 var _origSelectCity = selectCity;
 selectCity = function(lat, lon, name) {
-    if (_locLeafletMap) {
-        _locLeafletMap.setView([lat, lon], 12);
+    if (_locGoogleMap) {
+        _locGoogleMap.setCenter({ lat: lat, lng: lon });
+        _locGoogleMap.setZoom(12);
     }
     _origSelectCity(lat, lon, name);
 };
@@ -18399,7 +18414,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v288';
+const APP_VERSION = 'v289';
 var _pendingSW = null;
 
 function showUpdateBanner() {
