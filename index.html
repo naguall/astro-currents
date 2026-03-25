@@ -10343,14 +10343,7 @@ function updateCurrentDayInfoForMode(mode) {
 
         currentDayInfoDiv.style.display = 'block';
 
-        // Small "HOY" label bar above the 3-column grid (solar/gregorian only)
-        const hoyLabelHTML = (mode === 'solar' || mode === 'gregorian') ? `
-            <div onclick="goToToday()" style="text-align:center;cursor:pointer;padding:3px 0;margin-bottom:4px;">
-                <span style="font-size:0.5em;font-weight:800;letter-spacing:3px;color:${bannerHoyText2};text-transform:uppercase;background:${bannerHoyBg2};padding:3px 12px;border-radius:6px;border:1px solid ${bannerHoyBorder2}40;">— HOY —</span>
-            </div>` : '';
-
         currentDayInfoDiv.innerHTML = `
-            ${hoyLabelHTML}
             <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
                 <!-- Eventos -->
                 <div style="background: ${bannerEvtBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerEvtColor2}44; border-top: 2px solid ${bannerEvtColor2}; min-width: 0; overflow: hidden;">
@@ -10369,6 +10362,7 @@ function updateCurrentDayInfoForMode(mode) {
                 </div>
                 <!-- HOY Centro -->
                 <div onclick="goToToday()" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder2}50;background:${bannerHoyBg2};box-shadow:0 0 20px ${bannerHoyBorder2}25;">
+                    <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: ${bannerHoyText2}; text-transform: uppercase; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid ${bannerHoyBorder2}30;">— HOY —</div>
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
                         <span style="font-size:${String(displayDay).length > 4 ? '1.2em' : '1.8em'};font-weight:800;color:#e8c84a;text-shadow:0 0 18px rgba(232,200,74,0.65);">${displayDay}</span>
                     </div>
@@ -18565,7 +18559,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v296';
+const APP_VERSION = 'v297';
 var _pendingSW = null;
 
 function showUpdateBanner() {
