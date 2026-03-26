@@ -700,13 +700,12 @@
             <div class="mode-btns" style="display:flex;flex-direction:row;gap:2px;justify-content:center;align-items:center;flex-wrap:nowrap;margin-bottom:8px;width:100%;overflow-x:auto;padding:0 2px;">
                 <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 9px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Lunar</button>
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Solar</button>
+                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="gregorianButtonLabel">Greg</span></button>
                 <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Natal</span></button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
                 <button id="aspects2026ModeBtn" onclick="switchToAspects2026Mode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="asp2026ButtonLabel">2026</span></button>
-                <!-- HIDDEN: Gregorian button (kept for future use) -->
-                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="gregorianButtonLabel">Gregoriano</span></button>
                 <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🔔</button>
                 <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;display:none;">🇪🇸</button>
                 <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🇺🇸</button>
@@ -20169,7 +20168,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v350';
+const APP_VERSION = 'v351';
 var _pendingSW = null;
 
 function showUpdateBanner() {
