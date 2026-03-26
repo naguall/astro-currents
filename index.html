@@ -302,6 +302,9 @@
         #aiChatModal.show { display: flex; }
         #hoyInterpModal { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(2,2,15,0.97); flex-direction: column; }
         #hoyInterpModal.show { display: flex; }
+        .cosmic-cycle-card { padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:10px;transition:all 0.2s; }
+        .cosmic-cycle-card:hover { background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15); }
+        .cosmic-cycle-card:active { transform:scale(0.98); }
         .hoy-interp-messages { flex: 1; overflow-y: auto; padding: 12px; }
         .hoy-interp-messages .ai-msg { margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; font-size: 0.88em; line-height: 1.55; }
         .hoy-interp-messages .ai-msg.assistant { background: rgba(74,158,255,0.08); color: #e0e0e0; border: 1px solid rgba(74,158,255,0.15); }
@@ -11894,17 +11897,117 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <div id="hoyNatalWheelCanvas" style="max-width:100%;margin:0 auto;display:block;"></div>
         </div>`;
 
+    // ===== TAB: CICLOS CÓSMICOS =====
+    var ciclosTab = '';
+    try {
+        var summary = getCosmicCyclesSummary(natalChart, natal.date);
+        var signIcons = {'Aries':'♈','Tauro':'♉','Géminis':'♊','Cáncer':'♋','Leo':'♌','Virgo':'♍','Libra':'♎','Escorpio':'♏','Sagitario':'♐','Capricornio':'♑','Acuario':'♒','Piscis':'♓'};
+
+        ciclosTab = `
+        <div class="personal-natal-card">
+            <h3 style="color:#e0b0ff;">🌀 ${L ? 'Ciclos Cósmicos' : 'Cosmic Cycles'}</h3>
+            <p style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:14px;">${L ? 'Tus ciclos planetarios activos basados en tu carta natal.' : 'Your active planetary cycles based on your natal chart.'}</p>
+
+            <!-- Solar Return -->
+            <div class="cosmic-cycle-card" onclick="interpretCosmicCycle('solarReturn')" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:1.8em;">☉</span>
+                    <div>
+                        <div style="font-weight:700;color:#ffd54f;font-size:1em;">${L ? 'Retorno Solar' : 'Solar Return'}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? 'Próximo en' : 'Next in'} ${summary.daysToSolarReturn} ${L ? 'días' : 'days'} — ${summary.nextBirthday.toLocaleDateString(L?'es':'en',{day:'numeric',month:'long',year:'numeric'})}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
+                </div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'El Sol regresa a tu posición natal exacta. Marca el inicio de un nuevo año personal.' : 'The Sun returns to your exact natal position. Marks the start of a new personal year.'}</div>
+            </div>
+
+            <!-- Lunar Return -->
+            <div class="cosmic-cycle-card" onclick="interpretCosmicCycle('lunarReturn')" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:1.8em;">☽</span>
+                    <div>
+                        <div style="font-weight:700;color:#b39ddb;font-size:1em;">${L ? 'Retorno Lunar' : 'Lunar Return'}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? 'Próximo en' : 'Next in'} ${summary.daysToLunarReturn} ${L ? 'días' : 'days'}${summary.nextLunarReturn ? ' — ' + summary.nextLunarReturn.toLocaleDateString(L?'es':'en',{day:'numeric',month:'long'}) : ''}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
+                </div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'La Luna regresa a su posición natal cada ~27 días. Ciclo emocional y de necesidades internas.' : 'The Moon returns to its natal position every ~27 days. Emotional and internal needs cycle.'}</div>
+            </div>
+
+            <!-- Solar Half-Return -->
+            <div class="cosmic-cycle-card" onclick="interpretCosmicCycle('solarHalf')" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:1.8em;">◑</span>
+                    <div>
+                        <div style="font-weight:700;color:#ff9800;font-size:1em;">${L ? 'Medio Cielo Solar' : 'Solar Half-Return'}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? '~182 días después del cumpleaños' : '~182 days after birthday'}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
+                </div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'El Sol opuesto a tu posición natal. Punto medio del año personal para evaluar y ajustar metas.' : 'The Sun opposite your natal position. Personal year midpoint for evaluating and adjusting goals.'}</div>
+            </div>
+
+            <!-- Annual Profections -->
+            <div class="cosmic-cycle-card" onclick="interpretCosmicCycle('profection')" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:1.8em;">🏛</span>
+                    <div>
+                        <div style="font-weight:700;color:#4fc3f7;font-size:1em;">${L ? 'Profecciones Anuales' : 'Annual Profections'}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? 'Edad' : 'Age'} ${summary.age}: ${L ? 'Casa' : 'House'} ${summary.activatedHouse} (${signIcons[summary.profectionSign] || ''} ${summary.profectionSign})</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
+                </div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'Cada año de vida activa una casa diferente. Este año tu enfoque está en los temas de la Casa ' + summary.activatedHouse + '.' : 'Each year of life activates a different house. This year your focus is on House ' + summary.activatedHouse + ' themes.'}</div>
+            </div>
+
+            <!-- Lunar Nodes -->
+            <div class="cosmic-cycle-card" onclick="interpretCosmicCycle('nodalTransit')" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:1.8em;">☊</span>
+                    <div>
+                        <div style="font-weight:700;color:#ab47bc;font-size:1em;">${L ? 'Nodos Lunares' : 'Lunar Nodes'}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? 'Eje del destino kármico' : 'Karmic destiny axis'}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
+                </div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'Los nodos lunares en tránsito activan lecciones kármicas cuando tocan puntos sensibles de tu carta.' : 'Transiting lunar nodes activate karmic lessons when touching sensitive points in your chart.'}</div>
+            </div>
+
+            <!-- Eclipses -->
+            <div class="cosmic-cycle-card" onclick="interpretCosmicCycle('eclipse')" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:1.8em;">🌑</span>
+                    <div>
+                        <div style="font-weight:700;color:#ef5350;font-size:1em;">${L ? 'Eclipses en Ejes Natales' : 'Eclipses on Natal Axes'}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${summary.futureEclipses.length} ${L ? 'eclipses restantes en' : 'remaining eclipses in'} ${today.getFullYear()}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
+                </div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'Los eclipses son puntos de inflexión. Su efecto es más fuerte cuando caen cerca de tus planetas o ángulos natales.' : 'Eclipses are turning points. Their effect is strongest when they fall near your natal planets or angles.'}</div>
+                ${summary.eclipses.length > 0 ? '<div style="margin-top:8px;font-size:0.72em;">' + summary.eclipses.map(function(e) {
+                    var today = new Date();
+                    var isPast = e.date < today;
+                    return '<div style="padding:4px 0;color:' + (isPast ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.6)') + ';' + (isPast ? 'text-decoration:line-through;' : '') + '">' + (e.type === 'solar' ? '🌑' : '🌕') + ' ' + e.date.toLocaleDateString(L?'es':'en',{day:'numeric',month:'short'}) + ' — ' + e.name + ' ' + e.degree + '</div>';
+                }).join('') + '</div>' : ''}
+            </div>
+        </div>`;
+    } catch(e) {
+        ciclosTab = '<div class="personal-natal-card"><p style="color:rgba(255,255,255,0.4);">Error loading cycles</p></div>';
+    }
+
     // ===== COMBINE WITH TABS =====
     return `
         <div class="natal-subtabs">
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)" style="color:#c9a840;">${L?'Hoy':'Today'}</button>
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)">${L?'Calendario':'Calendar'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)" style="color:#e0b0ff;">${L?'Ciclos':'Cycles'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('chart',this)">${L?'Carta':'Chart'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${L?'Tablas':'Tables'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('elements',this)">${L?'Elementos':'Elements'}</button>
         </div>
         <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
         <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
+        <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
         <div id="natalTabElements" class="natal-tab-content" style="display:none;">${elementsTab}</div>`;
@@ -12885,6 +12988,303 @@ function generateNatalAIAnalysis(nc, type, L) {
     return html || '<p style="color:rgba(255,255,255,0.4);">' + (L?'Sin datos disponibles':'No data available') + '</p>';
 }
 
+// ══════════════════════════════════════════════════════════
+// ── COSMIC CYCLES (Ciclos Cósmicos) ──
+// ══════════════════════════════════════════════════════════
+
+function calculateCosmicCyclesForMonth(year, month, natalChart, birthDate) {
+    var cycles = [];
+    var L = currentLang === 'es';
+    var [birthY, birthM, birthD] = birthDate.split('-').map(Number);
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // --- 1. RETORNO SOLAR (Solar Return) = birthday ---
+    if (month === birthM - 1) {
+        cycles.push({
+            day: birthD,
+            type: 'solarReturn',
+            icon: '☉',
+            color: '#ffd54f',
+            label: L ? 'Retorno Solar' : 'Solar Return',
+            desc: L ? 'Tu cumpleaños astrológico — el Sol regresa a su posición natal exacta. Marca el inicio de un nuevo año personal.' : 'Your astrological birthday — the Sun returns to its exact natal position. Marks the start of a new personal year.'
+        });
+    }
+
+    // --- 2. RETORNO LUNAR (Lunar Return) ~every 27.3 days ---
+    var natalMoonLon = natalChart.planets.moon.longitude;
+    for (var d = 1; d <= daysInMonth; d++) {
+        var date = new Date(year, month, d, 12, 0, 0);
+        var moonPos = getPlanetPosition('moon', date);
+        var diff = Math.abs(moonPos - natalMoonLon);
+        if (diff > 180) diff = 360 - diff;
+        if (diff < 6) { // ~6° orb to catch within a day
+            // Refine: check if next day is closer
+            var nextDate = new Date(year, month, d + 1, 12, 0, 0);
+            var nextMoonPos = getPlanetPosition('moon', nextDate);
+            var nextDiff = Math.abs(nextMoonPos - natalMoonLon);
+            if (nextDiff > 180) nextDiff = 360 - nextDiff;
+            if (nextDiff >= diff) { // today is closest
+                cycles.push({
+                    day: d,
+                    type: 'lunarReturn',
+                    icon: '☽',
+                    color: '#b39ddb',
+                    label: L ? 'Retorno Lunar' : 'Lunar Return',
+                    desc: L ? 'La Luna regresa a su posición natal. Nuevo ciclo emocional de ~27 días. Momento de reconexión con tus necesidades emocionales profundas.' : 'The Moon returns to its natal position. New ~27-day emotional cycle. A time to reconnect with your deep emotional needs.'
+                });
+            }
+        }
+    }
+
+    // --- 3. MEDIO CIELO SOLAR (Solar Half-Return) ~182 days from birthday ---
+    var birthdayThisYear = new Date(year, birthM - 1, birthD);
+    var halfReturn = new Date(birthdayThisYear.getTime() + 182 * 86400000);
+    if (halfReturn.getMonth() === month && halfReturn.getFullYear() === year) {
+        cycles.push({
+            day: halfReturn.getDate(),
+            type: 'solarHalf',
+            icon: '◑',
+            color: '#ff9800',
+            label: L ? 'Medio Cielo Solar' : 'Solar Half-Return',
+            desc: L ? 'El Sol está opuesto a tu posición natal. Punto medio de tu año personal — momento de evaluación y ajuste de metas.' : 'The Sun is opposite your natal position. Midpoint of your personal year — time for evaluation and goal adjustment.'
+        });
+    }
+    // Also check previous year's birthday
+    var birthdayPrevYear = new Date(year - 1, birthM - 1, birthD);
+    var halfReturnPrev = new Date(birthdayPrevYear.getTime() + 182 * 86400000);
+    if (halfReturnPrev.getMonth() === month && halfReturnPrev.getFullYear() === year) {
+        cycles.push({
+            day: halfReturnPrev.getDate(),
+            type: 'solarHalf',
+            icon: '◑',
+            color: '#ff9800',
+            label: L ? 'Medio Cielo Solar' : 'Solar Half-Return',
+            desc: L ? 'El Sol está opuesto a tu posición natal. Punto medio de tu año personal — momento de evaluación y ajuste de metas.' : 'The Sun is opposite your natal position. Midpoint of your personal year — time for evaluation and goal adjustment.'
+        });
+    }
+
+    // --- 4. PROFECCIONES ANUALES (Annual Profections) ---
+    // Only show on birthday month — indicates the activated house for the year
+    var currentAge = year - birthY;
+    if (new Date(year, month, 1) < birthdayThisYear) currentAge--;
+    if (currentAge < 0) currentAge = 0;
+    var activatedHouse = (currentAge % 12) + 1;
+    var profectionSign = '';
+    if (natalChart.houses && natalChart.houses.cusps) {
+        var hCusp = natalChart.houses.cusps[activatedHouse - 1];
+        var signInfo = getZodiacSignWithDegree(hCusp);
+        profectionSign = signInfo.sign;
+    }
+    // Mark on birthday
+    if (month === birthM - 1) {
+        cycles.push({
+            day: birthD,
+            type: 'profection',
+            icon: '🏛',
+            color: '#4fc3f7',
+            label: L ? 'Profección Anual' : 'Annual Profection',
+            desc: L ? `Edad ${currentAge}: Casa ${activatedHouse} activada (${profectionSign}). Las profecciones anuales indican el área de vida más importante este año.` : `Age ${currentAge}: House ${activatedHouse} activated (${profectionSign}). Annual profections indicate the most important life area this year.`,
+            house: activatedHouse,
+            age: currentAge,
+            sign: profectionSign
+        });
+    }
+
+    // --- 5. NODOS LUNARES — Transit North Node conjunct natal angles/planets ---
+    if (natalChart.planets.northnode) {
+        var natalNN = natalChart.planets.northnode.longitude;
+        var natalSN = (natalNN + 180) % 360;
+        // Check North Node transit position at mid-month
+        var midMonth = new Date(year, month, 15, 12, 0, 0);
+        var transitNN;
+        try {
+            if (typeof Astronomy !== 'undefined') {
+                var t = Astronomy.MakeTime(midMonth);
+                var moonNode = Astronomy.SearchMoonNode(t);
+                // Use approximate: Mean node moves ~-0.053° per day
+                // We'll check against natal sensitive points instead
+            }
+        } catch(e) {}
+
+        // Simplified: check if transit North Node (approx) is near natal key points
+        // North Node moves ~19.35° per year retrograde = ~1.6° per month
+        // Use Sun-based approximation for node position
+        var startOfYear = new Date(year, 0, 1);
+        var daysFromStart = Math.floor((new Date(year, month, 15) - startOfYear) / 86400000);
+        // 2026 North Node: starts ~0° Virgo (150°), moves to ~14° Leo (~134°) by end of year
+        // Approximate: NNode2026 ≈ 150 - (daysFromStart * 19.35/365)
+        var approxNNode = (150 - (daysFromStart * 19.35 / 365) + 360) % 360;
+        var approxSNode = (approxNNode + 180) % 360;
+
+        // Check if transit nodes are conjunct natal sensitive points (5° orb)
+        var sensitivePoints = [
+            { lon: natalChart.planets.sun.longitude, name: L ? 'Sol' : 'Sun', key: 'sun' },
+            { lon: natalChart.planets.moon.longitude, name: L ? 'Luna' : 'Moon', key: 'moon' },
+            { lon: natalNN, name: L ? 'Nodo Norte' : 'North Node', key: 'northnode' },
+        ];
+        if (natalChart.houses) {
+            sensitivePoints.push({ lon: natalChart.houses.ascendant, name: 'ASC', key: 'asc' });
+            sensitivePoints.push({ lon: natalChart.houses.mc, name: 'MC', key: 'mc' });
+        }
+
+        sensitivePoints.forEach(function(sp) {
+            var diffNN = Math.abs(approxNNode - sp.lon);
+            if (diffNN > 180) diffNN = 360 - diffNN;
+            var diffSN = Math.abs(approxSNode - sp.lon);
+            if (diffSN > 180) diffSN = 360 - diffSN;
+
+            if (diffNN < 5) {
+                cycles.push({
+                    day: 15, // approximate mid-month
+                    type: 'nodalTransit',
+                    icon: '☊',
+                    color: '#ab47bc',
+                    label: L ? `Nodo Norte ☌ ${sp.name}` : `North Node ☌ ${sp.name}`,
+                    desc: L ? `El Nodo Norte transita en conjunción con tu ${sp.name} natal. Momento kármico de crecimiento y destino en esa área.` : `The North Node transits conjunct your natal ${sp.name}. Karmic moment of growth and destiny in that area.`,
+                    natalPoint: sp.key,
+                    isMonth: true
+                });
+            }
+            if (diffSN < 5) {
+                cycles.push({
+                    day: 15,
+                    type: 'nodalTransit',
+                    icon: '☋',
+                    color: '#7e57c2',
+                    label: L ? `Nodo Sur ☌ ${sp.name}` : `South Node ☌ ${sp.name}`,
+                    desc: L ? `El Nodo Sur transita en conjunción con tu ${sp.name} natal. Momento de soltar patrones pasados en esa área.` : `The South Node transits conjunct your natal ${sp.name}. Time to release past patterns in that area.`,
+                    natalPoint: sp.key,
+                    isMonth: true
+                });
+            }
+        });
+    }
+
+    // --- 6. ECLIPSES EN EJES NODALES ---
+    var eclipses = getEclipsesForYear(year);
+    eclipses.forEach(function(ecl) {
+        var eclDate = ecl.date;
+        if (eclDate.getMonth() !== month) return;
+
+        // Parse eclipse degree to longitude
+        var eclLon = parseEclipseDegreeToLongitude(ecl.degree);
+        if (eclLon === null) return;
+
+        // Check proximity to natal sensitive points (within 5°)
+        var nearPoints = [];
+        sensitivePoints = [
+            { lon: natalChart.planets.sun.longitude, name: L ? 'Sol' : 'Sun' },
+            { lon: natalChart.planets.moon.longitude, name: L ? 'Luna' : 'Moon' },
+        ];
+        if (natalChart.houses) {
+            sensitivePoints.push({ lon: natalChart.houses.ascendant, name: 'ASC' });
+            sensitivePoints.push({ lon: natalChart.houses.mc, name: 'MC' });
+        }
+        if (natalChart.planets.northnode) {
+            sensitivePoints.push({ lon: natalChart.planets.northnode.longitude, name: L ? 'Nodo Norte' : 'North Node' });
+            var snLon = (natalChart.planets.northnode.longitude + 180) % 360;
+            sensitivePoints.push({ lon: snLon, name: L ? 'Nodo Sur' : 'South Node' });
+        }
+
+        sensitivePoints.forEach(function(sp) {
+            var diff = Math.abs(eclLon - sp.lon);
+            if (diff > 180) diff = 360 - diff;
+            if (diff < 8) { // 8° orb for eclipses
+                nearPoints.push(sp.name + ' (' + diff.toFixed(1) + '°)');
+            }
+        });
+
+        cycles.push({
+            day: eclDate.getDate(),
+            type: 'eclipse',
+            icon: ecl.type === 'solar' ? '🌑' : '🌕',
+            color: '#ef5350',
+            label: ecl.name,
+            desc: (L ? 'Eclipse en ' : 'Eclipse at ') + ecl.degree + (nearPoints.length > 0 ? (L ? '. Activa tus puntos natales: ' : '. Activates your natal points: ') + nearPoints.join(', ') : (L ? '. Sin aspectos directos a puntos natales clave.' : '. No direct aspects to key natal points.')),
+            eclipseData: ecl,
+            nearNatal: nearPoints
+        });
+    });
+
+    return cycles;
+}
+
+// Parse eclipse degree string like "28°36' ♒ Acuario" to ecliptic longitude
+function parseEclipseDegreeToLongitude(degStr) {
+    if (!degStr) return null;
+    var signOffsets = {'Aries':0,'Tauro':30,'Géminis':60,'Cáncer':90,'Leo':120,'Virgo':150,'Libra':180,'Escorpio':210,'Sagitario':240,'Capricornio':270,'Acuario':300,'Piscis':330,'♈':0,'♉':30,'♊':60,'♋':90,'♌':120,'♍':150,'♎':180,'♏':210,'♐':240,'♑':270,'♒':300,'♓':330};
+    var match = degStr.match(/(\d+)[°](\d+)?/);
+    if (!match) return null;
+    var deg = parseInt(match[1]);
+    var min = match[2] ? parseInt(match[2]) : 0;
+    var signOffset = null;
+    for (var key in signOffsets) {
+        if (degStr.indexOf(key) !== -1) { signOffset = signOffsets[key]; break; }
+    }
+    if (signOffset === null) return null;
+    return signOffset + deg + min / 60;
+}
+
+// Get cosmic cycles summary for current year
+function getCosmicCyclesSummary(natalChart, birthDate) {
+    var L = currentLang === 'es';
+    var [birthY, birthM, birthD] = birthDate.split('-').map(Number);
+    var today = new Date();
+    var year = today.getFullYear();
+
+    var currentAge = year - birthY;
+    if (today < new Date(year, birthM - 1, birthD)) currentAge--;
+    var activatedHouse = (currentAge % 12) + 1;
+    var profectionSign = '';
+    if (natalChart.houses && natalChart.houses.cusps) {
+        var hCusp = natalChart.houses.cusps[activatedHouse - 1];
+        var signInfo = getZodiacSignWithDegree(hCusp);
+        profectionSign = signInfo.sign;
+    }
+
+    // Next solar return
+    var nextBirthday = new Date(year, birthM - 1, birthD);
+    if (nextBirthday <= today) nextBirthday = new Date(year + 1, birthM - 1, birthD);
+    var daysToSolarReturn = Math.ceil((nextBirthday - today) / 86400000);
+
+    // Next lunar return
+    var natalMoonLon = natalChart.planets.moon.longitude;
+    var nextLunarReturn = null;
+    for (var i = 0; i < 30; i++) {
+        var checkDate = new Date(today.getTime() + i * 86400000);
+        var moonPos = getPlanetPosition('moon', checkDate);
+        var diff = Math.abs(moonPos - natalMoonLon);
+        if (diff > 180) diff = 360 - diff;
+        if (diff < 6) {
+            var checkDate2 = new Date(today.getTime() + (i + 1) * 86400000);
+            var moonPos2 = getPlanetPosition('moon', checkDate2);
+            var diff2 = Math.abs(moonPos2 - natalMoonLon);
+            if (diff2 > 180) diff2 = 360 - diff2;
+            if (diff2 >= diff) {
+                nextLunarReturn = checkDate;
+                break;
+            }
+        }
+    }
+    var daysToLunarReturn = nextLunarReturn ? Math.ceil((nextLunarReturn - today) / 86400000) : '?';
+
+    // Eclipses this year
+    var eclipses = getEclipsesForYear(year);
+    var futureEclipses = eclipses.filter(function(e) { return e.date >= today; });
+
+    return {
+        age: currentAge,
+        activatedHouse: activatedHouse,
+        profectionSign: profectionSign,
+        daysToSolarReturn: daysToSolarReturn,
+        daysToLunarReturn: daysToLunarReturn,
+        nextLunarReturn: nextLunarReturn,
+        nextBirthday: nextBirthday,
+        eclipses: eclipses,
+        futureEclipses: futureEclipses
+    };
+}
+
 // --- Personal Calendar Rendering ---
 function renderPersonalCalendar() {
     const natal = getNatalData();
@@ -12970,6 +13370,12 @@ function renderPersonalCalendar() {
     function getSeasonForDate(d) {
         const ds = d.toDateString();
         return allSeasons.find(s => s.date.toDateString() === ds) || null;
+    }
+
+    // Cosmic cycles for this month
+    const cosmicCycles = calculateCosmicCyclesForMonth(year, month, natalChart, natal.date);
+    function getCyclesForDay(d) {
+        return cosmicCycles.filter(function(c) { return c.day === d; });
     }
 
     // Build calendar grid
@@ -13059,13 +13465,17 @@ function renderPersonalCalendar() {
         const seasonColors = { springEq: '#4caf50', summerSol: '#ff9800', autumnEq: '#e67e22', winterSol: '#42a5f5' };
         const seasonBorder = season ? `border:1.5px solid ${seasonColors[season.key]};box-shadow:0 0 6px ${seasonColors[season.key]}44;` : '';
 
+        const dayCycles = getCyclesForDay(day);
+        const cycleBorder = !season && dayCycles.length > 0 ? `border:1.5px solid ${dayCycles[0].color};box-shadow:0 0 4px ${dayCycles[0].color}33;` : '';
+
         calendarHTML += `
-            <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder}">
+            <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder || cycleBorder}">
                 <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
                     <div class="personal-day-num" style="font-size:1.3em;font-weight:800;color:#e8c84a;">${isBirthday ? '🎂 ' : ''}${personalDay}</div>
-                    <div style="display:flex;gap:1px;align-items:center;">
+                    <div style="display:flex;gap:1px;align-items:center;flex-wrap:wrap;">
                         ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
                         ${moonIcon ? `<span style="font-size:1em;">${moonIcon}</span>` : ''}
+                        ${getCyclesForDay(day).filter(c => c.type !== 'solarReturn' || !isBirthday).map(c => `<span style="font-size:0.65em;" title="${c.label}">${c.icon}</span>`).join('')}
                     </div>
                 </div>
                 <div style="font-size:0.6em;color:rgba(255,255,255,0.4);margin-top:1px;">${day}/${month+1}</div>
@@ -13084,9 +13494,12 @@ function renderPersonalCalendar() {
 
         <!-- Legend -->
         <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:8px;font-size:0.72em;color:rgba(255,255,255,0.4);">
-            <span style="color:#e8c84a;font-weight:600;"># = ${L?'Día personal (cumpleaños)':'Personal day (birthday)'}</span>
-            <span style="color:rgba(192,192,255,0.6);">☽ = ${L?'Día lunar':'Lunar day'}</span>
-            <span style="color:rgba(212,175,55,0.6);">☉ = ${L?'Día solar (signo)':'Solar day (sign)'}</span>
+            <span style="color:#e8c84a;font-weight:600;"># = ${L?'Día personal':'Personal day'}</span>
+            <span style="color:rgba(192,192,255,0.6);">☽ = ${L?'Lunar':'Lunar'}</span>
+            <span style="color:rgba(212,175,55,0.6);">☉ = ${L?'Solar':'Solar'}</span>
+            <span style="color:#b39ddb;">☽ = ${L?'Ret. Lunar':'Lunar Ret.'}</span>
+            <span style="color:#ff9800;">◑ = ${L?'Medio Cielo':'Half-Return'}</span>
+            <span style="color:#ef5350;">🌑🌕 = ${L?'Eclipse':'Eclipse'}</span>
         </div>
         </div><!-- close natalCalendarGrid -->
     `;
@@ -14069,6 +14482,93 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
     var prompt = L
         ? 'Interpreta en detalle el tránsito de ' + tName + ' haciendo ' + aName + ' a mi ' + nName + ' natal (' + dateStr + '). Explica: 1) Qué significa este aspecto en mi carta natal, 2) Cómo me puede afectar emocionalmente, profesionalmente y en relaciones, 3) Cuánto dura aproximadamente este tránsito, 4) Consejos para aprovechar o manejar esta energía, 5) Si hay algo que deba tener especial cuidado.'
         : 'Interpret in detail the transit of ' + tName + ' making a ' + aName + ' to my natal ' + nName + ' (' + dateStr + '). Explain: 1) What this aspect means in my natal chart, 2) How it may affect me emotionally, professionally and in relationships, 3) Approximate duration of this transit, 4) Advice to harness or manage this energy, 5) Anything I should be especially careful about.';
+
+    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
+    sendHoyInterpRequest();
+}
+
+// ===== INTERPRET COSMIC CYCLE =====
+function interpretCosmicCycle(cycleType) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+
+    var natalChart;
+    try {
+        var profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+
+    var summary = getCosmicCyclesSummary(natalChart, natal.date);
+    var [birthY, birthM, birthD] = natal.date.split('-').map(Number);
+    var today = new Date();
+
+    var titles = {
+        solarReturn: L ? 'Retorno Solar' : 'Solar Return',
+        lunarReturn: L ? 'Retorno Lunar' : 'Lunar Return',
+        solarHalf: L ? 'Medio Cielo Solar' : 'Solar Half-Return',
+        profection: L ? 'Profecciones Anuales' : 'Annual Profections',
+        nodalTransit: L ? 'Nodos Lunares' : 'Lunar Nodes',
+        eclipse: L ? 'Eclipses en Ejes Natales' : 'Eclipses on Natal Axes'
+    };
+
+    currentInterpCacheKey = 'cycle_' + cycleType + '_' + today.getFullYear();
+
+    // Open interpretation modal
+    var modal = document.getElementById('hoyInterpModal');
+    modal.classList.add('show');
+    document.getElementById('hoyInterpTitle').textContent = titles[cycleType] || cycleType;
+    document.getElementById('hoyInterpDate').textContent = natal.name || natal.cityName || '';
+
+    // Check cache
+    var cached = getInterpCache(currentInterpCacheKey);
+    if (cached) {
+        restoreInterpFromCache(cached);
+        return;
+    }
+
+    // Reset chat
+    hoyInterpHistory = [];
+    hoyInterpTyping = false;
+    updateDeleteBtnVisibility(false);
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = '<div class="ai-msg loading">✨ ' + (L ? 'Analizando tu ciclo cósmico...' : 'Analyzing your cosmic cycle...') + '</div>';
+
+    // Build context
+    var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + '. ';
+    natalSummary += 'Sol: ' + (natalChart.planets.sun?.formatted || '?') + ', Luna: ' + (natalChart.planets.moon?.formatted || '?');
+    if (natalChart.houses) natalSummary += ', ASC: ' + (natalChart.houses.ascFormatted || '?') + ', MC: ' + (natalChart.houses.mcFormatted || '?');
+    natalSummary += '. ';
+
+    var prompt = '';
+    if (cycleType === 'solarReturn') {
+        prompt = L
+            ? natalSummary + 'Háblame sobre mi próximo Retorno Solar (cumpleaños astrológico) el ' + summary.nextBirthday.toLocaleDateString('es',{day:'numeric',month:'long',year:'numeric'}) + '. Faltan ' + summary.daysToSolarReturn + ' días. Interpreta: 1) Qué significa el retorno solar, 2) Qué temas activará en mi carta este año, 3) Cómo prepararse energéticamente, 4) Rituales o intenciones recomendados.'
+            : natalSummary + 'Tell me about my next Solar Return (astrological birthday) on ' + summary.nextBirthday.toLocaleDateString('en',{day:'numeric',month:'long',year:'numeric'}) + '. ' + summary.daysToSolarReturn + ' days away. Interpret: 1) What the solar return means, 2) What themes it will activate in my chart this year, 3) How to prepare energetically, 4) Recommended rituals or intentions.';
+    } else if (cycleType === 'lunarReturn') {
+        prompt = L
+            ? natalSummary + 'Mi Luna natal está en ' + (natalChart.planets.moon?.formatted || '?') + '. El próximo retorno lunar es en ' + summary.daysToLunarReturn + ' días. Interpreta: 1) Qué es un retorno lunar y su ciclo de ~27 días, 2) Cómo me afecta personalmente con mi Luna en ese signo, 3) Qué temas emocionales se renuevan, 4) Cómo aprovechar esta energía.'
+            : natalSummary + 'My natal Moon is in ' + (natalChart.planets.moon?.formatted || '?') + '. Next lunar return is in ' + summary.daysToLunarReturn + ' days. Interpret: 1) What a lunar return is and its ~27-day cycle, 2) How it affects me personally with my Moon in that sign, 3) What emotional themes renew, 4) How to harness this energy.';
+    } else if (cycleType === 'solarHalf') {
+        prompt = L
+            ? natalSummary + 'Interpreta mi Medio Cielo Solar (oposición del Sol a su posición natal, ~182 días después del cumpleaños). Incluye: 1) Significado del punto medio del año personal, 2) Qué evaluar en este momento, 3) Cómo ajustar metas, 4) La energía del Sol opuesto aplicada a mi carta.'
+            : natalSummary + 'Interpret my Solar Half-Return (Sun opposite its natal position, ~182 days after birthday). Include: 1) Meaning of the personal year midpoint, 2) What to evaluate at this time, 3) How to adjust goals, 4) The energy of the opposite Sun applied to my chart.';
+    } else if (cycleType === 'profection') {
+        prompt = L
+            ? natalSummary + 'Tengo ' + summary.age + ' años, lo que activa la Casa ' + summary.activatedHouse + ' (' + summary.profectionSign + ') por profecciones anuales. Interpreta: 1) Qué son las profecciones anuales, 2) Qué temas trae la Casa ' + summary.activatedHouse + ' en ' + summary.profectionSign + ', 3) Qué planeta rige este año, 4) Consejos prácticos para navegar los temas de esta casa.'
+            : natalSummary + 'I am ' + summary.age + ' years old, which activates House ' + summary.activatedHouse + ' (' + summary.profectionSign + ') by annual profections. Interpret: 1) What annual profections are, 2) What themes House ' + summary.activatedHouse + ' in ' + summary.profectionSign + ' brings, 3) What planet rules this year, 4) Practical advice for navigating this house\'s themes.';
+    } else if (cycleType === 'nodalTransit') {
+        var nnFormatted = natalChart.planets.northnode?.formatted || '?';
+        prompt = L
+            ? natalSummary + 'Mi Nodo Norte natal está en ' + nnFormatted + '. Interpreta: 1) El significado de mis nodos lunares natales (dirección kármica), 2) Por dónde transitan los nodos actualmente y cómo afectan mi carta, 3) Lecciones kármicas activas, 4) Cómo alinearme con mi destino nodal.'
+            : natalSummary + 'My natal North Node is in ' + nnFormatted + '. Interpret: 1) The meaning of my natal lunar nodes (karmic direction), 2) Where the nodes are currently transiting and how they affect my chart, 3) Active karmic lessons, 4) How to align with my nodal destiny.';
+    } else if (cycleType === 'eclipse') {
+        var eclipseList = summary.eclipses.map(function(e) { return e.name + ' ' + e.degree + ' (' + e.date.toLocaleDateString(L?'es':'en',{day:'numeric',month:'short'}) + ')'; }).join(', ');
+        prompt = L
+            ? natalSummary + 'Los eclipses de este año son: ' + eclipseList + '. Interpreta: 1) Cómo afecta cada eclipse a mi carta natal específicamente, 2) Qué ejes de mi carta se activan, 3) Qué cambios o revelaciones esperar, 4) Cómo navegar la energía de eclipses de forma consciente.'
+            : natalSummary + 'This year\'s eclipses are: ' + eclipseList + '. Interpret: 1) How each eclipse specifically affects my natal chart, 2) What axes of my chart are activated, 3) What changes or revelations to expect, 4) How to navigate eclipse energy consciously.';
+    }
 
     hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
     sendHoyInterpRequest();
@@ -19019,7 +19519,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v341';
+const APP_VERSION = 'v342';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -19717,6 +20217,7 @@ window.shareHoyInterp = shareHoyInterp;
 window.saveHoyInterp = saveHoyInterp;
 window.interpretCalendarDay = interpretCalendarDay;
 window.interpretTransitAspect = interpretTransitAspect;
+window.interpretCosmicCycle = interpretCosmicCycle;
 window.deleteCurrentInterp = deleteCurrentInterp;
 
 function getLunarPhaseSVG(date) {
