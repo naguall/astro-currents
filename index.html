@@ -305,6 +305,8 @@
         .cosmic-cycle-card { padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:10px;transition:all 0.2s; }
         .cosmic-cycle-card:hover { background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15); }
         .cosmic-cycle-card:active { transform:scale(0.98); }
+        .carto-planet-btn { transition:all 0.2s; }
+        .carto-planet-btn:not(.active) { opacity:0.3; }
         .hoy-interp-messages { flex: 1; overflow-y: auto; padding: 12px; }
         .hoy-interp-messages .ai-msg { margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; font-size: 0.88em; line-height: 1.55; }
         .hoy-interp-messages .ai-msg.assistant { background: rgba(74,158,255,0.08); color: #e0e0e0; border: 1px solid rgba(74,158,255,0.15); }
@@ -9043,8 +9045,9 @@ function switchToSolarMode() {
 
     updateModeButtons();
     renderSolarCalendar();
-    refreshAllLiveData();
     setTimeout(reapplyCellSize, 300);
+    // Defer heavy live-data refresh so the calendar renders instantly
+    setTimeout(refreshAllLiveData, 50);
 }
 
 function switchToGregorianMode() {
@@ -9185,9 +9188,10 @@ function switchToLunarMode() {
     renderCalendar();
     // Force refresh moon position, tide data, and astro info
     updateCurrentDayInfoForMode('lunar');
-    refreshAllLiveData();
     reapplyCellSize();
     setTimeout(reapplyCellSize, 500);
+    // Defer heavy live-data refresh so the calendar renders instantly
+    setTimeout(refreshAllLiveData, 50);
 }
 
 // ══════════════════════════════════════════════════
@@ -11995,6 +11999,73 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         ciclosTab = '<div class="personal-natal-card"><p style="color:rgba(255,255,255,0.4);">Error loading cycles</p></div>';
     }
 
+    // ===== TAB: CARTOGRAFÍA ASTRAL =====
+    var cartographyTab = '';
+    try {
+        var birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
+        var acLines = calculateAstroCartographyLines(birthUTC, natalChart);
+        var mapSVG = renderAstroCartographyMap(acLines, natal.lat, natal.lon, null, L);
+
+        var planetToggleList = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+        var planetColorMap = {'sun':'#ffd54f','moon':'#b0bec5','mercury':'#80cbc4','venus':'#f48fb1','mars':'#ef5350','jupiter':'#ffb74d','saturn':'#78909c','uranus':'#4dd0e1','neptune':'#7986cb','pluto':'#ce93d8'};
+        var planetSymMap = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇'};
+        var planetNameMap = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto'};
+
+        cartographyTab = `
+        <div class="personal-natal-card">
+            <h3 style="color:#64b5f6;">🗺️ ${L ? 'Cartografía Astral' : 'Astrocartography'}</h3>
+            <p style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:10px;">${L ? 'Tu mapa de energías planetarias en el mundo. Las líneas muestran dónde cada planeta tiene mayor influencia.' : 'Your map of planetary energies across the world. Lines show where each planet has the strongest influence.'}</p>
+
+            <!-- Legend -->
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;font-size:0.68em;">
+                <span style="color:rgba(255,255,255,0.4);">━ MC/AC</span>
+                <span style="color:rgba(255,255,255,0.4);">╌ IC/DC</span>
+                <span style="color:#ffd54f;">● ${L ? 'Nacimiento' : 'Birth'}</span>
+            </div>
+
+            <!-- Planet toggles -->
+            <div id="cartoPlanetToggles" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+                ${planetToggleList.map(function(p) {
+                    return '<button class="carto-planet-btn active" data-planet="' + p + '" onclick="toggleCartoPlanet(this)" style="padding:3px 8px;border-radius:12px;font-size:0.75em;cursor:pointer;border:1px solid ' + planetColorMap[p] + ';background:' + planetColorMap[p] + '22;color:' + planetColorMap[p] + ';font-weight:700;">' + planetSymMap[p] + ' ' + planetNameMap[p] + '</button>';
+                }).join('')}
+            </div>
+
+            <!-- Map container -->
+            <div id="cartoMapContainer" style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+                ${mapSVG}
+            </div>
+
+            <!-- Line info table -->
+            <div style="margin-top:12px;">
+                <div style="font-size:0.75em;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Líneas Principales (MC/IC)' : 'Main Lines (MC/IC)'}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.78em;">
+                    ${acLines.filter(function(l) { return l.type === 'MC'; }).map(function(l) {
+                        var lonStr = l.geoLon >= 0 ? l.geoLon.toFixed(1) + '°E' : Math.abs(l.geoLon).toFixed(1) + '°W';
+                        return '<div style="padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid ' + l.color + ';"><span style="color:' + l.color + ';font-weight:700;">' + l.symbol + '</span> MC ' + lonStr + '</div>';
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- AI Interpretation button -->
+            <div style="margin-top:14px;text-align:center;">
+                <button onclick="interpretAstroCartography()" class="btn-shine" style="padding:12px 24px;background:linear-gradient(135deg,rgba(100,181,246,0.3),rgba(171,71,188,0.2));border:1px solid rgba(100,181,246,0.5);border-radius:12px;color:#90caf9;font-size:0.9em;font-weight:700;cursor:pointer;width:90%;max-width:400px;">
+                    ✨ ${L ? 'Interpretar Cartografía Astral' : 'Interpret Astrocartography'}
+                </button>
+            </div>
+
+            <!-- Location query -->
+            <div style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
+                <div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;">${L ? '¿Consultar sobre un lugar específico?' : 'Ask about a specific place?'}</div>
+                <div style="display:flex;gap:6px;">
+                    <input type="text" id="cartoLocationInput" placeholder="${L ? 'Ej: París, Nueva York, Tokio...' : 'E.g.: Paris, New York, Tokyo...'}" style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:white;font-size:0.85em;" onkeydown="if(event.key==='Enter')askCartoLocation()"/>
+                    <button onclick="askCartoLocation()" style="padding:8px 16px;background:linear-gradient(135deg,rgba(100,181,246,0.3),rgba(100,181,246,0.1));border:1px solid rgba(100,181,246,0.4);border-radius:8px;color:#90caf9;cursor:pointer;font-weight:700;">→</button>
+                </div>
+            </div>
+        </div>`;
+    } catch(e) {
+        cartographyTab = '<div class="personal-natal-card"><p style="color:rgba(255,255,255,0.4);">Error loading cartography: ' + e.message + '</p></div>';
+    }
+
     // ===== COMBINE WITH TABS =====
     return `
         <div class="natal-subtabs">
@@ -12004,13 +12075,15 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('chart',this)">${L?'Carta':'Chart'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${L?'Tablas':'Tables'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('elements',this)">${L?'Elementos':'Elements'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)" style="color:#64b5f6;">${L?'Mapa':'Map'}</button>
         </div>
         <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
         <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
         <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
-        <div id="natalTabElements" class="natal-tab-content" style="display:none;">${elementsTab}</div>`;
+        <div id="natalTabElements" class="natal-tab-content" style="display:none;">${elementsTab}</div>
+        <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>`;
 }
 
 // Switch natal sub-tab
@@ -12986,6 +13059,339 @@ function generateNatalAIAnalysis(nc, type, L) {
     }
 
     return html || '<p style="color:rgba(255,255,255,0.4);">' + (L?'Sin datos disponibles':'No data available') + '</p>';
+}
+
+// ══════════════════════════════════════════════════════════
+// ── ASTROCARTOGRAPHY (Cartografía Astral) ──
+// ══════════════════════════════════════════════════════════
+
+function calculateAstroCartographyLines(birthDate, natalChart) {
+    var jd = getJulianDay(birthDate);
+    var T = (jd - 2451545.0) / 36525;
+    var GMST = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T;
+    GMST = ((GMST % 360) + 360) % 360;
+    var eps = (23.4393 - 0.0130 * T); // obliquity in degrees
+    var epsRad = eps * Math.PI / 180;
+    var dr = Math.PI / 180;
+
+    var planetList = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+    var planetColors = {
+        'sun': '#ffd54f', 'moon': '#b0bec5', 'mercury': '#80cbc4', 'venus': '#f48fb1',
+        'mars': '#ef5350', 'jupiter': '#ffb74d', 'saturn': '#78909c',
+        'uranus': '#4dd0e1', 'neptune': '#7986cb', 'pluto': '#ce93d8'
+    };
+    var planetSymbols = {
+        'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂',
+        'jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇'
+    };
+
+    var lines = [];
+
+    planetList.forEach(function(p) {
+        var planet = natalChart.planets[p];
+        if (!planet) return;
+
+        var lon = planet.longitude; // ecliptic longitude in degrees
+        var dec = planet.declination; // declination in degrees
+        var decRad = dec * dr;
+
+        // Calculate Right Ascension from ecliptic longitude
+        var lonRad = lon * dr;
+        var ra = Math.atan2(Math.sin(lonRad) * Math.cos(epsRad), Math.cos(lonRad)) / dr;
+        if (ra < 0) ra += 360;
+
+        // --- MC LINE ---
+        // Planet is on MC when Local Sidereal Time = planet's RA
+        // LST = GMST + geographic_longitude
+        // So: geographic_longitude = RA - GMST
+        var mcLon = ((ra - GMST) % 360 + 540) % 360 - 180; // normalize to -180..180
+
+        // --- IC LINE ---
+        var icLon = ((mcLon + 180) % 360 + 540) % 360 - 180;
+
+        lines.push({ planet: p, type: 'MC', geoLon: mcLon, color: planetColors[p], symbol: planetSymbols[p] });
+        lines.push({ planet: p, type: 'IC', geoLon: icLon, color: planetColors[p], symbol: planetSymbols[p] });
+
+        // --- AC LINE (rising) ---
+        // For each latitude, find the geographic longitude where the planet is exactly rising
+        // Hour Angle at rising: cos(H) = -tan(lat) * tan(dec)
+        // Geographic longitude = RA - H - GMST (for rising, H is negative = east)
+        var acPoints = [];
+        var dcPoints = [];
+        for (var lat = -65; lat <= 65; lat += 2) {
+            var latRad = lat * dr;
+            var cosH = -Math.tan(latRad) * Math.tan(decRad);
+            if (cosH < -1 || cosH > 1) continue; // circumpolar or never rises
+            var H = Math.acos(cosH) / dr; // Hour angle in degrees
+
+            // AC: planet rising (hour angle is negative, approaching meridian)
+            var acGeoLon = ((ra - (360 - H) - GMST) % 360 + 540) % 360 - 180;
+            acPoints.push({ lat: lat, lon: acGeoLon });
+
+            // DC: planet setting (hour angle is positive, past meridian)
+            var dcGeoLon = ((ra - H - GMST) % 360 + 540) % 360 - 180;
+            dcPoints.push({ lat: lat, lon: dcGeoLon });
+        }
+
+        lines.push({ planet: p, type: 'AC', points: acPoints, color: planetColors[p], symbol: planetSymbols[p] });
+        lines.push({ planet: p, type: 'DC', points: dcPoints, color: planetColors[p], symbol: planetSymbols[p] });
+    });
+
+    return lines;
+}
+
+// Simplified world coastline data (equirectangular projection)
+// Each array is a polyline of [lon, lat] pairs
+function getWorldCoastlines() {
+    return [
+        // North America (simplified)
+        [[-130,55],[-125,50],[-125,48],[-124,42],[-120,35],[-117,33],[-115,30],[-110,25],[-105,20],[-100,20],[-97,18],[-92,18],[-90,20],[-87,22],[-85,25],[-82,28],[-80,25],[-81,28],[-78,35],[-75,38],[-72,41],[-70,43],[-67,45],[-65,47],[-60,47],[-55,50],[-56,52],[-59,48],[-63,45],[-66,44],[-68,47],[-70,50],[-65,55],[-62,58],[-58,55],[-55,52]],
+        // Central America / Caribbean
+        [[-97,18],[-95,16],[-92,15],[-90,14],[-88,14],[-85,12],[-83,10],[-82,9],[-80,8],[-78,8],[-77,9]],
+        // South America
+        [[-77,9],[-75,5],[-73,2],[-80,0],[-80,-3],[-78,-5],[-75,-10],[-72,-13],[-70,-15],[-70,-18],[-68,-22],[-67,-25],[-65,-28],[-62,-33],[-58,-35],[-55,-33],[-50,-28],[-45,-23],[-40,-15],[-37,-10],[-35,-5],[-50,0],[-52,3],[-58,5],[-62,8],[-67,10],[-70,12],[-72,11],[-73,8],[-77,9]],
+        // Europe
+        [[-10,36],[-8,38],[-9,42],[-5,44],[-2,44],[0,42],[3,43],[5,43],[8,44],[10,44],[13,44],[15,42],[16,40],[18,40],[20,38],[22,37],[25,37],[26,40],[24,40],[22,42],[20,42],[20,45],[15,46],[12,46],[13,48],[8,48],[5,48],[2,49],[1,51],[-3,52],[-5,55],[-6,58],[-3,58],[0,58],[5,62],[7,58],[10,55],[12,55],[12,57],[15,60],[10,63],[18,68],[22,65],[25,60],[28,60],[30,62],[32,65],[35,65],[40,68],[42,65],[45,62],[50,62],[50,58],[45,55],[42,55],[40,53],[38,48],[35,47],[32,42],[30,40],[28,38],[26,35]],
+        // Africa
+        [[-17,15],[-16,12],[-15,11],[-10,6],[-8,5],[-5,5],[0,5],[5,4],[8,5],[10,4],[10,2],[8,0],[10,-2],[12,-5],[14,-8],[12,-15],[13,-17],[15,-20],[17,-25],[20,-28],[22,-32],[25,-34],[28,-33],[30,-30],[32,-28],[35,-25],[37,-20],[40,-15],[42,-12],[44,-12],[47,-10],[48,-5],[50,5],[50,10],[48,12],[45,12],[42,13],[38,12],[35,12],[32,10],[30,10],[25,5],[20,5],[15,10],[10,10],[5,7],[0,6],[-5,5],[-8,5],[-10,6],[-15,12],[-17,15]],
+        // Asia (simplified)
+        [[26,35],[28,38],[30,40],[32,42],[35,47],[38,48],[40,53],[42,55],[45,55],[50,58],[50,62],[55,60],[60,55],[65,55],[70,55],[75,55],[80,50],[85,50],[90,48],[95,45],[100,40],[105,35],[108,22],[110,18],[108,15],[105,10],[100,5],[105,0],[110,-5],[115,-8],[120,-8],[125,-5],[130,0],[130,5],[125,10],[120,15],[120,25],[122,28],[120,32],[118,35],[115,38],[110,40],[105,42],[100,45],[95,50],[90,55],[85,60],[80,65],[75,70],[65,70],[55,68],[50,65],[45,62],[40,68],[38,68],[35,70],[25,70],[22,68],[20,65]],
+        // Japan
+        [[130,33],[132,34],[135,35],[137,38],[140,40],[142,43],[145,45]],
+        // Australia
+        [[115,-35],[118,-35],[120,-33],[122,-33],[128,-15],[130,-12],[133,-12],[136,-12],[138,-15],[140,-18],[145,-20],[148,-22],[150,-25],[153,-27],[153,-30],[152,-33],[150,-38],[148,-40],[145,-38],[140,-36],[136,-35],[130,-33],[125,-33],[120,-35],[115,-35]],
+        // Indonesia (simplified)
+        [[95,5],[100,0],[105,-5],[106,-6],[110,-8],[115,-8],[120,-8],[125,-5],[130,0]],
+        // UK / Ireland
+        [[-10,52],[-6,52],[-5,55],[-6,58],[-3,58],[0,52],[-3,50],[-5,50],[-10,52]],
+        // New Zealand
+        [[168,-46],[170,-44],[173,-42],[176,-40],[178,-38],[177,-36],[174,-36],[172,-40],[168,-46]],
+        // Antarctica hint
+        [[-180,-65],[-120,-68],[-60,-65],[0,-70],[60,-65],[120,-68],[180,-65]]
+    ];
+}
+
+function renderAstroCartographyMap(lines, birthLat, birthLon, selectedPlanets, L) {
+    // Map dimensions
+    var W = 800, H = 400;
+    var padL = 30, padR = 10, padT = 10, padB = 20;
+    var mapW = W - padL - padR;
+    var mapH = H - padT - padB;
+
+    // Projection: equirectangular
+    function projX(lon) { return padL + (lon + 180) / 360 * mapW; }
+    function projY(lat) { return padT + (90 - lat) / 180 * mapH; }
+
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;background:#0a0e1a;border-radius:12px;">';
+
+    // Ocean background
+    svg += '<rect x="' + padL + '" y="' + padT + '" width="' + mapW + '" height="' + mapH + '" fill="#0d1825" rx="4"/>';
+
+    // Grid lines
+    for (var glon = -180; glon <= 180; glon += 30) {
+        var gx = projX(glon);
+        svg += '<line x1="' + gx + '" y1="' + padT + '" x2="' + gx + '" y2="' + (padT + mapH) + '" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>';
+        if (glon % 60 === 0) svg += '<text x="' + gx + '" y="' + (H - 2) + '" fill="rgba(255,255,255,0.2)" font-size="7" text-anchor="middle">' + glon + '°</text>';
+    }
+    for (var glat = -60; glat <= 60; glat += 30) {
+        var gy = projY(glat);
+        svg += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (padL + mapW) + '" y2="' + gy + '" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>';
+        svg += '<text x="' + (padL - 3) + '" y="' + (gy + 3) + '" fill="rgba(255,255,255,0.2)" font-size="7" text-anchor="end">' + glat + '°</text>';
+    }
+    // Equator + Tropics
+    svg += '<line x1="' + padL + '" y1="' + projY(0) + '" x2="' + (padL + mapW) + '" y2="' + projY(0) + '" stroke="rgba(255,255,255,0.1)" stroke-width="0.8" stroke-dasharray="4,4"/>';
+    svg += '<line x1="' + padL + '" y1="' + projY(23.44) + '" x2="' + (padL + mapW) + '" y2="' + projY(23.44) + '" stroke="rgba(255,149,0,0.1)" stroke-width="0.5" stroke-dasharray="2,4"/>';
+    svg += '<line x1="' + padL + '" y1="' + projY(-23.44) + '" x2="' + (padL + mapW) + '" y2="' + projY(-23.44) + '" stroke="rgba(255,149,0,0.1)" stroke-width="0.5" stroke-dasharray="2,4"/>';
+
+    // Coastlines
+    var coasts = getWorldCoastlines();
+    coasts.forEach(function(coast) {
+        var d = '';
+        coast.forEach(function(pt, i) {
+            var x = projX(pt[0]), y = projY(pt[1]);
+            d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+        });
+        svg += '<path d="' + d + '" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.8" stroke-linejoin="round"/>';
+    });
+
+    // Fill continents with very subtle color
+    coasts.forEach(function(coast) {
+        if (coast.length > 10) {
+            var d = '';
+            coast.forEach(function(pt, i) {
+                d += (i === 0 ? 'M' : 'L') + projX(pt[0]).toFixed(1) + ',' + projY(pt[1]).toFixed(1);
+            });
+            d += 'Z';
+            svg += '<path d="' + d + '" fill="rgba(255,255,255,0.03)" stroke="none"/>';
+        }
+    });
+
+    // Draw astrocartography lines
+    lines.forEach(function(line) {
+        if (selectedPlanets && !selectedPlanets.includes(line.planet)) return;
+
+        var opacity = 0.7;
+        var strokeW = 1.5;
+
+        if (line.type === 'MC' || line.type === 'IC') {
+            // Vertical lines
+            var x = projX(line.geoLon);
+            var dash = line.type === 'IC' ? ' stroke-dasharray="6,3"' : '';
+            svg += '<line x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (padT + mapH) + '" stroke="' + line.color + '" stroke-width="' + strokeW + '" opacity="' + opacity + '"' + dash + '/>';
+            // Label at top
+            var labelY = line.type === 'MC' ? padT + 12 : padT + mapH - 5;
+            svg += '<text x="' + (x + 3) + '" y="' + labelY + '" fill="' + line.color + '" font-size="8" font-weight="bold" opacity="0.8">' + line.symbol + line.type + '</text>';
+        } else if (line.type === 'AC' || line.type === 'DC') {
+            // Curved lines from points
+            if (!line.points || line.points.length < 2) return;
+
+            var dash = line.type === 'DC' ? ' stroke-dasharray="6,3"' : '';
+
+            // Split into segments that don't wrap around
+            var segments = [[]];
+            var segIdx = 0;
+            for (var i = 0; i < line.points.length; i++) {
+                var pt = line.points[i];
+                if (segments[segIdx].length > 0) {
+                    var prevPt = segments[segIdx][segments[segIdx].length - 1];
+                    if (Math.abs(pt.lon - prevPt.lon) > 180) {
+                        segIdx++;
+                        segments[segIdx] = [];
+                    }
+                }
+                segments[segIdx].push(pt);
+            }
+
+            segments.forEach(function(seg) {
+                if (seg.length < 2) return;
+                var d = '';
+                seg.forEach(function(pt, i) {
+                    var x = projX(pt.lon), y = projY(pt.lat);
+                    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+                });
+                svg += '<path d="' + d + '" fill="none" stroke="' + line.color + '" stroke-width="' + strokeW + '" opacity="' + opacity + '"' + dash + ' stroke-linejoin="round"/>';
+            });
+
+            // Label near middle point
+            if (line.points.length > 5) {
+                var mid = line.points[Math.floor(line.points.length / 2)];
+                svg += '<text x="' + (projX(mid.lon) + 3) + '" y="' + (projY(mid.lat) - 3) + '" fill="' + line.color + '" font-size="7" font-weight="bold" opacity="0.7">' + line.symbol + line.type + '</text>';
+            }
+        }
+    });
+
+    // Birth location marker
+    var bx = projX(birthLon), by = projY(birthLat);
+    svg += '<circle cx="' + bx + '" cy="' + by + '" r="5" fill="none" stroke="#ffd54f" stroke-width="2" opacity="0.9"/>';
+    svg += '<circle cx="' + bx + '" cy="' + by + '" r="2" fill="#ffd54f" opacity="0.9"/>';
+    svg += '<text x="' + (bx + 8) + '" y="' + (by + 3) + '" fill="#ffd54f" font-size="8" font-weight="bold" opacity="0.8">' + (L ? 'Nacimiento' : 'Birth') + '</text>';
+
+    svg += '</svg>';
+    return svg;
+}
+
+function interpretAstroCartography(locationDesc) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+
+    var natalChart;
+    try {
+        var profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!natalChart) return;
+
+    currentInterpCacheKey = 'cartography_' + natal.id;
+
+    var modal = document.getElementById('hoyInterpModal');
+    modal.classList.add('show');
+    document.getElementById('hoyInterpTitle').textContent = L ? 'Cartografía Astral' : 'Astrocartography';
+    document.getElementById('hoyInterpDate').textContent = natal.name || natal.cityName || '';
+
+    var cached = getInterpCache(currentInterpCacheKey);
+    if (cached) {
+        restoreInterpFromCache(cached);
+        return;
+    }
+
+    hoyInterpHistory = [];
+    hoyInterpTyping = false;
+    updateDeleteBtnVisibility(false);
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = '<div class="ai-msg loading">🗺️ ' + (L ? 'Analizando tu cartografía astral...' : 'Analyzing your astrocartography...') + '</div>';
+
+    // Build context
+    var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + ' (Lat:' + natal.lat + ', Lon:' + natal.lon + '). ';
+    natalSummary += 'Sol: ' + (natalChart.planets.sun?.formatted || '?') + ', Luna: ' + (natalChart.planets.moon?.formatted || '?');
+    if (natalChart.houses) natalSummary += ', ASC: ' + (natalChart.houses.ascFormatted || '?') + ', MC: ' + (natalChart.houses.mcFormatted || '?');
+    natalSummary += '. ';
+
+    // Calculate lines for context
+    var birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
+    var acLines = calculateAstroCartographyLines(birthUTC, natalChart);
+    var linesSummary = '';
+    acLines.forEach(function(line) {
+        if (line.type === 'MC' || line.type === 'IC') {
+            linesSummary += (planetNames[line.planet] || line.planet) + ' ' + line.type + ': lon ' + line.geoLon.toFixed(1) + '°. ';
+        }
+    });
+
+    var prompt = L
+        ? natalSummary + 'CARTOGRAFÍA ASTRAL: Las líneas planetarias principales son: ' + linesSummary + (locationDesc ? 'El usuario pregunta sobre: ' + locationDesc + '. ' : '') + 'Dame una interpretación completa de mi cartografía astral: 1) Qué es la cartografía astral y cómo funciona, 2) Explica mis líneas planetarias más importantes (Sol MC/IC/AC/DC, Luna, Venus, Júpiter, Saturno) y qué significan geográficamente, 3) Mejores lugares para vivir, trabajar, amor y crecimiento espiritual, 4) Lugares que debería evitar o que representan desafíos, 5) Cómo las líneas que pasan cerca de mi lugar de nacimiento me afectan.'
+        : natalSummary + 'ASTROCARTOGRAPHY: Main planetary lines are: ' + linesSummary + (locationDesc ? 'User asks about: ' + locationDesc + '. ' : '') + 'Give me a complete astrocartography interpretation: 1) What astrocartography is and how it works, 2) Explain my most important planetary lines (Sun MC/IC/AC/DC, Moon, Venus, Jupiter, Saturn) and what they mean geographically, 3) Best places to live, work, love and spiritual growth, 4) Places to avoid or that represent challenges, 5) How lines passing near my birthplace affect me.';
+
+    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
+    sendHoyInterpRequest();
+}
+
+// Chat about specific location on astrocartography map
+function interpretAstroLocation(locQuestion) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+
+    var natalChart;
+    try {
+        var profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+
+    currentInterpCacheKey = 'cartoloc_' + locQuestion.replace(/[^a-zA-Z0-9]/g,'').substring(0,30) + '_' + natal.id;
+
+    var modal = document.getElementById('hoyInterpModal');
+    modal.classList.add('show');
+    document.getElementById('hoyInterpTitle').textContent = L ? 'Cartografía — Consulta' : 'Astrocartography — Query';
+    document.getElementById('hoyInterpDate').textContent = locQuestion;
+
+    var cached = getInterpCache(currentInterpCacheKey);
+    if (cached) { restoreInterpFromCache(cached); return; }
+
+    hoyInterpHistory = [];
+    hoyInterpTyping = false;
+    updateDeleteBtnVisibility(false);
+    var container = document.getElementById('hoyInterpMessages');
+    container.innerHTML = '<div class="ai-msg loading">🗺️ ' + (L ? 'Analizando...' : 'Analyzing...') + '</div>';
+
+    var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + '. ';
+    natalSummary += 'Sol: ' + (natalChart.planets.sun?.formatted || '?') + ', Luna: ' + (natalChart.planets.moon?.formatted || '?');
+    if (natalChart.houses) natalSummary += ', ASC: ' + (natalChart.houses.ascFormatted || '?') + ', MC: ' + (natalChart.houses.mcFormatted || '?');
+
+    var birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
+    var acLines = calculateAstroCartographyLines(birthUTC, natalChart);
+    var linesSummary = '';
+    acLines.forEach(function(line) {
+        if (line.type === 'MC' || line.type === 'IC') {
+            linesSummary += (planetNames[line.planet] || line.planet) + ' ' + line.type + ': lon ' + line.geoLon.toFixed(1) + '°. ';
+        }
+    });
+
+    var prompt = L
+        ? natalSummary + '. Líneas de cartografía astral: ' + linesSummary + '. Mi pregunta sobre cartografía astral es: ' + locQuestion + '. Responde de forma específica sobre esta ubicación o pregunta en relación a mi carta natal y mis líneas de cartografía astral.'
+        : natalSummary + '. Astrocartography lines: ' + linesSummary + '. My astrocartography question is: ' + locQuestion + '. Respond specifically about this location or question in relation to my natal chart and astrocartography lines.';
+
+    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
+    sendHoyInterpRequest();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -19519,7 +19925,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v342';
+const APP_VERSION = 'v343';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -20218,7 +20624,43 @@ window.saveHoyInterp = saveHoyInterp;
 window.interpretCalendarDay = interpretCalendarDay;
 window.interpretTransitAspect = interpretTransitAspect;
 window.interpretCosmicCycle = interpretCosmicCycle;
+window.interpretAstroCartography = interpretAstroCartography;
+window.interpretAstroLocation = interpretAstroLocation;
 window.deleteCurrentInterp = deleteCurrentInterp;
+
+// Toggle planet visibility on cartography map
+window.toggleCartoPlanet = function(btn) {
+    btn.classList.toggle('active');
+    var isActive = btn.classList.contains('active');
+    btn.style.opacity = isActive ? '1' : '0.3';
+    // Recalculate and redraw map with selected planets
+    var selectedPlanets = [];
+    document.querySelectorAll('.carto-planet-btn.active').forEach(function(b) {
+        selectedPlanets.push(b.getAttribute('data-planet'));
+    });
+    var natal = getNatalData();
+    if (!natal) return;
+    var natalChart;
+    try {
+        var profileChart = localStorage.getItem('natalChart_' + natal.id);
+        natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    var L = currentLang === 'es';
+    var birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
+    var acLines = calculateAstroCartographyLines(birthUTC, natalChart);
+    var mapContainer = document.getElementById('cartoMapContainer');
+    if (mapContainer) {
+        mapContainer.innerHTML = renderAstroCartographyMap(acLines, natal.lat, natal.lon, selectedPlanets, L);
+    }
+};
+
+// Ask about specific location
+window.askCartoLocation = function() {
+    var input = document.getElementById('cartoLocationInput');
+    if (!input || !input.value.trim()) return;
+    interpretAstroLocation(input.value.trim());
+    input.value = '';
+};
 
 function getLunarPhaseSVG(date) {
     var phase = calculateLunarPhase(date);
