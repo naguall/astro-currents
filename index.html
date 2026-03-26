@@ -12942,6 +12942,29 @@ function renderPersonalCalendar() {
     const [birthY, birthM, birthD] = natal.date.split('-').map(Number);
     const isBirthdayMonth = (month === birthM - 1);
 
+    // Personal equinoxes/solstices: birthday = spring equinox
+    // Quarter the year from birthday: 0=spring eq, ~91=summer sol, ~182=autumn eq, ~273=winter sol
+    function getPersonalSeasons(yr, bM, bD) {
+        const bDate = new Date(yr, bM - 1, bD);
+        const nextBDate = new Date(yr + 1, bM - 1, bD);
+        const yearLen = Math.round((nextBDate - bDate) / 86400000);
+        const q = yearLen / 4;
+        return [
+            { date: bDate, key: 'springEq', icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox' },
+            { date: new Date(bDate.getTime() + Math.round(q) * 86400000), key: 'summerSol', icon: '☀️', es: 'Solsticio Personal de Verano', en: 'Personal Summer Solstice' },
+            { date: new Date(bDate.getTime() + Math.round(q * 2) * 86400000), key: 'autumnEq', icon: '🍂', es: 'Equinoccio Personal de Otoño', en: 'Personal Autumn Equinox' },
+            { date: new Date(bDate.getTime() + Math.round(q * 3) * 86400000), key: 'winterSol', icon: '❄️', es: 'Solsticio Personal de Invierno', en: 'Personal Winter Solstice' }
+        ];
+    }
+    // Check both this year and previous year seasons (in case birthday hasn't occurred yet)
+    const seasonsThisYear = getPersonalSeasons(year, birthM, birthD);
+    const seasonsPrevYear = getPersonalSeasons(year - 1, birthM, birthD);
+    const allSeasons = [...seasonsThisYear, ...seasonsPrevYear];
+    function getSeasonForDate(d) {
+        const ds = d.toDateString();
+        return allSeasons.find(s => s.date.toDateString() === ds) || null;
+    }
+
     // Build calendar grid
     const firstDay = new Date(year, month, 1);
     let startDow = firstDay.getDay(); // 0=Sun
@@ -13022,17 +13045,28 @@ function renderPersonalCalendar() {
         const moonEvent = getMoonEventForDate(date);
         const moonIcon = moonEvent ? (moonEvent.type === 'full' ? '🌕' : moonEvent.type === 'new' ? '🌑' : '') : '';
 
+        // Personal season marker
+        const season = getSeasonForDate(date);
+        const seasonIcon = season ? season.icon : '';
+        const seasonTitle = season ? (L ? season.es : season.en) : '';
+        const seasonColors = { springEq: '#4caf50', summerSol: '#ff9800', autumnEq: '#e67e22', winterSol: '#42a5f5' };
+        const seasonBorder = season ? `border:1.5px solid ${seasonColors[season.key]};box-shadow:0 0 6px ${seasonColors[season.key]}44;` : '';
+
         calendarHTML += `
-            <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${isBirthday ? '🎂 ' : ''}${date.toLocaleDateString(L?'es':'en')}">
+            <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder}">
                 <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
                     <div class="personal-day-num" style="font-size:1.3em;font-weight:800;color:#e8c84a;">${isBirthday ? '🎂 ' : ''}${personalDay}</div>
-                    ${moonIcon ? `<span style="font-size:1em;">${moonIcon}</span>` : ''}
+                    <div style="display:flex;gap:1px;align-items:center;">
+                        ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
+                        ${moonIcon ? `<span style="font-size:1em;">${moonIcon}</span>` : ''}
+                    </div>
                 </div>
                 <div style="font-size:0.6em;color:rgba(255,255,255,0.4);margin-top:1px;">${day}/${month+1}</div>
+                ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : `
                 <div style="display:flex;justify-content:space-between;width:100%;margin-top:2px;font-size:0.55em;line-height:1;">
                     <span style="color:rgba(192,192,255,0.5);" title="${L?'Día lunar':'Lunar day'}">☽${lunarDay}</span>
                     <span style="color:rgba(212,175,55,0.6);" title="${L?'Día solar':'Solar day'}">☉${solarDay}</span>
-                </div>
+                </div>`}
             </div>
         `;
     }
@@ -13841,6 +13875,22 @@ function showPersonalDayDetail(year, month, day) {
     const [birthY, birthM, birthD] = natal.date.split('-').map(Number);
     const isBirthday = (month === birthM - 1 && day === birthD);
 
+    // Check personal season
+    function _getPersonalSeasons(yr, bM, bD) {
+        const bDate = new Date(yr, bM - 1, bD);
+        const nextBDate = new Date(yr + 1, bM - 1, bD);
+        const yearLen = Math.round((nextBDate - bDate) / 86400000);
+        const q = yearLen / 4;
+        return [
+            { date: bDate, icon: '🌱', es: 'Equinoccio Personal de Primavera', en: 'Personal Spring Equinox', color: '#4caf50' },
+            { date: new Date(bDate.getTime() + Math.round(q) * 86400000), icon: '☀️', es: 'Solsticio Personal de Verano', en: 'Personal Summer Solstice', color: '#ff9800' },
+            { date: new Date(bDate.getTime() + Math.round(q * 2) * 86400000), icon: '🍂', es: 'Equinoccio Personal de Otoño', en: 'Personal Autumn Equinox', color: '#e67e22' },
+            { date: new Date(bDate.getTime() + Math.round(q * 3) * 86400000), icon: '❄️', es: 'Solsticio Personal de Invierno', en: 'Personal Winter Solstice', color: '#42a5f5' }
+        ];
+    }
+    const _allSeasons = [..._getPersonalSeasons(year, birthM, birthD), ..._getPersonalSeasons(year - 1, birthM, birthD)];
+    const daySeason = _allSeasons.find(s => s.date.toDateString() === date.toDateString());
+
     const dateStr = date.toLocaleDateString(L?'es':'en', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
     let html = `
@@ -13853,6 +13903,10 @@ function showPersonalDayDetail(year, month, day) {
             </div>
 
             ${isBirthday ? `<div style="text-align:center;padding:10px;background:rgba(155,89,182,0.10);border:1px solid rgba(155,89,182,0.30);border-radius:8px;margin-bottom:12px;font-size:0.9em;color:#c39bd3;">🎂 ${L?'¡Feliz Retorno Solar!':'Happy Solar Return!'}</div>` : ''}
+
+            ${daySeason ? `<div style="text-align:center;padding:10px;background:${daySeason.color}15;border:1px solid ${daySeason.color}44;border-radius:8px;margin-bottom:12px;font-size:0.9em;color:${daySeason.color};">
+                ${daySeason.icon} ${L ? daySeason.es : daySeason.en}
+            </div>` : ''}
 
             <!-- Transit Positions -->
             <div style="margin-bottom:12px;">
@@ -18950,7 +19004,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v337';
+const APP_VERSION = 'v338';
 var _pendingSW = null;
 
 function showUpdateBanner() {
