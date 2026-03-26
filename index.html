@@ -20724,7 +20724,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v365';
+const APP_VERSION = 'v366';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -21003,7 +21003,20 @@ DOMTokenList.prototype.add = function() {
 <script>
 // ===================== AI CHAT SYSTEM =====================
 
-let aiChatHistory = [];
+let aiChatHistory = (function() {
+    try {
+        var saved = localStorage.getItem('aiChatHistory');
+        return saved ? JSON.parse(saved) : [];
+    } catch(e) { return []; }
+})();
+
+function saveAIChatState() {
+    try {
+        localStorage.setItem('aiChatHistory', JSON.stringify(aiChatHistory));
+        var container = document.getElementById('aiChatMessages');
+        if (container) localStorage.setItem('aiChatHTML', container.innerHTML);
+    } catch(e) { /* storage full, ignore */ }
+}
 let aiIsTyping = false;
 let aiTTSEnabled = false;
 let aiVoiceRecognition = null;
@@ -21149,6 +21162,36 @@ function openAIChat() {
     document.getElementById('aiChatSubtitle').textContent = '';
 
     if (aiChatHistory.length === 0) {
+        // Try to restore from localStorage
+        try {
+            var savedHtml = localStorage.getItem('aiChatHTML');
+            var savedHistory = localStorage.getItem('aiChatHistory');
+            if (savedHistory && savedHtml) {
+                var parsed = JSON.parse(savedHistory);
+                if (parsed.length > 0) {
+                    aiChatHistory = parsed;
+                    var container = document.getElementById('aiChatMessages');
+                    container.innerHTML = savedHtml;
+                    // Re-attach copy/share button handlers
+                    container.querySelectorAll('.ai-msg.assistant').forEach(function(div) {
+                        var btnBar = div.querySelector('div[style*="justify-content:flex-end"]');
+                        if (btnBar) {
+                            var rawText = div.querySelector('p') ? div.querySelector('p').textContent : div.textContent;
+                            var copyBtn = btnBar.querySelector('button');
+                            if (copyBtn) {
+                                copyBtn.onclick = function() {
+                                    navigator.clipboard.writeText(rawText).then(function() {
+                                        copyBtn.innerHTML = '✅ ' + (currentLang === 'es' ? 'Copiado' : 'Copied');
+                                        setTimeout(function() { copyBtn.innerHTML = '📋 ' + (currentLang === 'es' ? 'Copiar' : 'Copy'); }, 2000);
+                                    });
+                                };
+                            }
+                        }
+                    });
+                    return;
+                }
+            }
+        } catch(e) {}
         showAIWelcome();
     }
     // Don't auto-focus to prevent keyboard from pushing buttons off screen
@@ -21182,6 +21225,8 @@ function closeAIChat() {
 
 function clearAIChat() {
     aiChatHistory = [];
+    localStorage.removeItem('aiChatHistory');
+    localStorage.removeItem('aiChatHTML');
     document.getElementById('aiChatMessages').innerHTML = '';
     showAIWelcome();
 }
@@ -22310,11 +22355,14 @@ function getActivePersona() {
 }
 
 function setActivePersona(id) {
+    if (id === _activePersonaId) return; // No change
     _activePersonaId = id;
     localStorage.setItem('activePersonaId', id);
     // Clear chat history so new persona takes effect cleanly
     aiChatHistory = [];
     hoyInterpHistory = [];
+    localStorage.removeItem('aiChatHistory');
+    localStorage.removeItem('aiChatHTML');
 }
 
 function resetAllAIChats() {
@@ -22322,6 +22370,9 @@ function resetAllAIChats() {
     aiChatHistory = [];
     hoyInterpHistory = [];
     currentInterpCacheKey = null;
+    // Clear AI chat persistence
+    localStorage.removeItem('aiChatHistory');
+    localStorage.removeItem('aiChatHTML');
     // Clear all interp caches from localStorage
     var keysToRemove = [];
     for (var i = 0; i < localStorage.length; i++) {
@@ -22438,6 +22489,7 @@ async function sendAIMessage() {
     // Add user message
     addAIMessage('user', text);
     aiChatHistory.push({role: 'user', parts: [{text: text}]});
+    saveAIChatState();
 
     // Show typing
     aiIsTyping = true;
@@ -22502,6 +22554,7 @@ async function sendAIMessage() {
                 addAIMessage('error', '❌ ' + errMsg);
             }
             aiChatHistory.pop();
+            saveAIChatState();
             aiIsTyping = false;
             return;
         }
@@ -22546,6 +22599,7 @@ async function sendAIMessage() {
 
         addAIMessage('assistant', cleanReply);
         aiChatHistory.push({role: 'model', parts: [{text: reply}]});
+        saveAIChatState();
         // Speak the response if TTS is enabled
         speakText(cleanReply);
 
@@ -22553,6 +22607,7 @@ async function sendAIMessage() {
         removeTypingIndicator();
         addAIMessage('error', '❌ ' + (currentLang === 'es' ? 'Error de conexión: ' : 'Connection error: ') + err.message);
         aiChatHistory.pop();
+        saveAIChatState();
     }
 
     aiIsTyping = false;
