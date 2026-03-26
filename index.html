@@ -11918,11 +11918,12 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                     <span style="font-size:1.8em;">☉</span>
                     <div>
                         <div style="font-weight:700;color:#ffd54f;font-size:1em;">${L ? 'Retorno Solar' : 'Solar Return'}</div>
-                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? 'Próximo en' : 'Next in'} ${summary.daysToSolarReturn} ${L ? 'días' : 'days'} — ${summary.nextBirthday.toLocaleDateString(L?'es':'en',{day:'numeric',month:'long',year:'numeric'})}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${summary.exactSolarReturn ? formatReturnTime(summary.exactSolarReturn, L ? 'es' : 'en') : summary.nextBirthday.toLocaleDateString(L?'es':'en',{day:'numeric',month:'long',year:'numeric'})}</div>
+                        <div style="font-size:0.82em;color:#ffd54f;font-weight:600;margin-top:2px;">⏱ ${summary.solarReturnCountdown}</div>
                     </div>
                     <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
                 </div>
-                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'El Sol regresa a tu posición natal exacta. Marca el inicio de un nuevo año personal.' : 'The Sun returns to your exact natal position. Marks the start of a new personal year.'}</div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'El Sol regresa al grado exacto de tu nacimiento (' + (natalChart.planets.sun?.formatted || '?') + ').' : 'The Sun returns to your exact birth degree (' + (natalChart.planets.sun?.formatted || '?') + ').'}</div>
             </div>
 
             <!-- Lunar Return -->
@@ -11931,11 +11932,12 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                     <span style="font-size:1.8em;">☽</span>
                     <div>
                         <div style="font-weight:700;color:#b39ddb;font-size:1em;">${L ? 'Retorno Lunar' : 'Lunar Return'}</div>
-                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? 'Próximo en' : 'Next in'} ${summary.daysToLunarReturn} ${L ? 'días' : 'days'}${summary.nextLunarReturn ? ' — ' + summary.nextLunarReturn.toLocaleDateString(L?'es':'en',{day:'numeric',month:'long'}) : ''}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${summary.nextLunarReturn ? formatReturnTime(summary.nextLunarReturn, L ? 'es' : 'en') : '?'}</div>
+                        <div style="font-size:0.82em;color:#b39ddb;font-weight:600;margin-top:2px;">⏱ ${summary.lunarReturnCountdown}</div>
                     </div>
                     <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
                 </div>
-                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'La Luna regresa a su posición natal cada ~27 días. Ciclo emocional y de necesidades internas.' : 'The Moon returns to its natal position every ~27 days. Emotional and internal needs cycle.'}</div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'La Luna regresa al grado exacto de tu nacimiento (' + (natalChart.planets.moon?.formatted || '?') + '). Ciclo emocional ~27 días.' : 'The Moon returns to your exact birth degree (' + (natalChart.planets.moon?.formatted || '?') + '). ~27-day emotional cycle.'}</div>
             </div>
 
             <!-- Solar Half-Return -->
@@ -13395,6 +13397,127 @@ function interpretAstroLocation(locQuestion) {
 }
 
 // ══════════════════════════════════════════════════════════
+// ── EXACT RETURN TIME CALCULATIONS ──
+// ══════════════════════════════════════════════════════════
+
+// Find exact moment a planet reaches a target ecliptic longitude
+// Uses bisection search within a date range for ~1-minute accuracy
+function findExactReturnTime(planetName, targetLon, searchStart, searchEnd) {
+    // Angular difference helper (signed, shortest path)
+    function angleDiff(a, b) {
+        var d = a - b;
+        while (d > 180) d -= 360;
+        while (d < -180) d += 360;
+        return d;
+    }
+
+    // First: find the day-bracket where the planet crosses the target
+    var dayMs = 86400000;
+    var bracketStart = null, bracketEnd = null;
+    var prevDiff = null;
+
+    for (var t = searchStart.getTime(); t <= searchEnd.getTime(); t += dayMs / 2) {
+        var d = new Date(t);
+        var pos = getPlanetPosition(planetName, d);
+        var diff = angleDiff(pos, targetLon);
+
+        if (prevDiff !== null && prevDiff * diff < 0 && Math.abs(prevDiff) < 30 && Math.abs(diff) < 30) {
+            // Sign changed — planet crossed the target between prev and now
+            bracketStart = new Date(t - dayMs / 2);
+            bracketEnd = d;
+            break;
+        }
+        prevDiff = diff;
+    }
+
+    if (!bracketStart) return null;
+
+    // Bisection to narrow down to ~1 minute accuracy
+    var lo = bracketStart.getTime();
+    var hi = bracketEnd.getTime();
+    for (var iter = 0; iter < 30; iter++) {
+        var mid = (lo + hi) / 2;
+        var midDate = new Date(mid);
+        var midPos = getPlanetPosition(planetName, midDate);
+        var midDiff = angleDiff(midPos, targetLon);
+        var loDiff = angleDiff(getPlanetPosition(planetName, new Date(lo)), targetLon);
+
+        if (Math.abs(midDiff) < 0.001) break; // < 0.001° ≈ 3.6 arcseconds
+        if (loDiff * midDiff < 0) {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+
+    return new Date((lo + hi) / 2);
+}
+
+// Find the exact Solar Return (Sun returning to natal longitude)
+function findExactSolarReturn(natalSunLon, year) {
+    // Sun takes ~365.25 days, search a 4-day window around the approximate birthday
+    // We need the natal birth month/day to narrow the search
+    var approxDate = new Date(year, 0, 1);
+    // Search the entire year in case birthday is near year boundaries
+    var searchStart = new Date(year, 0, 1);
+    var searchEnd = new Date(year, 11, 31);
+    return findExactReturnTime('sun', natalSunLon, searchStart, searchEnd);
+}
+
+// Find the exact Solar Return near a specific date (faster, smaller window)
+function findExactSolarReturnNear(natalSunLon, approxDate) {
+    var searchStart = new Date(approxDate.getTime() - 3 * 86400000);
+    var searchEnd = new Date(approxDate.getTime() + 3 * 86400000);
+    return findExactReturnTime('sun', natalSunLon, searchStart, searchEnd);
+}
+
+// Find the next Lunar Return from a given start date
+function findNextLunarReturn(natalMoonLon, fromDate) {
+    // Moon completes a cycle in ~27.3 days, search 30 days
+    var searchEnd = new Date(fromDate.getTime() + 30 * 86400000);
+    return findExactReturnTime('moon', natalMoonLon, fromDate, searchEnd);
+}
+
+// Find all Lunar Returns in a given month
+function findLunarReturnsInMonth(natalMoonLon, year, month) {
+    var returns = [];
+    var searchStart = new Date(year, month, 1);
+    var searchEnd = new Date(year, month + 1, 0, 23, 59, 59);
+    var cursor = searchStart;
+
+    while (cursor < searchEnd) {
+        var ret = findExactReturnTime('moon', natalMoonLon, cursor, new Date(Math.min(cursor.getTime() + 30 * 86400000, searchEnd.getTime())));
+        if (ret && ret >= searchStart && ret <= searchEnd) {
+            returns.push(ret);
+            cursor = new Date(ret.getTime() + 20 * 86400000); // skip ahead ~20 days
+        } else {
+            break;
+        }
+    }
+    return returns;
+}
+
+// Format a Date to local time string with hours and minutes
+function formatReturnTime(date, lang) {
+    if (!date) return '?';
+    var opts = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString(lang === 'es' ? 'es' : 'en', opts);
+}
+
+// Format countdown: Xd Xh Xm
+function formatCountdown(targetDate, L) {
+    var now = new Date();
+    var diff = targetDate - now;
+    if (diff <= 0) return L ? 'Ya ocurrió' : 'Already occurred';
+    var days = Math.floor(diff / 86400000);
+    var hours = Math.floor((diff % 86400000) / 3600000);
+    var mins = Math.floor((diff % 3600000) / 60000);
+    if (days > 0) return days + (L ? 'd ' : 'd ') + hours + 'h ' + mins + 'm';
+    if (hours > 0) return hours + 'h ' + mins + 'm';
+    return mins + 'm';
+}
+
+// ══════════════════════════════════════════════════════════
 // ── COSMIC CYCLES (Ciclos Cósmicos) ──
 // ══════════════════════════════════════════════════════════
 
@@ -13404,43 +13527,54 @@ function calculateCosmicCyclesForMonth(year, month, natalChart, birthDate) {
     var [birthY, birthM, birthD] = birthDate.split('-').map(Number);
     var daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // --- 1. RETORNO SOLAR (Solar Return) = birthday ---
-    if (month === birthM - 1) {
+    // --- 1. RETORNO SOLAR (Solar Return) — exact time ---
+    var natalSunLon = natalChart.planets.sun.longitude;
+    var approxBirthday = new Date(year, birthM - 1, birthD);
+    var exactSolarReturn = findExactSolarReturnNear(natalSunLon, approxBirthday);
+    if (exactSolarReturn && exactSolarReturn.getMonth() === month) {
+        var srDay = exactSolarReturn.getDate();
+        var srTimeStr = exactSolarReturn.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
         cycles.push({
-            day: birthD,
+            day: srDay,
             type: 'solarReturn',
             icon: '☉',
             color: '#ffd54f',
             label: L ? 'Retorno Solar' : 'Solar Return',
-            desc: L ? 'Tu cumpleaños astrológico — el Sol regresa a su posición natal exacta. Marca el inicio de un nuevo año personal.' : 'Your astrological birthday — the Sun returns to its exact natal position. Marks the start of a new personal year.'
+            desc: L ? 'Tu cumpleaños astrológico — el Sol regresa a su posición natal exacta (' + natalSunLon.toFixed(4) + '°). Hora exacta: ' + srTimeStr + '. Marca el inicio de un nuevo año personal.' : 'Your astrological birthday — the Sun returns to its exact natal position (' + natalSunLon.toFixed(4) + '°). Exact time: ' + srTimeStr + '. Marks the start of a new personal year.',
+            exactTime: exactSolarReturn
         });
     }
-
-    // --- 2. RETORNO LUNAR (Lunar Return) ~every 27.3 days ---
-    var natalMoonLon = natalChart.planets.moon.longitude;
-    for (var d = 1; d <= daysInMonth; d++) {
-        var date = new Date(year, month, d, 12, 0, 0);
-        var moonPos = getPlanetPosition('moon', date);
-        var diff = Math.abs(moonPos - natalMoonLon);
-        if (diff > 180) diff = 360 - diff;
-        if (diff < 6) { // ~6° orb to catch within a day
-            // Refine: check if next day is closer
-            var nextDate = new Date(year, month, d + 1, 12, 0, 0);
-            var nextMoonPos = getPlanetPosition('moon', nextDate);
-            var nextDiff = Math.abs(nextMoonPos - natalMoonLon);
-            if (nextDiff > 180) nextDiff = 360 - nextDiff;
-            if (nextDiff >= diff) { // today is closest
-                cycles.push({
-                    day: d,
-                    type: 'lunarReturn',
-                    icon: '☽',
-                    color: '#b39ddb',
-                    label: L ? 'Retorno Lunar' : 'Lunar Return',
-                    desc: L ? 'La Luna regresa a su posición natal. Nuevo ciclo emocional de ~27 días. Momento de reconexión con tus necesidades emocionales profundas.' : 'The Moon returns to its natal position. New ~27-day emotional cycle. A time to reconnect with your deep emotional needs.'
-                });
-            }
+    // Also check previous year solar return in case it falls in January of this display
+    if (!exactSolarReturn || exactSolarReturn.getMonth() !== month) {
+        var approxBirthdayPrev = new Date(year - 1, birthM - 1, birthD);
+        var exactSRPrev = findExactSolarReturnNear(natalSunLon, approxBirthdayPrev);
+        if (exactSRPrev && exactSRPrev.getMonth() === month && exactSRPrev.getFullYear() === year) {
+            var srDay2 = exactSRPrev.getDate();
+            var srTimeStr2 = exactSRPrev.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+            cycles.push({
+                day: srDay2, type: 'solarReturn', icon: '☉', color: '#ffd54f',
+                label: L ? 'Retorno Solar' : 'Solar Return',
+                desc: L ? 'Retorno Solar exacto a las ' + srTimeStr2 : 'Exact Solar Return at ' + srTimeStr2,
+                exactTime: exactSRPrev
+            });
         }
     }
+
+    // --- 2. RETORNO LUNAR (Lunar Return) — exact times ---
+    var natalMoonLon = natalChart.planets.moon.longitude;
+    var lunarReturns = findLunarReturnsInMonth(natalMoonLon, year, month);
+    lunarReturns.forEach(function(lrDate) {
+        var lrTimeStr = lrDate.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+        cycles.push({
+            day: lrDate.getDate(),
+            type: 'lunarReturn',
+            icon: '☽',
+            color: '#b39ddb',
+            label: L ? 'Retorno Lunar' : 'Lunar Return',
+            desc: L ? 'La Luna regresa a su posición natal (' + natalMoonLon.toFixed(2) + '°) a las ' + lrTimeStr + '. Nuevo ciclo emocional de ~27 días.' : 'The Moon returns to its natal position (' + natalMoonLon.toFixed(2) + '°) at ' + lrTimeStr + '. New ~27-day emotional cycle.',
+            exactTime: lrDate
+        });
+    });
 
     // --- 3. MEDIO CIELO SOLAR (Solar Half-Return) ~182 days from birthday ---
     var birthdayThisYear = new Date(year, birthM - 1, birthD);
@@ -13648,31 +13782,20 @@ function getCosmicCyclesSummary(natalChart, birthDate) {
         profectionSign = signInfo.sign;
     }
 
-    // Next solar return
-    var nextBirthday = new Date(year, birthM - 1, birthD);
-    if (nextBirthday <= today) nextBirthday = new Date(year + 1, birthM - 1, birthD);
+    // Next solar return — exact time
+    var natalSunLon = natalChart.planets.sun.longitude;
+    var approxBirthday = new Date(year, birthM - 1, birthD);
+    if (approxBirthday <= today) approxBirthday = new Date(year + 1, birthM - 1, birthD);
+    var exactSolarReturn = findExactSolarReturnNear(natalSunLon, approxBirthday);
+    var nextBirthday = exactSolarReturn || approxBirthday;
     var daysToSolarReturn = Math.ceil((nextBirthday - today) / 86400000);
+    var solarReturnCountdown = exactSolarReturn ? formatCountdown(exactSolarReturn, L) : daysToSolarReturn + (L ? ' días' : ' days');
 
-    // Next lunar return
+    // Next lunar return — exact time
     var natalMoonLon = natalChart.planets.moon.longitude;
-    var nextLunarReturn = null;
-    for (var i = 0; i < 30; i++) {
-        var checkDate = new Date(today.getTime() + i * 86400000);
-        var moonPos = getPlanetPosition('moon', checkDate);
-        var diff = Math.abs(moonPos - natalMoonLon);
-        if (diff > 180) diff = 360 - diff;
-        if (diff < 6) {
-            var checkDate2 = new Date(today.getTime() + (i + 1) * 86400000);
-            var moonPos2 = getPlanetPosition('moon', checkDate2);
-            var diff2 = Math.abs(moonPos2 - natalMoonLon);
-            if (diff2 > 180) diff2 = 360 - diff2;
-            if (diff2 >= diff) {
-                nextLunarReturn = checkDate;
-                break;
-            }
-        }
-    }
+    var nextLunarReturn = findNextLunarReturn(natalMoonLon, today);
     var daysToLunarReturn = nextLunarReturn ? Math.ceil((nextLunarReturn - today) / 86400000) : '?';
+    var lunarReturnCountdown = nextLunarReturn ? formatCountdown(nextLunarReturn, L) : '?';
 
     // Eclipses this year
     var eclipses = getEclipsesForYear(year);
@@ -13686,6 +13809,9 @@ function getCosmicCyclesSummary(natalChart, birthDate) {
         daysToLunarReturn: daysToLunarReturn,
         nextLunarReturn: nextLunarReturn,
         nextBirthday: nextBirthday,
+        exactSolarReturn: exactSolarReturn,
+        solarReturnCountdown: solarReturnCountdown,
+        lunarReturnCountdown: lunarReturnCountdown,
         eclipses: eclipses,
         futureEclipses: futureEclipses
     };
@@ -14733,6 +14859,21 @@ function showPersonalDayDetail(year, month, day) {
             ${daySeason ? `<div style="text-align:center;padding:10px;background:${daySeason.color}15;border:1px solid ${daySeason.color}44;border-radius:8px;margin-bottom:12px;font-size:0.9em;color:${daySeason.color};">
                 ${daySeason.icon} ${L ? daySeason.es : daySeason.en}
             </div>` : ''}
+
+            ${(function() {
+                // Cosmic cycles for this day
+                try {
+                    var dayCycles = calculateCosmicCyclesForMonth(year, month, natalChart, natal.date).filter(function(c) { return c.day === day; });
+                    if (dayCycles.length === 0) return '';
+                    return dayCycles.map(function(c) {
+                        var timeStr = c.exactTime ? c.exactTime.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }) : '';
+                        return '<div style="text-align:center;padding:8px 10px;background:' + c.color + '12;border:1px solid ' + c.color + '44;border-radius:8px;margin-bottom:8px;font-size:0.85em;color:' + c.color + ';">' +
+                            '<div style="font-weight:700;">' + c.icon + ' ' + c.label + (timeStr ? ' — ' + timeStr : '') + '</div>' +
+                            '<div style="font-size:0.82em;opacity:0.8;margin-top:2px;">' + c.desc + '</div>' +
+                        '</div>';
+                    }).join('');
+                } catch(e) { return ''; }
+            })()}
 
             <!-- Transit Positions -->
             <div style="margin-bottom:12px;">
@@ -19925,7 +20066,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v343';
+const APP_VERSION = 'v344';
 var _pendingSW = null;
 
 function showUpdateBanner() {
