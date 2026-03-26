@@ -15963,6 +15963,8 @@ function getLatestTideCurve(date) {
 function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeekIndex) {
     const banner = document.getElementById('lunarInfoBanner');
     if (!banner) return;
+    // Only show banner in lunar mode
+    if (calendarMode !== 'lunar') { banner.style.display = 'none'; return; }
     if (!currentDayInCycle) { banner.style.display = 'none'; return; }
 
     const nowRealTime   = new Date(); // Use real current time for astronomical positions, not midnight
@@ -19004,7 +19006,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v338';
+const APP_VERSION = 'v339';
 var _pendingSW = null;
 
 function showUpdateBanner() {
