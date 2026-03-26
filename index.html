@@ -10456,7 +10456,13 @@ function renderAspects2026Panel() {
 
     let html = '<div style="padding:6px;font-size:0.8em;">';
 
-    // Header box removed — title now in calendarTitle header
+    // Aspectos Mayores + Eventos 2026 buttons at top
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
+    html += '<button onclick="showMajorAspectsModal()" style="padding:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(155,89,182,0.3);border-radius:10px;color:rgba(195,155,211,0.8);font-size:0.85em;font-weight:600;cursor:pointer;">'
+        + (es ? 'Aspectos Mayores' : 'Major Aspects') + '</button>';
+    html += '<button onclick="showHistoricAspectsModal()" style="padding:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,64,0.3);border-radius:10px;color:rgba(201,168,64,0.8);font-size:0.85em;font-weight:600;cursor:pointer;">'
+        + (es ? 'Eventos 2026' : 'Events 2026') + '</button>';
+    html += '</div>';
 
     // Planet cards
     planetOrder.forEach((pName, idx) => {
@@ -10575,13 +10581,7 @@ function renderAspects2026Panel() {
         html += '</div>'; // end card
     });
 
-    // Major aspects and Events buttons at bottom — open AI modal
-    html += '<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
-    html += '<button onclick="showMajorAspectsModal()" style="padding:12px;background:linear-gradient(135deg,rgba(233,30,99,0.25),rgba(155,89,182,0.2));border:2px solid #e91e63;border-radius:10px;color:#ff69b4;font-size:0.9em;font-weight:bold;cursor:pointer;">'
-        + '⭐ ' + (es ? 'Aspectos Mayores' : 'Major Aspects') + '</button>';
-    html += '<button onclick="showHistoricAspectsModal()" style="padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(231,76,60,0.2));border:2px solid #e8c84a;border-radius:10px;color:#e8c84a;font-size:0.9em;font-weight:bold;cursor:pointer;">'
-        + '🏛️ ' + (es ? 'Eventos 2026' : 'Events 2026') + '</button>';
-    html += '</div>';
+    // Buttons already at top of panel
 
     html += '</div>';
     panel.innerHTML = html;
@@ -12461,12 +12461,14 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${L?'Tablas':'Tables'}</button>
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${L?'Calend':'Calend'}</span><span class="subtab-full">${L?'Calendario':'Calendar'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
         <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
         <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
+        <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
         <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>`;
 }
 
@@ -20724,7 +20726,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v367';
+const APP_VERSION = 'v368';
 var _pendingSW = null;
 
 function showUpdateBanner() {
