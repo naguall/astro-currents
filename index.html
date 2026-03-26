@@ -12457,18 +12457,16 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
     // ===== COMBINE WITH TABS =====
     return `
         <div class="natal-subtabs">
-            <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
-            <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${L?'Calend':'Calend'}</span><span class="subtab-full">${L?'Calendario':'Calendar'}</span></button>
-            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('chart',this)">${L?'Carta':'Chart'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${L?'Tablas':'Tables'}</button>
+            <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${L?'Calend':'Calend'}</span><span class="subtab-full">${L?'Calendario':'Calendar'}</span></button>
+            <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
         </div>
-        <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
-        <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
-        <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
+        <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
+        <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
         <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>`;
 }
 
@@ -20726,7 +20724,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v364';
+const APP_VERSION = 'v365';
 var _pendingSW = null;
 
 function showUpdateBanner() {
