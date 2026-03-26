@@ -6957,11 +6957,16 @@ function closeDiarioModal() {
 
 var _compassInterval = null;
 var _compassOrientationHandler = null;
-var _compassHeading = 0; // device compass heading in degrees
+var _compassAbsoluteHandler = null; // for Android absolute orientation
+var _compassHeading = 0; // device compass heading in degrees (magnetic north)
+var _compassHeadingSmooth = 0; // smoothed heading
 var _compassDeviceBeta = 0; // device tilt front-back (0=flat, 90=vertical)
+var _compassDeviceBetaSmooth = 0; // smoothed beta
 var _compassDeviceGamma = 0; // device tilt left-right
 var _compassPermissionGranted = false;
 var _compassMapMode = '2d'; // '2d' or '3d'
+var _compassHasAbsolute = false; // true if we have absolute heading (reliable north)
+var _compassCalibrationNeeded = false;
 
 function getMoonHorizonCoords(date, lat, lon) {
     // Use astronomy-engine to get Moon's azimuth & altitude from observer
@@ -7014,18 +7019,71 @@ function openMoonCompass() {
 }
 
 function _startCompass() {
-    // Listen for device orientation
+    // Smooth angle helper (handles 0/360 wraparound)
+    function smoothAngle(current, target, factor) {
+        var diff = target - current;
+        // Normalize to -180..180
+        while (diff > 180) diff -= 360;
+        while (diff < -180) diff += 360;
+        return (current + diff * factor + 360) % 360;
+    }
+    function smoothLinear(current, target, factor) {
+        return current + (target - factor) * factor;
+    }
+
+    // Calibration listener
+    window.addEventListener('compassneedscalibration', function(e) {
+        _compassCalibrationNeeded = true;
+    });
+
+    // Common handler for tilt (beta/gamma) from any orientation event
+    function processTilt(e) {
+        if (e.beta !== null) {
+            _compassDeviceBeta = e.beta;
+            // Smooth beta for stable altitude bar
+            var bDiff = e.beta - _compassDeviceBetaSmooth;
+            _compassDeviceBetaSmooth += bDiff * 0.15;
+        }
+        if (e.gamma !== null) _compassDeviceGamma = e.gamma;
+    }
+
+    // ── iOS: uses webkitCompassHeading (already magnetic north) ──
+    // ── Android: deviceorientation alpha is NOT relative to north ──
+    //    Must use deviceorientationabsolute event for true heading ──
+
     _compassOrientationHandler = function(e) {
+        // iOS provides webkitCompassHeading = magnetic north heading
         if (e.webkitCompassHeading !== undefined) {
             _compassHeading = e.webkitCompassHeading;
-        } else if (e.alpha !== null) {
-            _compassHeading = (360 - e.alpha) % 360;
+            _compassHasAbsolute = true;
+        } else if (!_compassHasAbsolute && e.alpha !== null) {
+            // Fallback: non-absolute alpha (may be inaccurate on Android)
+            if (e.absolute === true) {
+                // Some devices set absolute=true on regular event
+                _compassHeading = (360 - e.alpha) % 360;
+                _compassHasAbsolute = true;
+            } else {
+                _compassHeading = (360 - e.alpha) % 360;
+            }
         }
-        // Capture tilt for altitude bar interaction
-        if (e.beta !== null) _compassDeviceBeta = e.beta;   // -180..180, 0=flat, 90=vertical
-        if (e.gamma !== null) _compassDeviceGamma = e.gamma; // -90..90
+        // Always capture tilt from this event
+        processTilt(e);
+        // Smooth heading
+        _compassHeadingSmooth = smoothAngle(_compassHeadingSmooth, _compassHeading, 0.2);
     };
     window.addEventListener('deviceorientation', _compassOrientationHandler, true);
+
+    // ── Android absolute orientation (preferred, gives true magnetic north) ──
+    _compassAbsoluteHandler = function(e) {
+        if (e.alpha !== null) {
+            _compassHeading = (360 - e.alpha) % 360;
+            _compassHasAbsolute = true;
+            _compassCalibrationNeeded = false;
+        }
+        processTilt(e);
+        _compassHeadingSmooth = smoothAngle(_compassHeadingSmooth, _compassHeading, 0.2);
+    };
+    window.addEventListener('deviceorientationabsolute', _compassAbsoluteHandler, true);
 
     // Update compass display every 100ms
     _renderCompass();
@@ -7084,7 +7142,7 @@ function _renderCompass() {
 
     var moonAz = moon.azimuth;
     var moonAlt = moon.altitude;
-    var heading = _compassHeading;
+    var heading = _compassHeadingSmooth; // use smoothed heading
     var relAngle = ((moonAz - heading) % 360 + 360) % 360;
     var moonBelowHorizon = moonAlt < 0;
 
@@ -7159,23 +7217,45 @@ function _renderCompass() {
     // ===== INTERACTIVE ALTITUDE BAR (responds to phone tilt) =====
     var info = '<div style="margin-top:10px;font-size:0.85em;color:rgba(255,255,255,0.7);text-align:center;">';
 
-    // Device tilt indicator: beta 0=flat, 90=upright. Map to viewing angle
-    var deviceViewAngle = Math.max(-90, Math.min(90, _compassDeviceBeta - 90)); // when phone vertical, viewAngle=0 (horizon)
-    var altBarWidth = 240;
+    // Device tilt → viewing elevation angle
+    // Phone sensors: beta = tilt front-back. 0=flat, 90=vertical screen facing user
+    // The accelerometer/gyro is typically at top of phone.
+    // Viewing angle: beta 0 → looking at nadir (-90°), beta 90 → horizon (0°), beta 180 → zenith (+90°)
+    // Using smoothed beta for stability
+    var smoothBeta = _compassDeviceBetaSmooth;
+    // Clamp beta to 0..180 range for altitude mapping
+    var clampedBeta = Math.max(0, Math.min(180, smoothBeta));
+    var deviceViewAngle = clampedBeta - 90; // -90 (nadir) to +90 (zenith)
+
+    var altBarWidth = 260;
     var moonAltPct = Math.max(0, Math.min(100, (moonAlt + 90) / 180 * 100));
     var deviceAltPct = Math.max(0, Math.min(100, (deviceViewAngle + 90) / 180 * 100));
+    // Check if phone is pointing close to moon altitude (within ±5°)
+    var altAligned = Math.abs(deviceViewAngle - moonAlt) < 5;
 
     info += '<div style="margin-bottom:8px;">';
     info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:3px;letter-spacing:1px;">' + (L ? 'ALTITUD / HORIZONTE' : 'ALTITUDE / HORIZON') + '</div>';
-    info += '<div style="position:relative;width:' + altBarWidth + 'px;height:14px;background:linear-gradient(to right,rgba(100,100,255,0.08),rgba(255,255,255,0.06),rgba(255,200,50,0.08));border-radius:7px;margin:0 auto;border:1px solid rgba(255,255,255,0.1);">';
-    // Horizon line
-    info += '<div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(255,255,255,0.25);border-radius:1px;"></div>';
-    // Device viewing angle indicator (phone tilt)
-    info += '<div style="position:absolute;left:' + deviceAltPct + '%;top:-1px;width:4px;height:16px;background:rgba(224,176,255,0.6);border-radius:2px;transform:translateX(-50%);transition:left 0.1s;"></div>';
-    // Moon altitude dot
-    info += '<div style="position:absolute;left:' + moonAltPct + '%;top:1px;width:12px;height:12px;background:' + (moonBelowHorizon ? '#616161' : '#ffd54f') + ';border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px ' + (moonBelowHorizon ? 'transparent' : 'rgba(255,213,79,0.6)') + ';z-index:2;"></div>';
+    // Altitude bar with gradient: nadir (blue) → horizon (white) → zenith (gold)
+    info += '<div style="position:relative;width:' + altBarWidth + 'px;height:18px;background:linear-gradient(to right,rgba(60,60,180,0.15) 0%,rgba(255,255,255,0.08) 50%,rgba(255,200,50,0.15) 100%);border-radius:9px;margin:0 auto;border:1px solid rgba(255,255,255,0.1);">';
+    // Horizon line at center
+    info += '<div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(255,255,255,0.3);border-radius:1px;"></div>';
+    // Labels inside bar
+    info += '<div style="position:absolute;left:4px;top:2px;font-size:0.55em;color:rgba(100,100,255,0.5);font-weight:600;">-90°</div>';
+    info += '<div style="position:absolute;right:4px;top:2px;font-size:0.55em;color:rgba(255,200,50,0.5);font-weight:600;">+90°</div>';
+    // Device viewing angle indicator (phone tilt) — purple bar
+    info += '<div style="position:absolute;left:' + deviceAltPct + '%;top:-2px;width:4px;height:22px;background:rgba(224,176,255,' + (altAligned ? '1' : '0.6') + ');border-radius:2px;transform:translateX(-50%);transition:left 0.08s ease-out;box-shadow:' + (altAligned ? '0 0 8px rgba(224,176,255,0.8)' : 'none') + ';z-index:1;"></div>';
+    // Moon altitude dot — yellow
+    info += '<div style="position:absolute;left:' + moonAltPct + '%;top:3px;width:12px;height:12px;background:' + (moonBelowHorizon ? '#616161' : '#ffd54f') + ';border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px ' + (moonBelowHorizon ? 'transparent' : 'rgba(255,213,79,0.6)') + ';z-index:2;"></div>';
     info += '</div>';
-    info += '<div style="display:flex;justify-content:space-between;width:' + altBarWidth + 'px;margin:2px auto 0;font-size:0.65em;color:rgba(255,255,255,0.2);"><span>-90°</span><span style="color:rgba(224,176,255,0.4);">📱 ' + deviceViewAngle.toFixed(0) + '°</span><span>' + (L ? 'Horizonte' : 'Horizon') + '</span><span style="color:rgba(255,213,79,0.4);">🌙 ' + moonAlt.toFixed(0) + '°</span><span>+90°</span></div>';
+    // Labels below
+    info += '<div style="display:flex;justify-content:space-between;width:' + altBarWidth + 'px;margin:3px auto 0;font-size:0.65em;color:rgba(255,255,255,0.25);">';
+    info += '<span style="color:rgba(224,176,255,0.5);">📱 ' + deviceViewAngle.toFixed(0) + '°</span>';
+    info += '<span>' + (L ? 'Horizonte 0°' : 'Horizon 0°') + '</span>';
+    info += '<span style="color:rgba(255,213,79,0.5);">🌙 ' + moonAlt.toFixed(0) + '°</span>';
+    info += '</div>';
+    if (altAligned && !moonBelowHorizon) {
+        info += '<div style="font-size:0.7em;color:#4ecdc4;text-align:center;margin-top:2px;">✓ ' + (L ? 'Altitud alineada' : 'Altitude aligned') + '</div>';
+    }
     info += '</div>';
 
     // ===== MOONRISE / MOONSET =====
@@ -7190,12 +7270,14 @@ function _renderCompass() {
     info += '</div>';
 
     // ===== DATA GRID =====
+    var compassQuality = _compassHasAbsolute ? (L ? '● Precisa' : '● Accurate') : (L ? '○ Sin norte' : '○ No north');
+    var compassQColor = _compassHasAbsolute ? '#4ecdc4' : '#ff6b6b';
     info += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:8px;text-align:center;">';
     var cells = [
         { label: L?'Azimut':'Azimuth', val: moonAz.toFixed(1) + '° ' + moonCardinal, color: '#ffd54f' },
         { label: L?'Altitud':'Altitude', val: (moonAlt >= 0 ? '+' : '') + moonAlt.toFixed(1) + '°', color: moonBelowHorizon ? '#616161' : '#b0bec5' },
         { label: L?'Fase':'Phase', val: moonPhaseIllum, color: '#e0b0ff' },
-        { label: 'Heading', val: heading.toFixed(0) + '°', color: '#e0b0ff' }
+        { label: L?'Brújula':'Compass', val: heading.toFixed(0) + '°', color: compassQColor }
     ];
     cells.forEach(function(c) {
         info += '<div style="background:rgba(255,255,255,0.03);border-radius:6px;padding:5px 3px;">';
@@ -7331,6 +7413,16 @@ function _renderCompass() {
         info += (L ? '🌙 Apunta tu teléfono hacia la flecha' : '🌙 Point your phone toward the arrow');
         info += '</div>';
     }
+    // Compass quality / calibration warning
+    if (!_compassHasAbsolute) {
+        info += '<div style="margin-top:6px;padding:5px 10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:0.72em;color:#ff8a80;">';
+        info += (L ? '⚠️ Sin sensor de norte absoluto. La dirección puede ser imprecisa. Gira el teléfono en forma de 8 para calibrar.' : '⚠️ No absolute north sensor. Direction may be inaccurate. Move phone in a figure-8 to calibrate.');
+        info += '</div>';
+    } else if (_compassCalibrationNeeded) {
+        info += '<div style="margin-top:6px;padding:5px 10px;background:rgba(255,213,79,0.08);border:1px solid rgba(255,213,79,0.2);border-radius:8px;font-size:0.72em;color:#ffd54f;">';
+        info += (L ? '🔄 Calibración necesaria. Gira el teléfono en forma de 8.' : '🔄 Calibration needed. Move phone in a figure-8.');
+        info += '</div>';
+    }
 
     info += '</div>';
     bodyEl.innerHTML = svg + info;
@@ -7340,6 +7432,8 @@ function closeMoonCompass() {
     document.getElementById('moonCompassModal').classList.remove('show');
     if (_compassInterval) { clearInterval(_compassInterval); _compassInterval = null; }
     if (_compassOrientationHandler) { window.removeEventListener('deviceorientation', _compassOrientationHandler, true); _compassOrientationHandler = null; }
+    if (_compassAbsoluteHandler) { window.removeEventListener('deviceorientationabsolute', _compassAbsoluteHandler, true); _compassAbsoluteHandler = null; }
+    _compassHasAbsolute = false;
 }
 
 function openEventsModal(date, lunarDay) {
@@ -20887,7 +20981,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v372';
+const APP_VERSION = 'v373';
 var _pendingSW = null;
 
 function showUpdateBanner() {
