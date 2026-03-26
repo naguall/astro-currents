@@ -7220,47 +7220,47 @@ function _renderCompass() {
     var info = '<div style="margin-top:10px;font-size:0.85em;color:rgba(255,255,255,0.7);text-align:center;">';
 
     // ── ALTITUDE BAR ──
-    // Shows the ELEVATION you're pointing at vs where the Moon is.
-    // Scale: -30° (below horizon) ← 0° HORIZON (center) → 90° ZENITH (right)
+    // 0° = phone flat on table = CENTER of bar
+    // Tilt forward (beta increases) → moves RIGHT (toward horizon/below)
+    // Tilt backward (beta decreases/negative) → moves LEFT
     //
-    // Phone beta sensor: 0=flat face-up, 90=vertical screen-facing-user
-    // When flat (beta=0): screen normal points UP → elevation = 90° (zenith)
-    // When vertical (beta=90): screen normal points FORWARD → elevation = 0° (horizon)
-    // Formula: phoneElevation = 90 - beta
+    // beta sensor: 0=flat, 90=vertical, negative=tilted backward
+    // phoneTilt = beta directly (0° when flat = center)
     var smoothBeta = _compassDeviceBetaSmooth;
-    var phoneElevation = 90 - Math.max(-30, Math.min(120, smoothBeta));
-    // Clamp to -30..90 range for display
-    phoneElevation = Math.max(-30, Math.min(90, phoneElevation));
+    var phoneTilt = Math.max(-90, Math.min(90, smoothBeta)); // clamp to ±90°
 
-    // Bar range: -30° to +90° (total 120°). 0° horizon at 30/120 = 25% from left.
+    // Moon: to point at moon, need tilt = 90 - moonAlt
+    // Moon at zenith (alt=90°) → tilt 0° (flat, center)
+    // Moon at horizon (alt=0°) → tilt 90° (vertical, far right)
+    // Moon below horizon (alt<0°) → tilt >90° (past vertical, clamped)
+    var moonTilt = Math.max(-90, Math.min(90, 90 - moonAlt));
+
+    // Bar: -90° (left) ← 0° CENTER (flat) → +90° (right)
     var altBarWidth = 260;
-    var barMin = -30, barMax = 90, barRange = barMax - barMin; // 120°
-    var horizonPct = (0 - barMin) / barRange * 100; // 25%
-    var phoneElevPct = Math.max(0, Math.min(100, (phoneElevation - barMin) / barRange * 100));
-    var moonAltPct = Math.max(0, Math.min(100, (moonAlt - barMin) / barRange * 100));
-    // Aligned when phone elevation ≈ moon altitude (within ±5°)
-    var altAligned = Math.abs(phoneElevation - moonAlt) < 5;
+    var phonePct = Math.max(0, Math.min(100, (phoneTilt + 90) / 180 * 100));
+    var moonPct = Math.max(0, Math.min(100, (moonTilt + 90) / 180 * 100));
+    var altAligned = Math.abs(phoneTilt - moonTilt) < 5;
 
     info += '<div style="margin-bottom:8px;">';
-    info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:3px;letter-spacing:1px;">' + (L ? 'ELEVACIÓN (plano = cénit 90°)' : 'ELEVATION (flat = zenith 90°)') + '</div>';
-    // Bar gradient: below-horizon (blue-dark left) → horizon → zenith (gold right)
-    info += '<div style="position:relative;width:' + altBarWidth + 'px;height:20px;background:linear-gradient(to right,rgba(40,40,120,0.2) 0%,rgba(80,80,160,0.1) ' + horizonPct + '%,rgba(255,255,255,0.06) ' + (horizonPct+10) + '%,rgba(255,200,50,0.12) 100%);border-radius:10px;margin:0 auto;border:1px solid rgba(255,255,255,0.1);">';
-    // Horizon line at 0°
-    info += '<div style="position:absolute;left:' + horizonPct + '%;top:0;width:2px;height:100%;background:rgba(255,255,255,0.35);border-radius:1px;"></div>';
-    // Scale labels inside bar
-    info += '<div style="position:absolute;left:3px;top:3px;font-size:0.5em;color:rgba(100,100,200,0.5);font-weight:600;">-30°</div>';
-    info += '<div style="position:absolute;left:' + horizonPct + '%;top:3px;transform:translateX(-50%);font-size:0.5em;color:rgba(255,255,255,0.4);font-weight:600;">0°</div>';
-    info += '<div style="position:absolute;right:3px;top:3px;font-size:0.5em;color:rgba(255,200,50,0.5);font-weight:600;">90°</div>';
-    // Phone elevation indicator (purple bar)
-    info += '<div style="position:absolute;left:' + phoneElevPct + '%;top:-2px;width:5px;height:24px;background:rgba(224,176,255,' + (altAligned ? '1' : '0.6') + ');border-radius:2px;transform:translateX(-50%);transition:left 0.08s ease-out;box-shadow:' + (altAligned ? '0 0 10px rgba(224,176,255,0.9)' : 'none') + ';z-index:1;"></div>';
-    // Moon altitude dot (yellow)
-    info += '<div style="position:absolute;left:' + moonAltPct + '%;top:4px;width:12px;height:12px;background:' + (moonBelowHorizon ? '#616161' : '#ffd54f') + ';border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px ' + (moonBelowHorizon ? 'transparent' : 'rgba(255,213,79,0.6)') + ';z-index:2;"></div>';
+    info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:3px;letter-spacing:1px;">' + (L ? 'INCLINACIÓN (0° = plano al centro)' : 'TILT (0° = flat at center)') + '</div>';
+    // Bar: left(-90°) → center(0° flat) → right(+90° vertical)
+    info += '<div style="position:relative;width:' + altBarWidth + 'px;height:20px;background:linear-gradient(to right,rgba(100,100,200,0.1) 0%,rgba(255,255,255,0.06) 50%,rgba(255,200,50,0.12) 100%);border-radius:10px;margin:0 auto;border:1px solid rgba(255,255,255,0.1);">';
+    // Center line = 0° (flat)
+    info += '<div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(255,255,255,0.35);border-radius:1px;"></div>';
+    // Scale labels
+    info += '<div style="position:absolute;left:3px;top:3px;font-size:0.5em;color:rgba(100,100,200,0.5);font-weight:600;">-90°</div>';
+    info += '<div style="position:absolute;left:50%;top:3px;transform:translateX(-50%);font-size:0.5em;color:rgba(255,255,255,0.45);font-weight:700;">0°</div>';
+    info += '<div style="position:absolute;right:3px;top:3px;font-size:0.5em;color:rgba(255,200,50,0.5);font-weight:600;">+90°</div>';
+    // Phone tilt indicator (purple bar)
+    info += '<div style="position:absolute;left:' + phonePct + '%;top:-2px;width:5px;height:24px;background:rgba(224,176,255,' + (altAligned ? '1' : '0.6') + ');border-radius:2px;transform:translateX(-50%);transition:left 0.08s ease-out;box-shadow:' + (altAligned ? '0 0 10px rgba(224,176,255,0.9)' : 'none') + ';z-index:1;"></div>';
+    // Moon tilt dot (yellow)
+    info += '<div style="position:absolute;left:' + moonPct + '%;top:4px;width:12px;height:12px;background:' + (moonBelowHorizon ? '#616161' : '#ffd54f') + ';border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px ' + (moonBelowHorizon ? 'transparent' : 'rgba(255,213,79,0.6)') + ';z-index:2;"></div>';
     info += '</div>';
-    // Labels below bar
+    // Labels below
     info += '<div style="display:flex;justify-content:space-between;width:' + altBarWidth + 'px;margin:3px auto 0;font-size:0.65em;color:rgba(255,255,255,0.25);">';
-    info += '<span style="color:rgba(224,176,255,0.5);">📱 ' + phoneElevation.toFixed(0) + '°</span>';
-    info += '<span>' + (L ? 'Horizonte 0°' : 'Horizon 0°') + '</span>';
-    info += '<span style="color:rgba(255,213,79,0.5);">🌙 ' + moonAlt.toFixed(0) + '°</span>';
+    info += '<span style="color:rgba(224,176,255,0.5);">📱 ' + phoneTilt.toFixed(0) + '°</span>';
+    info += '<span style="color:rgba(255,255,255,0.3);">' + (L ? 'Plano' : 'Flat') + '</span>';
+    info += '<span style="color:rgba(255,213,79,0.5);">🌙 ' + moonTilt.toFixed(0) + '°</span>';
     info += '</div>';
     if (altAligned && !moonBelowHorizon) {
         info += '<div style="font-size:0.7em;color:#4ecdc4;text-align:center;margin-top:2px;">✓ ' + (L ? 'Apuntando a la Luna' : 'Pointing at the Moon') + '</div>';
@@ -20990,7 +20990,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v375';
+const APP_VERSION = 'v376';
 var _pendingSW = null;
 
 function showUpdateBanner() {
