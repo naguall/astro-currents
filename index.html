@@ -692,6 +692,7 @@
                 <div id="headerUtilBtns" style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px;">
                     <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">📚</button>
                     <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.65em;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;padding:0 3px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
+                    <button id="moonCompassBtn" onclick="openMoonCompass()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">🧭</button>
                     <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">⚙️</button>
                 </div>
             </div>
@@ -972,6 +973,19 @@
                         <button class="btn btn-primary" onclick="showEventForm()">Agregar Evento</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Moon Compass Modal -->
+    <div id="moonCompassModal" class="modal" onclick="if(event.target===this)closeMoonCompass()" style="z-index:1250;">
+        <div class="modal-content" style="max-width:420px;background:radial-gradient(ellipse at center,#0d0d2b 0%,#050515 100%);border:1px solid rgba(155,89,182,0.3);padding:0;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(155,89,182,0.15);">
+                <h2 style="margin:0;font-size:1.1em;color:#e0b0ff;">🧭 <span id="compassTitle">Brújula Lunar</span></h2>
+                <span class="close" onclick="closeMoonCompass()" style="position:static;font-size:1.5em;">&times;</span>
+            </div>
+            <div id="moonCompassBody" style="padding:16px;text-align:center;">
+                <!-- Filled by JS -->
             </div>
         </div>
     </div>
@@ -6923,6 +6937,248 @@ function openDiarioModal(date, lunarDay) {
 function closeDiarioModal() {
     if (isRecording) stopVoiceInput();
     document.getElementById('diarioModal').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════
+// ── MOON COMPASS (Brújula Lunar) ──
+// Real-time compass that points to the Moon's actual position
+// Uses: astronomy-engine (azimuth/altitude) + DeviceOrientationEvent
+// ══════════════════════════════════════════════════════════
+
+var _compassInterval = null;
+var _compassOrientationHandler = null;
+var _compassHeading = 0; // device compass heading in degrees
+var _compassPermissionGranted = false;
+
+function getMoonHorizonCoords(date, lat, lon) {
+    // Use astronomy-engine to get Moon's azimuth & altitude from observer
+    if (typeof Astronomy === 'undefined') return null;
+    try {
+        var observer = new Astronomy.Observer(lat, lon, 0);
+        var t = Astronomy.MakeTime(date);
+        var equ = Astronomy.Equator(Astronomy.Body.Moon, t, observer, true, true);
+        var hor = Astronomy.Horizon(t, observer, equ.ra, equ.dec, 'normal');
+        return { azimuth: hor.azimuth, altitude: hor.altitude };
+    } catch(e) { return null; }
+}
+
+function getSunHorizonCoords(date, lat, lon) {
+    if (typeof Astronomy === 'undefined') return null;
+    try {
+        var observer = new Astronomy.Observer(lat, lon, 0);
+        var t = Astronomy.MakeTime(date);
+        var equ = Astronomy.Equator(Astronomy.Body.Sun, t, observer, true, true);
+        var hor = Astronomy.Horizon(t, observer, equ.ra, equ.dec, 'normal');
+        return { azimuth: hor.azimuth, altitude: hor.altitude };
+    } catch(e) { return null; }
+}
+
+function openMoonCompass() {
+    var L = currentLang === 'es';
+    var modal = document.getElementById('moonCompassModal');
+    document.getElementById('compassTitle').textContent = L ? 'Brújula Lunar' : 'Moon Compass';
+
+    var bodyEl = document.getElementById('moonCompassBody');
+    bodyEl.innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.5);">' + (L ? 'Iniciando sensores...' : 'Starting sensors...') + '</div>';
+    modal.classList.add('show');
+
+    // Request device orientation permission (required on iOS 13+)
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function' && !_compassPermissionGranted) {
+        DeviceOrientationEvent.requestPermission().then(function(response) {
+            if (response === 'granted') {
+                _compassPermissionGranted = true;
+                _startCompass();
+            } else {
+                bodyEl.innerHTML = '<div style="padding:30px;color:#ff6b6b;">' + (L ? 'Permiso de orientación denegado. Activa el acceso al sensor de movimiento en Ajustes.' : 'Orientation permission denied. Enable motion sensor access in Settings.') + '</div>';
+            }
+        }).catch(function(e) {
+            // Fallback: try without permission (Android / desktop)
+            _startCompass();
+        });
+    } else {
+        _startCompass();
+    }
+}
+
+function _startCompass() {
+    // Listen for device orientation
+    _compassOrientationHandler = function(e) {
+        if (e.webkitCompassHeading !== undefined) {
+            // iOS: webkitCompassHeading is degrees from magnetic north (0=N, 90=E)
+            _compassHeading = e.webkitCompassHeading;
+        } else if (e.alpha !== null) {
+            // Android/others: alpha is degrees CCW from north when device is flat
+            _compassHeading = (360 - e.alpha) % 360;
+        }
+    };
+    window.addEventListener('deviceorientation', _compassOrientationHandler, true);
+
+    // Update compass display every 100ms
+    _renderCompass();
+    _compassInterval = setInterval(_renderCompass, 100);
+}
+
+function _renderCompass() {
+    var L = currentLang === 'es';
+    var bodyEl = document.getElementById('moonCompassBody');
+    if (!bodyEl) return;
+
+    var lat = ASTRO_USER_LAT || 9.93;
+    var lon = ASTRO_USER_LON || -84;
+    var now = new Date();
+
+    var moon = getMoonHorizonCoords(now, lat, lon);
+    var sun = getSunHorizonCoords(now, lat, lon);
+    if (!moon) {
+        bodyEl.innerHTML = '<div style="padding:30px;color:#ff6b6b;">' + (L ? 'Error calculando posición lunar' : 'Error calculating moon position') + '</div>';
+        return;
+    }
+
+    var moonAz = moon.azimuth;
+    var moonAlt = moon.altitude;
+    var heading = _compassHeading;
+
+    // Relative angle: where Moon is relative to where phone points
+    var relAngle = ((moonAz - heading) % 360 + 360) % 360;
+
+    var moonBelowHorizon = moonAlt < 0;
+    var moonPhaseIllum = '';
+    try {
+        var t = Astronomy.MakeTime(now);
+        var illum = Astronomy.Illumination(Astronomy.Body.Moon, t);
+        moonPhaseIllum = (illum.phase_fraction * 100).toFixed(1) + '%';
+    } catch(e) {}
+
+    // Cardinal direction of the Moon
+    var cardinals = L ? ['N','NE','E','SE','S','SO','O','NO'] : ['N','NE','E','SE','S','SW','W','NW'];
+    var cardIdx = Math.round(moonAz / 45) % 8;
+    var moonCardinal = cardinals[cardIdx];
+
+    // Compass SVG
+    var size = 300;
+    var cx = size / 2, cy = size / 2;
+    var outerR = 130, innerR = 40;
+
+    var svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">';
+
+    // Background ring
+    svg += '<defs>';
+    svg += '<radialGradient id="compassBg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1a1a3e"/><stop offset="100%" stop-color="#0a0a1e"/></radialGradient>';
+    svg += '<filter id="compassGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+    svg += '</defs>';
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + outerR + '" fill="url(#compassBg)" stroke="rgba(155,89,182,0.3)" stroke-width="2"/>';
+
+    // Degree ticks
+    for (var deg = 0; deg < 360; deg += 10) {
+        var rad = (deg - 90) * Math.PI / 180;
+        var isTick30 = deg % 30 === 0;
+        var r1 = outerR - (isTick30 ? 12 : 6);
+        var r2 = outerR - 2;
+        svg += '<line x1="' + (cx + r1 * Math.cos(rad)) + '" y1="' + (cy + r1 * Math.sin(rad)) + '" x2="' + (cx + r2 * Math.cos(rad)) + '" y2="' + (cy + r2 * Math.sin(rad)) + '" stroke="rgba(255,255,255,' + (isTick30 ? '0.4' : '0.15') + ')" stroke-width="' + (isTick30 ? '2' : '1') + '"/>';
+    }
+
+    // Cardinal labels (rotated with heading so they stay true-north aligned)
+    var cardLabels = ['N','E','S','W'];
+    var cardColors = ['#ef5350','#fff','#fff','#fff'];
+    for (var ci = 0; ci < 4; ci++) {
+        var cDeg = ci * 90 - heading;
+        var cRad = (cDeg - 90) * Math.PI / 180;
+        var lR = outerR - 22;
+        var lx = cx + lR * Math.cos(cRad);
+        var ly = cy + lR * Math.sin(cRad);
+        svg += '<text x="' + lx + '" y="' + ly + '" fill="' + cardColors[ci] + '" font-size="14" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="monospace">' + cardLabels[ci] + '</text>';
+    }
+
+    // Heading indicator (top triangle — always points up = device direction)
+    svg += '<polygon points="' + cx + ',' + (cy - outerR - 8) + ' ' + (cx - 6) + ',' + (cy - outerR + 2) + ' ' + (cx + 6) + ',' + (cy - outerR + 2) + '" fill="#e0b0ff"/>';
+
+    // Moon arrow — rotated to relAngle
+    var arrowRad = (relAngle - 90) * Math.PI / 180;
+    var arrowLen = outerR - 30;
+    var ax = cx + arrowLen * Math.cos(arrowRad);
+    var ay = cy + arrowLen * Math.sin(arrowRad);
+
+    // Arrow line
+    svg += '<line x1="' + cx + '" y1="' + cy + '" x2="' + ax + '" y2="' + ay + '" stroke="' + (moonBelowHorizon ? 'rgba(176,190,197,0.4)' : '#f5f5dc') + '" stroke-width="3" filter="url(#compassGlow)"/>';
+
+    // Arrowhead
+    var ahSize = 12;
+    var ah1 = arrowRad - 0.35;
+    var ah2 = arrowRad + 0.35;
+    svg += '<polygon points="' + ax + ',' + ay + ' ' + (ax - ahSize * Math.cos(ah1)) + ',' + (ay - ahSize * Math.sin(ah1)) + ' ' + (ax - ahSize * Math.cos(ah2)) + ',' + (ay - ahSize * Math.sin(ah2)) + '" fill="' + (moonBelowHorizon ? 'rgba(176,190,197,0.5)' : '#ffd54f') + '" filter="url(#compassGlow)"/>';
+
+    // Moon emoji at arrow tip
+    svg += '<text x="' + (cx + (arrowLen + 15) * Math.cos(arrowRad)) + '" y="' + (cy + (arrowLen + 15) * Math.sin(arrowRad)) + '" font-size="22" text-anchor="middle" dominant-baseline="central">🌙</text>';
+
+    // Sun position (if above horizon)
+    if (sun) {
+        var sunRelAngle = ((sun.azimuth - heading) % 360 + 360) % 360;
+        var sunRad = (sunRelAngle - 90) * Math.PI / 180;
+        var sunR = outerR - 35;
+        svg += '<text x="' + (cx + sunR * Math.cos(sunRad)) + '" y="' + (cy + sunR * Math.sin(sunRad)) + '" font-size="16" text-anchor="middle" dominant-baseline="central" opacity="' + (sun.altitude < 0 ? '0.25' : '0.8') + '">☀️</text>';
+    }
+
+    // Center circle
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + innerR + '" fill="rgba(10,10,30,0.9)" stroke="rgba(155,89,182,0.3)" stroke-width="1"/>';
+    // Center info
+    svg += '<text x="' + cx + '" y="' + (cy - 8) + '" fill="#ffd54f" font-size="11" text-anchor="middle" font-weight="700">' + moonAz.toFixed(1) + '°</text>';
+    svg += '<text x="' + cx + '" y="' + (cy + 8) + '" fill="rgba(255,255,255,0.5)" font-size="10" text-anchor="middle">' + moonCardinal + '</text>';
+    svg += '<text x="' + cx + '" y="' + (cy + 22) + '" fill="rgba(255,255,255,0.3)" font-size="9" text-anchor="middle">' + (moonAlt >= 0 ? '▲' : '▼') + moonAlt.toFixed(1) + '°</text>';
+
+    svg += '</svg>';
+
+    // Info panel below compass
+    var info = '<div style="margin-top:12px;font-size:0.85em;color:rgba(255,255,255,0.7);text-align:center;">';
+
+    // Altitude bar
+    var altBarWidth = 200;
+    var altPct = Math.max(0, Math.min(100, (moonAlt + 90) / 180 * 100));
+    info += '<div style="margin-bottom:8px;">';
+    info += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:3px;">' + (L ? 'ALTITUD' : 'ALTITUDE') + '</div>';
+    info += '<div style="position:relative;width:' + altBarWidth + 'px;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;margin:0 auto;">';
+    info += '<div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:rgba(255,255,255,0.2);"></div>';
+    info += '<div style="position:absolute;left:' + altPct + '%;top:-2px;width:12px;height:12px;background:' + (moonBelowHorizon ? '#616161' : '#ffd54f') + ';border-radius:50%;transform:translateX(-50%);box-shadow:0 0 6px ' + (moonBelowHorizon ? 'transparent' : 'rgba(255,213,79,0.5)') + ';"></div>';
+    info += '</div>';
+    info += '<div style="display:flex;justify-content:space-between;width:' + altBarWidth + 'px;margin:2px auto 0;font-size:0.7em;color:rgba(255,255,255,0.25);"><span>-90°</span><span>' + (L ? 'Horizonte' : 'Horizon') + '</span><span>+90°</span></div>';
+    info += '</div>';
+
+    info += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;text-align:center;">';
+    info += '<div style="background:rgba(255,255,255,0.04);border-radius:6px;padding:6px;">';
+    info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;">' + (L ? 'Azimut' : 'Azimuth') + '</div>';
+    info += '<div style="font-weight:700;color:#ffd54f;">' + moonAz.toFixed(1) + '° ' + moonCardinal + '</div></div>';
+
+    info += '<div style="background:rgba(255,255,255,0.04);border-radius:6px;padding:6px;">';
+    info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;">' + (L ? 'Altitud' : 'Altitude') + '</div>';
+    info += '<div style="font-weight:700;color:' + (moonBelowHorizon ? '#616161' : '#b0bec5') + ';">' + (moonAlt >= 0 ? '+' : '') + moonAlt.toFixed(1) + '°</div></div>';
+
+    info += '<div style="background:rgba(255,255,255,0.04);border-radius:6px;padding:6px;">';
+    info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;">' + (L ? 'Iluminación' : 'Illumination') + '</div>';
+    info += '<div style="font-weight:700;color:#e0b0ff;">' + moonPhaseIllum + '</div></div>';
+
+    info += '<div style="background:rgba(255,255,255,0.04);border-radius:6px;padding:6px;">';
+    info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;">' + (L ? 'Tu Heading' : 'Your Heading') + '</div>';
+    info += '<div style="font-weight:700;color:#e0b0ff;">' + heading.toFixed(0) + '°</div></div>';
+    info += '</div>';
+
+    if (moonBelowHorizon) {
+        info += '<div style="margin-top:10px;padding:8px 12px;background:rgba(97,97,97,0.15);border:1px solid rgba(97,97,97,0.3);border-radius:8px;font-size:0.82em;color:#9e9e9e;">';
+        info += (L ? '🌙 La Luna está bajo el horizonte (' + moonAlt.toFixed(1) + '°). La flecha indica su dirección pero no es visible.' : '🌙 The Moon is below the horizon (' + moonAlt.toFixed(1) + '°). The arrow shows its direction but it is not visible.');
+        info += '</div>';
+    } else {
+        info += '<div style="margin-top:10px;padding:8px 12px;background:rgba(255,213,79,0.08);border:1px solid rgba(255,213,79,0.2);border-radius:8px;font-size:0.82em;color:#ffd54f;">';
+        info += (L ? '🌙 Apunta tu teléfono hacia la flecha para encontrar la Luna en el cielo.' : '🌙 Point your phone toward the arrow to find the Moon in the sky.');
+        info += '</div>';
+    }
+
+    info += '</div>';
+
+    bodyEl.innerHTML = svg + info;
+}
+
+function closeMoonCompass() {
+    document.getElementById('moonCompassModal').classList.remove('show');
+    if (_compassInterval) { clearInterval(_compassInterval); _compassInterval = null; }
+    if (_compassOrientationHandler) { window.removeEventListener('deviceorientation', _compassOrientationHandler, true); _compassOrientationHandler = null; }
 }
 
 function openEventsModal(date, lunarDay) {
@@ -20285,7 +20541,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v353';
+const APP_VERSION = 'v354';
 var _pendingSW = null;
 
 function showUpdateBanner() {
