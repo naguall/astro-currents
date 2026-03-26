@@ -20716,7 +20716,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v357';
+const APP_VERSION = 'v358';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -21714,6 +21714,30 @@ function gatherAstroContext() {
                 var qp = eq.qualityPercents || {};
                 ctx += '\nELEMENTOS: Fuego ' + (ep.Fire||0) + '%, Tierra ' + (ep.Earth||0) + '%, Aire ' + (ep.Air||0) + '%, Agua ' + (ep.Water||0) + '%\n';
                 ctx += 'CUALIDADES: Cardinal ' + (qp.Cardinal||0) + '%, Fijo ' + (qp.Fixed||0) + '%, Mutable ' + (qp.Mutable||0) + '%\n';
+            }
+
+            // ========== ASTROCARTOGRAPHY LINES ==========
+            if (profile && nc) {
+                try {
+                    var birthUTC = getBirthUTCTime(profile.date, profile.time, profile.lat, profile.lon, profile.countryCode);
+                    var acLines = calculateAstroCartographyLines(birthUTC, nc);
+                    if (acLines && acLines.length > 0) {
+                        var pNcarto = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón'};
+                        ctx += '\nCARTOGRAFÍA ASTRAL — LÍNEAS PLANETARIAS:\n';
+                        acLines.forEach(function(line) {
+                            var pName = pNcarto[line.planet] || line.planet;
+                            var countries = (typeof getCountriesForLine === 'function') ? getCountriesForLine(line, true) : [];
+                            var countriesStr = countries.length > 0 ? countries.join(', ') : 'Océano';
+                            if (line.type === 'MC' || line.type === 'IC') {
+                                var lonStr = line.geoLon >= 0 ? line.geoLon.toFixed(1) + '°E' : Math.abs(line.geoLon).toFixed(1) + '°W';
+                                ctx += line.symbol + ' ' + pName + ' ' + line.type + ' (lon: ' + lonStr + ') — Países: ' + countriesStr + '\n';
+                            } else {
+                                ctx += line.symbol + ' ' + pName + ' ' + line.type + ' — Países: ' + countriesStr + '\n';
+                            }
+                        });
+                        ctx += '\n';
+                    }
+                } catch(cartoErr) { /* cartography context optional */ }
             }
 
             ctx += '\n';
