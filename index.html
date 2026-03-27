@@ -11185,27 +11185,29 @@ function updateCurrentDayInfoForMode(mode) {
     if (currentDayInfoDiv) {
         // Get events and aspects data
         const todayEvents = getAllEventsForDate(today);
-        // Get lunar aspects for today — use pre-computed cache if available, else compute once
-        const todayLunarDay = getLunarDayForDate(today);
+        // Skip heavy lunar cycle calculation in solar/gregorian modes
         let todayAspects = [];
-        if (todayLunarDay) {
-            var todayStr = today.toDateString();
-            if (window._solarAspectsCache && window._solarAspectsCache[todayStr]) {
-                todayAspects = window._solarAspectsCache[todayStr];
-            } else {
-                try {
-                    var nm = findNearestNewMoon(today);
-                    var wks = calculateLunarCycle(nm);
-                    for (var wi = 0; wi < wks.length; wi++) {
-                        for (var di = 0; di < wks[wi].days.length; di++) {
-                            if (wks[wi].days[di].date.toDateString() === todayStr) {
-                                todayAspects = wks[wi].days[di].aspects || [];
-                                break;
+        if (mode === 'lunar') {
+            const todayLunarDay = getLunarDayForDate(today);
+            if (todayLunarDay) {
+                var todayStr = today.toDateString();
+                if (window._solarAspectsCache && window._solarAspectsCache[todayStr]) {
+                    todayAspects = window._solarAspectsCache[todayStr];
+                } else {
+                    try {
+                        var nm = findNearestNewMoon(today);
+                        var wks = calculateLunarCycle(nm);
+                        for (var wi = 0; wi < wks.length; wi++) {
+                            for (var di = 0; di < wks[wi].days.length; di++) {
+                                if (wks[wi].days[di].date.toDateString() === todayStr) {
+                                    todayAspects = wks[wi].days[di].aspects || [];
+                                    break;
+                                }
                             }
+                            if (todayAspects.length > 0) break;
                         }
-                        if (todayAspects.length > 0) break;
-                    }
-                } catch(e) {}
+                    } catch(e) {}
+                }
             }
         }
         const todaySignChanges = getSignChanges(today);
@@ -16429,8 +16431,8 @@ function renderSolarInfoPanel() {
         <path d="M226.9,162.4 L231.7,160.1 L236.5,160.1 L241.3,162.4 L246.1,167.2 L250.8,167.2 L253.2,167.2 L248.4,164.8 L243.7,162.4 L238.9,160.1 L234.1,160.1 L226.9,162.4 Z" fill="#3d2a0a" stroke="#5a4012" stroke-width="0.6" stroke-linejoin="round"/>
         <path d="M0.0,363.1 L47.8,367.9 L95.6,372.7 L143.3,377.4 L191.1,382.2 L238.9,377.4 L286.7,372.7 L334.4,370.3 L382.2,375.1 L430.0,377.4 L477.8,372.7 L525.6,370.3 L573.3,375.1 L621.1,379.8 L668.9,382.2 L716.7,377.4 L764.4,372.7 L812.2,367.9 L860.0,363.1 L860.0,430.0 L0.0,430.0 L0.0,363.1 Z" fill="#3d2a0a" stroke="#5a4012" stroke-width="0.6" stroke-linejoin="round"/>`;
 
-    // Build the SVG map — DISABLED FOR PERFORMANCE TEST (v386)
-    const mapSVG_DISABLED = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;border-radius:8px;border:1px solid rgba(255,149,0,0.2);">'
+    // Build the SVG map
+    const mapSVG = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;border-radius:8px;border:1px solid rgba(255,149,0,0.2);">'
         + '<defs>'
         + '<radialGradient id="bgS" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#1a0e00"/><stop offset="100%" stop-color="#080400"/></radialGradient>'
         + '<radialGradient id="sg5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ff9500" stop-opacity="0.65"/><stop offset="100%" stop-color="#ff9500" stop-opacity="0"/></radialGradient>'
@@ -16527,8 +16529,6 @@ function renderSolarInfoPanel() {
         + '<circle cx="'+ux.toFixed(1)+'" cy="'+uy.toFixed(1)+'" r="1.5" fill="white"/>'
         + '<text x="'+(ux+10).toFixed(0)+'" y="'+(uy+4).toFixed(0)+'" fill="#4ecdc4" font-size="10" font-family="monospace" font-weight="bold">'+cityLabel+'</text>'
         + '</svg>';
-    // PERFORMANCE TEST: Use empty placeholder instead of full SVG map
-    const mapSVG = '<div style="width:100%;height:120px;border-radius:8px;border:1px solid rgba(255,149,0,0.2);background:rgba(25,15,0,0.5);display:flex;align-items:center;justify-content:center;color:rgba(255,149,0,0.4);font-size:0.8em;">[SVG desactivado - test rendimiento]</div>';
 
     // Distance bar percentage (147.1 = perihelion, 152.1 = aphelion)
     const distPct = ((earthSunDist - 147.1) / (152.1 - 147.1) * 100).toFixed(0);
@@ -16619,16 +16619,16 @@ function renderSolarInfoPanel() {
     panel.innerHTML = '<div style="background:linear-gradient(160deg,rgba(25,15,0,0.98) 0%,rgba(15,8,0,0.98) 100%); border-radius:12px; border:1px solid rgba(255,149,0,0.28); border-top:2px solid rgba(255,149,0,0.55); box-shadow:0 0 22px rgba(255,149,0,0.09); padding:8px 10px; font-size:0.78em;">'
         + headerHTML + solarListHTML + titleHTML + gridHTML + infoHTML + '</div>';
 
-    // Render 3D globe after DOM update — DISABLED FOR PERFORMANCE TEST (v386)
-    // setTimeout(() => {
-    //     const mapC = document.getElementById('subsolarMapContainer');
-    //     const canvas = document.getElementById('subsolarGlobe');
-    //     if (mapC && canvas) {
-    //         const mapH = mapC.offsetHeight;
-    //         if (mapH > 0) { canvas.style.height = mapH + 'px'; }
-    //     }
-    //     renderSubsolarGlobe(sunDecl, subsolarLon);
-    // }, 50);
+    // Render 3D globe after DOM update — match height to 2D map
+    setTimeout(() => {
+        const mapC = document.getElementById('subsolarMapContainer');
+        const canvas = document.getElementById('subsolarGlobe');
+        if (mapC && canvas) {
+            const mapH = mapC.offsetHeight;
+            if (mapH > 0) { canvas.style.height = mapH + 'px'; }
+        }
+        renderSubsolarGlobe(sunDecl, subsolarLon);
+    }, 50);
 }
 
 function previousSign() {
@@ -16710,13 +16710,13 @@ function getMoonEventForDate(checkDate) {
 function generateSolarWeeks(sign) {
     const startDate = new Date(sign.start);
     startDate.setHours(0, 0, 0, 0); // Normalize to midnight
-    
+
     const endDate = new Date(sign.end);
     endDate.setHours(0, 0, 0, 0); // Normalize to midnight
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
     
     // DECANOS: 3 divisiones de ~10 días cada una
@@ -16733,30 +16733,7 @@ function generateSolarWeeks(sign) {
         { name: decanNames[2], subtitle: decanSubtitles[2], days: totalDays - 20 } // Los días restantes
     ];
     
-    // Pre-compute lunar cycles for the sign's date range (avoid recalculating per day)
-    var _solarAspectsCache = {};
-    try {
-        // A solar month spans at most 2 lunar cycles
-        var nm1 = findNearestNewMoon(startDate);
-        var wks1 = calculateLunarCycle(nm1);
-        for (var wi = 0; wi < wks1.length; wi++) {
-            for (var di = 0; di < wks1[wi].days.length; di++) {
-                var d = wks1[wi].days[di];
-                _solarAspectsCache[d.date.toDateString()] = d.aspects || [];
-            }
-        }
-        // Check if we need a second cycle
-        var nm2 = findNearestNewMoon(endDate);
-        if (nm2.toDateString() !== nm1.toDateString()) {
-            var wks2 = calculateLunarCycle(nm2);
-            for (var wi2 = 0; wi2 < wks2.length; wi2++) {
-                for (var di2 = 0; di2 < wks2[wi2].days.length; di2++) {
-                    var d2 = wks2[wi2].days[di2];
-                    _solarAspectsCache[d2.date.toDateString()] = d2.aspects || [];
-                }
-            }
-        }
-    } catch(e) { /* ignore */ }
+    // No lunar calculations needed in solar mode — removed calculateLunarCycle cache
 
     let html = '';
     let currentDate = new Date(startDate);
@@ -16794,6 +16771,7 @@ function generateSolarWeeks(sign) {
             const isToday = isSameDay(dayDate, today);
             const dayEvents = getAllEventsForDate(dayDate);
             const weekday = (currentLang==='es' ? ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'] : ['SUN','MON','TUE','WED','THU','FRI','SAT'])[dayDate.getDay()];
+            // Solar-relevant events only (no heavy lunar calculations)
             const eclipse = getEclipseInfo(dayDate);
             const retrogrades = getRetrogrades(dayDate);
             const signChanges = getSignChanges(dayDate);
@@ -16802,9 +16780,6 @@ function generateSolarWeeks(sign) {
             const majorAspect = getMajorAspect(dayDate);
             const astronomicalEvent = isAstronomicalEvent(dayDate);
             const moonEvent = getMoonEventForDate(dayDate);
-            
-            // Calculate REAL lunar day for this gregorian date
-            const realLunarDay = getLunarDayForDate(dayDate) || dayCounter;
             
             // Events HTML
             const eventsHTML = dayEvents.slice(0, 3).map(event => `
@@ -16819,15 +16794,15 @@ function generateSolarWeeks(sign) {
                 </div>
             ` : '';
             
-            // Get lunar aspects for this day (from pre-computed cache)
-            let solarDayAspects = _solarAspectsCache[dayDate.toDateString()] || [];
-            const dayDataStr = JSON.stringify({date: dayDate, lunarDay: realLunarDay, aspects: solarDayAspects}).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            // No lunar aspects in solar mode
+            let solarDayAspects = [];
+            const dayDataStr = JSON.stringify({date: dayDate, lunarDay: dayCounter, aspects: []}).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             
             html += `
                 <div class="day-cell ${isToday ? 'today' : ''} ${dayDate.getDay()===0||dayDate.getDay()===6 ? 'weekend' : ''} ${dayDate < today && !isToday ? 'past' : ''}"
                      data-date="${dayDate.getTime()}"
-                     data-lunar-day="${realLunarDay}"
-                     data-has-aspects="${solarDayAspects.length > 0 || interAspects.length > 0 || signChanges.length > 0 || retrogrades.length > 0}"
+                     data-lunar-day="${dayCounter}"
+                     data-has-aspects="${interAspects.length > 0 || signChanges.length > 0 || retrogrades.length > 0}"
                      data-day-data='${dayDataStr}'
                      onclick="handleDayClick(this)">
                     
@@ -16882,7 +16857,6 @@ function generateSolarWeeks(sign) {
         
         html += `</div></div>`; // Close days-container and lunar-week
     });
-    
     return html;
 }
 
@@ -21096,7 +21070,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v386';
+const APP_VERSION = 'v387';
 var _pendingSW = null;
 
 function showUpdateBanner() {
