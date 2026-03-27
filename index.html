@@ -2869,28 +2869,20 @@ function getRetrogrades(date) {
     dateClean.setHours(0, 0, 0, 0);
     const dateStr = dateClean.toDateString();
     
-    console.log(`🔍 Buscando retrogradaciones para: ${dateStr}`);
-    
     for (const retro of retrogrades2026) {
         const startClean = new Date(retro.start);
         startClean.setHours(0, 0, 0, 0);
         const endClean = new Date(retro.end);
         endClean.setHours(0, 0, 0, 0);
-        
+
         const startStr = startClean.toDateString();
         const endStr = endClean.toDateString();
-        
+
         if (dateStr === startStr) {
-            console.log(`✅ ${retro.planet} INICIA retrogradación en ${dateStr}`);
             retros.push({ ...retro, isStart: true });
         } else if (dateStr === endStr) {
-            console.log(`✅ ${retro.planet} TERMINA retrogradación (vuelve DIRECTO) en ${dateStr}`);
             retros.push({ ...retro, isStart: false });
         }
-    }
-    
-    if (retros.length === 0) {
-        console.log(`   No hay retrogradaciones en ${dateStr}`);
     }
     
     return retros;
@@ -11193,20 +11185,27 @@ function updateCurrentDayInfoForMode(mode) {
     if (currentDayInfoDiv) {
         // Get events and aspects data
         const todayEvents = getAllEventsForDate(today);
-        // Get lunar aspects for today (same as lunar mode)
+        // Get lunar aspects for today — use pre-computed cache if available, else compute once
         const todayLunarDay = getLunarDayForDate(today);
         let todayAspects = [];
         if (todayLunarDay) {
-            const nm = findNearestNewMoon(today);
-            const wks = calculateLunarCycle(nm);
-            for (const wk of wks) {
-                for (const d of wk.days) {
-                    if (d.date.toDateString() === today.toDateString()) {
-                        todayAspects = d.aspects || [];
-                        break;
+            var todayStr = today.toDateString();
+            if (window._solarAspectsCache && window._solarAspectsCache[todayStr]) {
+                todayAspects = window._solarAspectsCache[todayStr];
+            } else {
+                try {
+                    var nm = findNearestNewMoon(today);
+                    var wks = calculateLunarCycle(nm);
+                    for (var wi = 0; wi < wks.length; wi++) {
+                        for (var di = 0; di < wks[wi].days.length; di++) {
+                            if (wks[wi].days[di].date.toDateString() === todayStr) {
+                                todayAspects = wks[wi].days[di].aspects || [];
+                                break;
+                            }
+                        }
+                        if (todayAspects.length > 0) break;
                     }
-                }
-                if (todayAspects.length > 0) break;
+                } catch(e) {}
             }
         }
         const todaySignChanges = getSignChanges(today);
@@ -16330,6 +16329,8 @@ function renderSolarCalendar() {
     updateCurrentDayInfoForMode('solar');
 
     // Defer the heavy solar info panel (SVG map) so calendar grid paints first
+    // Flag prevents refreshAllLiveData from re-rendering it again
+    window._solarPanelJustRendered = true;
     setTimeout(renderSolarInfoPanel, 80);
 
     // Show lunar info banner
@@ -17674,11 +17675,15 @@ function refreshSublunaryFull() {
     const infoEl = document.getElementById('sublunaryInfoBox');
     if (infoEl) infoEl.innerHTML = renderSublunaryInfoBox(lat, lon, ASTRO_USER_LAT, ASTRO_USER_LON);
     refreshSublunaryCoords();
-    // Also refresh solar panel if visible
-    const solarPanel = document.getElementById('solarInfoPanel');
-    if (solarPanel && solarPanel.style.display !== 'none') {
-        renderSolarInfoPanel();
+    // Solar panel is already rendered by renderSolarCalendar — skip on initial load
+    // Only re-render on periodic refresh (not during mode switch)
+    if (!window._solarPanelJustRendered) {
+        const solarPanel = document.getElementById('solarInfoPanel');
+        if (solarPanel && solarPanel.style.display !== 'none') {
+            renderSolarInfoPanel();
+        }
     }
+    window._solarPanelJustRendered = false;
     // Also refresh earth panel if visible
     const earthPanel = document.getElementById('earthInfoPanel');
     if (earthPanel && earthPanel.style.display !== 'none') {
@@ -21089,7 +21094,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v384';
+const APP_VERSION = 'v385';
 var _pendingSW = null;
 
 function showUpdateBanner() {
