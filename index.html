@@ -503,6 +503,8 @@
         .transit-aspect-row.trine { background: rgba(46,204,113,0.08); border-left: 2px solid #2ecc71; }
         .transit-aspect-row.sextile { background: rgba(52,152,219,0.08); border-left: 2px solid #3498db; }
         .transit-aspect-row.square { background: rgba(241,196,15,0.08); border-left: 2px solid #f1c40f; }
+        .transit-aspect-row.quincunx { background: rgba(142,68,173,0.08); border-left: 2px solid #8e44ad; }
+        .transit-aspect-row.semisextile { background: rgba(120,144,156,0.08); border-left: 2px solid #78909c; }
         .personal-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
         .personal-day-cell { min-height: 70px; background: rgba(10,3,22,0.95); border: 1px solid rgba(155,89,182,0.12); border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.78em; box-sizing: border-box; overflow: hidden; min-width: 0; }
         .personal-day-cell:hover { border-color: rgba(155,89,182,0.40); background: rgba(15,5,30,0.98); }
@@ -11664,6 +11666,60 @@ function calculateNatalChart(birthDate) {
     // Calculate houses
     const houses = calculateHouses(birthDate, parseFloat(localStorage.getItem('natalLat') || '0'));
 
+    // Calculate Part of Fortune: ASC + Moon - Sun (day chart), ASC + Sun - Moon (night chart)
+    if (houses && natalPositions.sun && natalPositions.moon) {
+        var ascLon = houses.ascendant || 0;
+        var sunLon = natalPositions.sun.longitude;
+        var moonLon = natalPositions.moon.longitude;
+        // Day chart = Sun above horizon (between houses 7-12 going through 10)
+        var isDay = true;
+        if (houses.cusps) {
+            var desc = (ascLon + 180) % 360;
+            var sunAbove = false;
+            // Simplified: Sun is above horizon if it's in the upper half (houses 7-12)
+            var h7Cusp = houses.cusps[6] || desc;
+            if (sunLon >= h7Cusp || sunLon < ascLon) sunAbove = true;
+            isDay = sunAbove;
+        }
+        var pofLon = isDay
+            ? ((ascLon + moonLon - sunLon + 720) % 360)
+            : ((ascLon + sunLon - moonLon + 720) % 360);
+        var pofSign = getZodiacSignWithDegree(pofLon);
+        natalPositions['partOfFortune'] = {
+            longitude: pofLon,
+            sign: pofSign.sign,
+            degree: pofSign.degree,
+            minute: pofSign.minute,
+            formatted: pofSign.formatted,
+            speed: 0, speedFormatted: '-',
+            isRetrograde: false,
+            declination: 0,
+            declinationFormatted: '-'
+        };
+
+        // Vertex: the point where the prime vertical intersects the ecliptic in the west
+        // Simplified: Vertex ≈ ASC of the "anti-vertex" chart (co-latitude)
+        var userLat = parseFloat(localStorage.getItem('natalLat') || '0');
+        var coLat = 90 - Math.abs(userLat);
+        // Vertex is approximately the descendant calculated for co-latitude
+        var vtxHouses = calculateHouses(birthDate, coLat * (userLat >= 0 ? 1 : -1));
+        if (vtxHouses) {
+            var vtxLon = (vtxHouses.ascendant + 180) % 360; // descendant at co-latitude
+            var vtxSign = getZodiacSignWithDegree(vtxLon);
+            natalPositions['vertex'] = {
+                longitude: vtxLon,
+                sign: vtxSign.sign,
+                degree: vtxSign.degree,
+                minute: vtxSign.minute,
+                formatted: vtxSign.formatted,
+                speed: 0, speedFormatted: '-',
+                isRetrograde: false,
+                declination: 0,
+                declinationFormatted: '-'
+            };
+        }
+    }
+
     // Calculate natal aspects (planet-to-planet)
     const natalAspects = calculateNatalAspects(natalPositions, houses);
 
@@ -11958,17 +12014,23 @@ function getHouseForLongitude(longitude, houseCusps) {
 function calculateTransitsToNatal(transitDate, natalChart) {
     const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron'];
     const aspectTypes = [
-        { name: 'conjunction', symbol: '☌', angle: 0, orb: 6, color: '#e74c3c', class: 'conjunction' },
-        { name: 'sextile', symbol: '⚹', angle: 60, orb: 3, color: '#3498db', class: 'sextile' },
-        { name: 'square', symbol: '□', angle: 90, orb: 6, color: '#f1c40f', class: 'square' },
-        { name: 'trine', symbol: '△', angle: 120, orb: 6, color: '#2ecc71', class: 'trine' },
-        { name: 'opposition', symbol: '☍', angle: 180, orb: 6, color: '#c0392b', class: 'opposition' }
+        { name: 'conjunction', symbol: '☌', angle: 0, orb: 6, color: '#e74c3c', class: 'conjunction', major: true },
+        { name: 'semisextile', symbol: '⚺', angle: 30, orb: 1.5, color: '#78909c', class: 'semisextile', major: false },
+        { name: 'sextile', symbol: '⚹', angle: 60, orb: 3, color: '#3498db', class: 'sextile', major: true },
+        { name: 'square', symbol: '□', angle: 90, orb: 6, color: '#f1c40f', class: 'square', major: true },
+        { name: 'trine', symbol: '△', angle: 120, orb: 6, color: '#2ecc71', class: 'trine', major: true },
+        { name: 'quincunx', symbol: '⚻', angle: 150, orb: 2.5, color: '#8e44ad', class: 'quincunx', major: false },
+        { name: 'opposition', symbol: '☍', angle: 180, orb: 6, color: '#c0392b', class: 'opposition', major: true }
     ];
 
     const aspects = [];
+    const slowPlanets = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+    // Tomorrow for applying/separating calculation
+    const tomorrow = new Date(transitDate.getTime() + 86400000);
 
     for (const transitPlanet of planets) {
         const transitLon = getPlanetPosition(transitPlanet, transitDate);
+        const transitLonTomorrow = getPlanetPosition(transitPlanet, tomorrow);
 
         for (const natalPlanet of Object.keys(natalChart.planets)) {
             const natalLon = natalChart.planets[natalPlanet].longitude;
@@ -11978,23 +12040,33 @@ function calculateTransitsToNatal(transitDate, natalChart) {
 
             for (const aspect of aspectTypes) {
                 const aspectDiff = Math.abs(diff - aspect.angle);
-                // Tighter orbs for fast-moving planets, wider for slow
-                const slowPlanets = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
-                const effectiveOrb = slowPlanets.includes(transitPlanet) ? aspect.orb : aspect.orb * 0.7;
+                const isSlow = slowPlanets.includes(transitPlanet);
+                const effectiveOrb = isSlow ? aspect.orb : aspect.orb * 0.7;
 
                 if (aspectDiff <= effectiveOrb) {
+                    // Applying vs separating: check if orb is shrinking tomorrow
+                    let diffTomorrow = Math.abs(transitLonTomorrow - natalLon);
+                    if (diffTomorrow > 180) diffTomorrow = 360 - diffTomorrow;
+                    const aspectDiffTomorrow = Math.abs(diffTomorrow - aspect.angle);
+                    const isApplying = aspectDiffTomorrow < aspectDiff;
+
                     aspects.push({
                         transitPlanet,
+                        transitLon: transitLon,
                         transitSymbol: planetSymbols[transitPlanet] || transitPlanet[0].toUpperCase(),
                         natalPlanet,
+                        natalLon: natalLon,
                         natalSymbol: planetSymbols[natalPlanet] || natalPlanet[0].toUpperCase(),
                         type: aspect.name,
                         symbol: aspect.symbol,
                         color: aspect.color,
                         class: aspect.class,
+                        major: aspect.major,
                         orb: aspectDiff.toFixed(1),
+                        orbFormatted: aspectDiff.toFixed(1) + '\u00b0',
                         exactness: effectiveOrb - aspectDiff,
-                        applying: diff < aspect.angle // simplified
+                        applying: isApplying,
+                        applyingLabel: isApplying ? 'Ap' : 'Sep'
                     });
                 }
             }
@@ -12005,6 +12077,7 @@ function calculateTransitsToNatal(transitDate, natalChart) {
     if (natalChart.houses) {
         for (const transitPlanet of planets) {
             const transitLon = getPlanetPosition(transitPlanet, transitDate);
+            const transitLonTomorrow = getPlanetPosition(transitPlanet, tomorrow);
 
             for (const point of [
                 { name: 'ASC', lon: natalChart.houses.ascendant },
@@ -12014,19 +12087,29 @@ function calculateTransitsToNatal(transitDate, natalChart) {
                 if (diff > 180) diff = 360 - diff;
 
                 for (const aspect of aspectTypes) {
-                    if (Math.abs(diff - aspect.angle) <= aspect.orb * 0.6) {
+                    const aspectDiff = Math.abs(diff - aspect.angle);
+                    if (aspectDiff <= aspect.orb * 0.6) {
+                        let diffTomorrow = Math.abs(transitLonTomorrow - point.lon);
+                        if (diffTomorrow > 180) diffTomorrow = 360 - diffTomorrow;
+                        const isApplying = Math.abs(diffTomorrow - aspect.angle) < aspectDiff;
+
                         aspects.push({
                             transitPlanet,
+                            transitLon: transitLon,
                             transitSymbol: planetSymbols[transitPlanet] || '?',
                             natalPlanet: point.name,
+                            natalLon: point.lon,
                             natalSymbol: point.name,
                             type: aspect.name,
                             symbol: aspect.symbol,
                             color: aspect.color,
                             class: aspect.class,
-                            orb: Math.abs(diff - aspect.angle).toFixed(1),
-                            exactness: aspect.orb - Math.abs(diff - aspect.angle),
-                            applying: false
+                            major: aspect.major,
+                            orb: aspectDiff.toFixed(1),
+                            orbFormatted: aspectDiff.toFixed(1) + '\u00b0',
+                            exactness: aspect.orb - aspectDiff,
+                            applying: isApplying,
+                            applyingLabel: isApplying ? 'Ap' : 'Sep'
                         });
                     }
                 }
@@ -12046,6 +12129,587 @@ function calculateTransitsToNatal(transitDate, natalChart) {
         return true;
     });
 }
+
+// ===== SYNASTRY: Cross-aspect calculation between two charts =====
+function calculateSynastryAspects(chart1, chart2) {
+    var aspectTypes = [
+        { name: 'conjunction', symbol: '☌', angle: 0, orb: 8, color: '#e74c3c', major: true },
+        { name: 'semisextile', symbol: '⚺', angle: 30, orb: 2, color: '#78909c', major: false },
+        { name: 'sextile', symbol: '⚹', angle: 60, orb: 5, color: '#3498db', major: true },
+        { name: 'square', symbol: '□', angle: 90, orb: 7, color: '#f1c40f', major: true },
+        { name: 'trine', symbol: '△', angle: 120, orb: 7, color: '#2ecc71', major: true },
+        { name: 'quincunx', symbol: '⚻', angle: 150, orb: 3, color: '#8e44ad', major: false },
+        { name: 'opposition', symbol: '☍', angle: 180, orb: 8, color: '#c0392b', major: true }
+    ];
+    var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'];
+    var aspects = [];
+
+    for (var i = 0; i < planets.length; i++) {
+        var p1 = planets[i];
+        if (!chart1.planets[p1]) continue;
+        var lon1 = chart1.planets[p1].longitude;
+
+        for (var j = 0; j < planets.length; j++) {
+            var p2 = planets[j];
+            if (!chart2.planets[p2]) continue;
+            var lon2 = chart2.planets[p2].longitude;
+
+            var diff = Math.abs(lon1 - lon2);
+            if (diff > 180) diff = 360 - diff;
+
+            for (var k = 0; k < aspectTypes.length; k++) {
+                var asp = aspectTypes[k];
+                var aspectDiff = Math.abs(diff - asp.angle);
+                if (aspectDiff <= asp.orb) {
+                    aspects.push({
+                        planet1: p1, lon1: lon1,
+                        symbol1: planetSymbols[p1] || p1[0].toUpperCase(),
+                        planet2: p2, lon2: lon2,
+                        symbol2: planetSymbols[p2] || p2[0].toUpperCase(),
+                        type: asp.name, symbol: asp.symbol,
+                        color: asp.color, major: asp.major,
+                        orb: aspectDiff.toFixed(1),
+                        exactness: asp.orb - aspectDiff,
+                        score: getSynastryScore(p1, p2, asp.name)
+                    });
+                    break;
+                }
+            }
+        }
+    }
+
+    // Also check planets to ASC/MC of the other chart
+    if (chart2.houses) {
+        var points = [
+            { name: 'ASC', lon: chart2.houses.ascendant },
+            { name: 'MC', lon: chart2.houses.mc }
+        ];
+        for (var pi = 0; pi < planets.length; pi++) {
+            var pp = planets[pi];
+            if (!chart1.planets[pp]) continue;
+            var plon = chart1.planets[pp].longitude;
+            for (var xi = 0; xi < points.length; xi++) {
+                var diff2 = Math.abs(plon - points[xi].lon);
+                if (diff2 > 180) diff2 = 360 - diff2;
+                for (var ai = 0; ai < aspectTypes.length; ai++) {
+                    var a2 = aspectTypes[ai];
+                    if (Math.abs(diff2 - a2.angle) <= a2.orb * 0.7) {
+                        aspects.push({
+                            planet1: pp, lon1: plon,
+                            symbol1: planetSymbols[pp] || '?',
+                            planet2: points[xi].name, lon2: points[xi].lon,
+                            symbol2: points[xi].name,
+                            type: a2.name, symbol: a2.symbol,
+                            color: a2.color, major: a2.major,
+                            orb: Math.abs(diff2 - a2.angle).toFixed(1),
+                            exactness: a2.orb - Math.abs(diff2 - a2.angle),
+                            score: getSynastryScore(pp, points[xi].name, a2.name)
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    aspects.sort(function(a,b) { return b.exactness - a.exactness; });
+    // Deduplicate
+    var seen = {};
+    return aspects.filter(function(a) {
+        var key = a.planet1 + '-' + a.planet2 + '-' + a.type;
+        if (seen[key]) return false;
+        seen[key] = true;
+        return true;
+    });
+}
+
+function getSynastryScore(p1, p2, aspect) {
+    // Scoring: positive = harmonious, negative = challenging
+    var harmonyMap = { conjunction: 3, trine: 4, sextile: 3, semisextile: 1, opposition: -2, square: -3, quincunx: -2 };
+    var base = harmonyMap[aspect] || 0;
+    // Weight by planet importance
+    var importantPlanets = ['sun','moon','venus','mars','ASC','MC'];
+    var weight = 1;
+    if (importantPlanets.includes(p1) && importantPlanets.includes(p2)) weight = 3;
+    else if (importantPlanets.includes(p1) || importantPlanets.includes(p2)) weight = 2;
+    return base * weight;
+}
+
+function calculateSynastryCompatibility(aspects) {
+    var totalScore = 0;
+    var maxPossible = 0;
+    aspects.forEach(function(a) {
+        totalScore += a.score;
+        maxPossible += Math.abs(a.score);
+    });
+    if (maxPossible === 0) return 50;
+    // Normalize to 0-100
+    return Math.round(50 + (totalScore / maxPossible) * 50);
+}
+
+// House overlay: where person2's planets fall in person1's houses
+function calculateHouseOverlay(chart1Houses, chart2Planets) {
+    if (!chart1Houses || !chart1Houses.cusps || !chart2Planets) return [];
+    var overlay = [];
+    var pNames = Object.keys(chart2Planets);
+    for (var i = 0; i < pNames.length; i++) {
+        var p = pNames[i];
+        var lon = chart2Planets[p].longitude;
+        var house = getHouseForLongitude(lon, chart1Houses.cusps);
+        overlay.push({ planet: p, symbol: planetSymbols[p] || p[0].toUpperCase(), sign: chart2Planets[p].sign, house: house });
+    }
+    return overlay;
+}
+
+// Draw synastry biwheel: chart1 inner, chart2 outer
+function drawSynastryBiwheel(containerId, chart1, chart2, name1, name2) {
+    var container = document.getElementById(containerId);
+    if (!container || !chart1 || !chart2) return;
+
+    var S = 750;
+    var cx = S/2, cy = S/2;
+    var svg = '';
+    function px2(r,a){ return (cx+r*Math.cos(a)).toFixed(2); }
+    function py2(r,a){ return (cy+r*Math.sin(a)).toFixed(2); }
+
+    var signGlyphs2 = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+    var signColors2 = ['#c0392b','#27ae60','#f39c12','#2980b9','#e67e22','#27ae60','#2980b9','#c0392b','#8e44ad','#27ae60','#2980b9','#2980b9'];
+    var planetGlyphs2 = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','northnode':'☊'};
+    var p1Colors = {'sun':'#e67e22','moon':'#546e7a','mercury':'#b8860b','venus':'#27ae60','mars':'#c0392b','jupiter':'#6a5acd','saturn':'#546e7a','uranus':'#16a085','neptune':'#2980b9','pluto':'#555','chiron':'#d4a017','northnode':'#555','lilith':'#444'};
+    var p2Colors = {'sun':'#ff6b35','moon':'#64B5F6','mercury':'#ffd54f','venus':'#66bb6a','mars':'#ef5350','jupiter':'#7e57c2','saturn':'#78909c','uranus':'#26c6da','neptune':'#42a5f5','pluto':'#ab47bc','chiron':'#ffca28','northnode':'#78909c','lilith':'#666'};
+
+    // Rotation: ASC on left
+    var ascRot = chart1.houses ? chart1.houses.ascendant : 0;
+    function L2A2(lon) { return (ascRot - lon) * Math.PI / 180; }
+
+    var R_outer = S/2 - 10;
+    var R_signInner = R_outer - 40;
+
+    // Zodiac ring
+    for (var si=0;si<12;si++) {
+        var a1=L2A2(si*30), a2=L2A2((si+1)*30);
+        var lf=(a2-a1>0)?0:1;
+        svg += '<path d="M'+px2(R_outer,a1)+' '+py2(R_outer,a1)+' A'+R_outer+' '+R_outer+' 0 0 '+lf+' '+px2(R_outer,a2)+' '+py2(R_outer,a2)+' L'+px2(R_signInner,a2)+' '+py2(R_signInner,a2)+' A'+R_signInner+' '+R_signInner+' 0 0 '+(1-lf)+' '+px2(R_signInner,a1)+' '+py2(R_signInner,a1)+' Z" fill="'+signColors2[si]+'" fill-opacity="0.08" stroke="'+signColors2[si]+'" stroke-opacity="0.3" stroke-width="0.5"/>';
+        var ma=L2A2(si*30+15);
+        svg += '<text x="'+px2((R_outer+R_signInner)/2,ma)+'" y="'+py2((R_outer+R_signInner)/2,ma)+'" fill="'+signColors2[si]+'" font-size="16" text-anchor="middle" dominant-baseline="central">'+signGlyphs2[si]+'</text>';
+    }
+
+    // Inner circle (person 1 planets)
+    var R_p1Mid = R_signInner - 40;
+    var R_center = R_signInner - 80;
+    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_signInner+'" fill="none" stroke="#333" stroke-width="0.5"/>';
+    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_center+'" fill="none" stroke="#333" stroke-width="0.5"/>';
+
+    // Person 1 planets (inner)
+    var p1Keys = Object.keys(chart1.planets);
+    var p1Pos = [];
+    p1Keys.forEach(function(p) { if(chart1.planets[p]) p1Pos.push({key:p,lon:chart1.planets[p].longitude,nudge:0}); });
+    p1Pos.sort(function(a,b){return a.lon-b.lon;});
+    for(var pi=1;pi<p1Pos.length;pi++){ var sep=p1Pos[pi].lon-p1Pos[pi-1].lon; if(sep<0)sep+=360; if(sep<9) p1Pos[pi].nudge=p1Pos[pi-1].nudge+1; }
+
+    p1Pos.forEach(function(pp) {
+        var angle=L2A2(pp.lon);
+        var pr=R_p1Mid-pp.nudge*12;
+        if(pr<R_center+8)pr=R_center+8;
+        var ppx=cx+pr*Math.cos(angle), ppy=cy+pr*Math.sin(angle);
+        svg += '<text x="'+ppx.toFixed(1)+'" y="'+(ppy).toFixed(1)+'" fill="'+(p1Colors[pp.key]||'#888')+'" font-size="13" font-weight="bold" font-family="serif" text-anchor="middle" dominant-baseline="central">'+(planetGlyphs2[pp.key]||pp.key[0].toUpperCase())+'</text>';
+    });
+
+    // Person 2 planets (outer ring)
+    var R_p2Inner = R_outer + 4;
+    var R_p2Mid = R_outer + 28;
+    svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_outer+'" fill="none" stroke="#333" stroke-width="1.2"/>';
+
+    var p2Keys = Object.keys(chart2.planets);
+    var p2Pos = [];
+    p2Keys.forEach(function(p) { if(chart2.planets[p]) p2Pos.push({key:p,lon:chart2.planets[p].longitude,nudge:0}); });
+    p2Pos.sort(function(a,b){return a.lon-b.lon;});
+    for(var pi2=1;pi2<p2Pos.length;pi2++){ var sep2=p2Pos[pi2].lon-p2Pos[pi2-1].lon; if(sep2<0)sep2+=360; if(sep2<9) p2Pos[pi2].nudge=p2Pos[pi2-1].nudge+1; }
+
+    p2Pos.forEach(function(pp) {
+        var angle=L2A2(pp.lon);
+        var pr2=R_p2Mid+pp.nudge*9;
+        var ppx2=cx+pr2*Math.cos(angle), ppy2=cy+pr2*Math.sin(angle);
+        svg += '<line x1="'+px2(R_outer,angle)+'" y1="'+py2(R_outer,angle)+'" x2="'+ppx2.toFixed(1)+'" y2="'+ppy2.toFixed(1)+'" stroke="rgba(100,181,246,0.2)" stroke-width="0.5"/>';
+        svg += '<text x="'+ppx2.toFixed(1)+'" y="'+(ppy2).toFixed(1)+'" fill="'+(p2Colors[pp.key]||'#64B5F6')+'" font-size="13" font-weight="bold" font-family="serif" text-anchor="middle" dominant-baseline="central">'+(planetGlyphs2[pp.key]||pp.key[0].toUpperCase())+'</text>';
+    });
+
+    // Synastry aspect lines (between person1 and person2 planets)
+    var synAspects = calculateSynastryAspects(chart1, chart2);
+    var majorSyn = synAspects.filter(function(a){return a.major;}).slice(0,20);
+    majorSyn.forEach(function(a) {
+        var a1=L2A2(a.lon1), a2=L2A2(a.lon2);
+        var str=1-(parseFloat(a.orb)/8);
+        var alpha=(0.2+str*0.5).toFixed(2);
+        var dash=(!a.major)?' stroke-dasharray="4,3"':'';
+        svg += '<line x1="'+px2(R_center,a1)+'" y1="'+py2(R_center,a1)+'" x2="'+px2(R_center,a2)+'" y2="'+py2(R_center,a2)+'" stroke="'+a.color+'" stroke-width="1" opacity="'+alpha+'"'+dash+'/>';
+    });
+
+    // Labels
+    svg += '<text x="'+cx+'" y="'+(cy-R_center+18)+'" fill="rgba(255,255,255,0.3)" font-size="9" font-family="system-ui,sans-serif" text-anchor="middle">'+(name1||'Person 1')+'</text>';
+    svg += '<text x="'+cx+'" y="'+(cy-R_p2Mid-10)+'" fill="rgba(100,181,246,0.4)" font-size="9" font-family="system-ui,sans-serif" text-anchor="middle">'+(name2||'Person 2')+'</text>';
+
+    var totalR2 = R_p2Mid + 25;
+    var vb2 = (cx-totalR2)+' '+(cy-totalR2)+' '+(totalR2*2)+' '+(totalR2*2);
+    container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+vb2+'" style="width:100%;height:auto;max-width:700px;display:block;margin:0 auto;">'+svg+'</svg>';
+}
+
+// Open synastry modal for two profiles
+window.openSynastryView = function(profileId) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+    var nc1 = JSON.parse(localStorage.getItem('natalChart_' + natal.id) || localStorage.getItem('natalChart'));
+    var nc2 = JSON.parse(localStorage.getItem('natalChart_' + profileId));
+    if (!nc1 || !nc2) return;
+
+    var profile = getNatalProfiles().find(function(p) { return p.id === profileId; });
+    var name1 = natal.name || natal.cityName || 'Yo';
+    var name2 = profile ? (profile.name || profile.cityName || 'Perfil') : 'Perfil';
+
+    var synAspects = calculateSynastryAspects(nc1, nc2);
+    var score = calculateSynastryCompatibility(synAspects);
+    var overlay = calculateHouseOverlay(nc1.houses, nc2.planets);
+    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+
+    var majorAsp = synAspects.filter(function(a){return a.major;});
+    var minorAsp = synAspects.filter(function(a){return !a.major;});
+
+    var html = '<div class="modal-header"><h2>' + (L?'Sinastria':'Synastry') + ': ' + name1 + ' + ' + name2 + '</h2><span class="close" onclick="document.getElementById(\'synastryModal\').classList.remove(\'show\')">&times;</span></div>';
+    html += '<div style="padding:10px 0;">';
+
+    // Score bar
+    var scoreColor = score >= 70 ? '#2ecc71' : score >= 45 ? '#f1c40f' : '#e74c3c';
+    html += '<div style="text-align:center;margin-bottom:14px;">';
+    html += '<div style="font-size:2em;font-weight:700;color:' + scoreColor + ';">' + score + '%</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Compatibilidad':'Compatibility') + '</div>';
+    html += '<div style="width:80%;max-width:300px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;margin:6px auto;">';
+    html += '<div style="width:' + score + '%;height:100%;background:' + scoreColor + ';border-radius:3px;"></div></div></div>';
+
+    // Biwheel
+    html += '<div id="synastryBiwheel" style="margin-bottom:14px;"></div>';
+
+    // Major aspects
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Aspectos Mayores':'Major Aspects') + ' (' + majorAsp.length + ')</div>';
+    majorAsp.slice(0,15).forEach(function(a) {
+        var scoreIcon = a.score > 0 ? '<span style="color:#2ecc71;">+</span>' : a.score < 0 ? '<span style="color:#e74c3c;">-</span>' : '';
+        html += '<div class="transit-aspect-row ' + (a.type||'') + '" style="font-size:0.82em;">'
+            + '<span style="font-size:1.1em;">' + a.symbol1 + '</span>'
+            + '<span style="color:' + a.color + ';margin:0 3px;">' + a.symbol + '</span>'
+            + '<span style="font-size:1.1em;">' + a.symbol2 + '</span>'
+            + '<span style="color:rgba(255,255,255,0.5);margin-left:6px;flex:1;">' + (pNms[a.planet1]||a.planet1) + ' ' + a.symbol + ' ' + (pNms[a.planet2]||a.planet2) + '</span>'
+            + '<span style="color:rgba(255,255,255,0.3);font-size:0.8em;">' + a.orb + '\u00b0</span>'
+            + scoreIcon
+            + '</div>';
+    });
+
+    // Minor aspects
+    if (minorAsp.length > 0) {
+        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 6px;">' + (L?'Aspectos Menores':'Minor Aspects') + ' (' + minorAsp.length + ')</div>';
+        minorAsp.slice(0,10).forEach(function(a) {
+            html += '<div class="transit-aspect-row ' + (a.type||'') + '" style="font-size:0.78em;opacity:0.7;">'
+                + '<span>' + a.symbol1 + '</span><span style="color:' + a.color + ';margin:0 3px;">' + a.symbol + '</span><span>' + a.symbol2 + '</span>'
+                + '<span style="color:rgba(255,255,255,0.4);margin-left:6px;flex:1;">' + (pNms[a.planet1]||a.planet1) + ' ' + a.symbol + ' ' + (pNms[a.planet2]||a.planet2) + '</span>'
+                + '<span style="color:rgba(255,255,255,0.25);font-size:0.8em;">' + a.orb + '\u00b0</span></div>';
+        });
+    }
+
+    // House overlay
+    if (overlay.length > 0) {
+        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">' + (L?'Planetas de ':'Planets of ') + name2 + (L?' en tus casas':' in your houses') + '</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+        overlay.forEach(function(o) {
+            html += '<div style="padding:4px 8px;background:rgba(100,181,246,0.08);border:1px solid rgba(100,181,246,0.2);border-radius:6px;font-size:0.78em;">'
+                + '<span style="color:rgba(100,181,246,0.8);">' + o.symbol + '</span> '
+                + (pNms[o.planet]||o.planet) + ' ' + (L?'casa':'house') + ' ' + o.house
+                + '</div>';
+        });
+        html += '</div>';
+    }
+
+    html += '</div>';
+
+    // Create or reuse modal
+    var modal = document.getElementById('synastryModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'synastryModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '1250';
+        modal.onclick = function(e) { if(e.target===modal) modal.classList.remove('show'); };
+        modal.innerHTML = '<div class="modal-content" style="max-width:550px;" id="synastryModalContent"></div>';
+        document.body.appendChild(modal);
+    }
+    document.getElementById('synastryModalContent').innerHTML = html;
+    modal.classList.add('show');
+
+    // Draw biwheel after modal is visible
+    setTimeout(function() { drawSynastryBiwheel('synastryBiwheel', nc1, nc2, name1, name2); }, 150);
+};
+
+// ===== PLANETARY HOURS =====
+// Chaldean order: Saturn, Jupiter, Mars, Sun, Venus, Mercury, Moon
+var _planetaryHourOrder = ['saturn','jupiter','mars','sun','venus','mercury','moon'];
+var _dayRulers = { 0:'sun', 1:'moon', 2:'mars', 3:'mercury', 4:'jupiter', 5:'venus', 6:'saturn' }; // Sun=0(domingo)
+
+function calculatePlanetaryHours(date, lat, lon) {
+    // Calculate sunrise and sunset using simplified formula
+    var dayOfYear = Math.floor((date - new Date(date.getFullYear(),0,0)) / 86400000);
+    var latRad = lat * Math.PI / 180;
+
+    // Solar declination
+    var decl = -23.45 * Math.cos(2 * Math.PI / 365 * (dayOfYear + 10));
+    var declRad = decl * Math.PI / 180;
+
+    // Hour angle at sunrise/sunset
+    var cosHA = -Math.tan(latRad) * Math.tan(declRad);
+    cosHA = Math.max(-1, Math.min(1, cosHA)); // clamp
+    var haRad = Math.acos(cosHA);
+    var haDeg = haRad * 180 / Math.PI;
+
+    // Sunrise/sunset in hours (approximate, local solar time)
+    var solarNoon = 12; // simplified
+    var daylightHalf = haDeg / 15; // hours
+    var sunrise = solarNoon - daylightHalf;
+    var sunset = solarNoon + daylightHalf;
+
+    // Timezone offset from longitude (approximate)
+    var tzOffset = Math.round(lon / 15);
+    var localOffset = date.getTimezoneOffset() / -60;
+    var correction = localOffset - tzOffset;
+    sunrise += correction;
+    sunset += correction;
+
+    // Day and night durations in minutes
+    var dayLen = (sunset - sunrise) * 60;
+    var nightLen = (24 - (sunset - sunrise)) * 60;
+    var dayHourLen = dayLen / 12; // each "planetary hour" of day
+    var nightHourLen = nightLen / 12; // each "planetary hour" of night
+
+    // Day ruler determines the starting planet
+    var dayIdx = date.getDay(); // 0=Sun
+    var dayRulerPlanet = _dayRulers[dayIdx];
+    var startIdx = _planetaryHourOrder.indexOf(dayRulerPlanet);
+
+    var hours = [];
+    for (var i = 0; i < 24; i++) {
+        var isDay = i < 12;
+        var hourLen = isDay ? dayHourLen : nightHourLen;
+        var startMin = isDay ? (sunrise * 60 + i * dayHourLen) : (sunset * 60 + (i - 12) * nightHourLen);
+        var endMin = startMin + hourLen;
+
+        var planetIdx = (startIdx + i) % 7;
+        var planet = _planetaryHourOrder[planetIdx];
+
+        var startH = Math.floor(startMin / 60);
+        var startM = Math.round(startMin % 60);
+        var endH = Math.floor(endMin / 60);
+        var endM = Math.round(endMin % 60);
+        if (startH >= 24) startH -= 24;
+        if (endH >= 24) endH -= 24;
+
+        hours.push({
+            index: i + 1,
+            planet: planet,
+            isDay: isDay,
+            startTime: (startH < 10 ? '0' : '') + startH + ':' + (startM < 10 ? '0' : '') + startM,
+            endTime: (endH < 10 ? '0' : '') + endH + ':' + (endM < 10 ? '0' : '') + endM,
+            startMin: startMin,
+            endMin: endMin,
+            duration: Math.round(hourLen)
+        });
+    }
+
+    return {
+        hours: hours,
+        dayRuler: dayRulerPlanet,
+        sunrise: (Math.floor(sunrise) < 10 ? '0' : '') + Math.floor(sunrise) + ':' + (Math.round((sunrise % 1) * 60) < 10 ? '0' : '') + Math.round((sunrise % 1) * 60),
+        sunset: (Math.floor(sunset) < 10 ? '0' : '') + Math.floor(sunset) + ':' + (Math.round((sunset % 1) * 60) < 10 ? '0' : '') + Math.round((sunset % 1) * 60)
+    };
+}
+
+window.openPlanetaryHours = function(dateStr) {
+    var L = currentLang === 'es';
+    var date = dateStr ? new Date(dateStr) : new Date();
+    var lat = parseFloat(localStorage.getItem('userLat') || ASTRO_USER_LAT);
+    var lon = parseFloat(localStorage.getItem('userLon') || ASTRO_USER_LON);
+    var result = calculatePlanetaryHours(date, lat, lon);
+    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn'};
+    var pSyms = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄'};
+    var pClrs = {'sun':'#e67e22','moon':'#78909c','mercury':'#b8860b','venus':'#27ae60','mars':'#c0392b','jupiter':'#6a5acd','saturn':'#546e7a'};
+    var pThemes = {
+        'sun': L ? 'Liderazgo, exito, vitalidad' : 'Leadership, success, vitality',
+        'moon': L ? 'Intuicion, emociones, hogar' : 'Intuition, emotions, home',
+        'mercury': L ? 'Comunicacion, viajes, estudio' : 'Communication, travel, study',
+        'venus': L ? 'Amor, arte, placer, armonia' : 'Love, art, pleasure, harmony',
+        'mars': L ? 'Accion, energia, competencia' : 'Action, energy, competition',
+        'jupiter': L ? 'Expansion, suerte, abundancia' : 'Expansion, luck, abundance',
+        'saturn': L ? 'Disciplina, estructura, limites' : 'Discipline, structure, limits'
+    };
+
+    // Find current hour
+    var now = new Date();
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    var currentHourIdx = -1;
+    if (date.toDateString() === now.toDateString()) {
+        for (var ch = 0; ch < result.hours.length; ch++) {
+            if (nowMin >= result.hours[ch].startMin && nowMin < result.hours[ch].endMin) {
+                currentHourIdx = ch;
+                break;
+            }
+        }
+    }
+
+    var html = '<div class="modal-header"><h2>' + (L?'Horas Planetarias':'Planetary Hours') + '</h2><span class="close" onclick="document.getElementById(\'planetaryHoursModal\').classList.remove(\'show\')">&times;</span></div>';
+    html += '<div style="padding:10px 0;">';
+
+    // Date nav
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+    html += '<button onclick="openPlanetaryHours(\'' + new Date(date.getTime()-86400000).toISOString().split('T')[0] + '\')" style="padding:4px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);cursor:pointer;">&#9664;</button>';
+    html += '<div style="text-align:center;"><div style="font-weight:700;color:#e8eaf6;">' + date.toLocaleDateString(L?'es':'en', {weekday:'long', day:'numeric', month:'long'}) + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Regente del dia: ':'Day ruler: ') + pSyms[result.dayRuler] + ' ' + (pNms[result.dayRuler]||result.dayRuler) + '</div></div>';
+    html += '<button onclick="openPlanetaryHours(\'' + new Date(date.getTime()+86400000).toISOString().split('T')[0] + '\')" style="padding:4px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.5);cursor:pointer;">&#9654;</button>';
+    html += '</div>';
+
+    // Sunrise/sunset
+    html += '<div style="display:flex;justify-content:center;gap:20px;margin-bottom:12px;font-size:0.8em;color:rgba(255,255,255,0.4);">';
+    html += '<span>' + (L?'Amanecer':'Sunrise') + ' ' + result.sunrise + '</span>';
+    html += '<span>' + (L?'Atardecer':'Sunset') + ' ' + result.sunset + '</span>';
+    html += '</div>';
+
+    // Hours list
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Horas Diurnas':'Day Hours') + '</div>';
+    result.hours.forEach(function(h, idx) {
+        if (idx === 12) {
+            html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 6px;">' + (L?'Horas Nocturnas':'Night Hours') + '</div>';
+        }
+        var isCurrent = idx === currentHourIdx;
+        var bg = isCurrent ? 'rgba(100,181,246,0.12);border:1px solid rgba(100,181,246,0.4)' : 'rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06)';
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;margin:3px 0;border-radius:8px;background:' + bg + ';' + (isCurrent?'box-shadow:0 0 10px rgba(100,181,246,0.15);':'') + '">';
+        html += '<span style="font-size:1.3em;color:' + (pClrs[h.planet]||'#888') + ';">' + (pSyms[h.planet]||'?') + '</span>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-size:0.85em;font-weight:600;color:' + (pClrs[h.planet]||'#aaa') + ';">' + (pNms[h.planet]||h.planet) + (isCurrent ? ' <span style="color:#64B5F6;font-size:0.75em;">' + (L?'AHORA':'NOW') + '</span>' : '') + '</div>';
+        html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);">' + (pThemes[h.planet]||'') + '</div>';
+        html += '</div>';
+        html += '<div style="text-align:right;font-size:0.78em;color:rgba(255,255,255,0.5);">' + h.startTime + '<br><span style="font-size:0.85em;color:rgba(255,255,255,0.25);">' + h.endTime + '</span></div>';
+        html += '</div>';
+    });
+
+    html += '</div>';
+
+    var modal = document.getElementById('planetaryHoursModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'planetaryHoursModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '1270';
+        modal.onclick = function(e) { if(e.target===modal) modal.classList.remove('show'); };
+        modal.innerHTML = '<div class="modal-content" style="max-width:480px;" id="planetaryHoursContent"></div>';
+        document.body.appendChild(modal);
+    }
+    document.getElementById('planetaryHoursContent').innerHTML = html;
+    modal.classList.add('show');
+};
+
+// ===== RETURN CHARTS (Solar & Lunar) =====
+window.openReturnChart = function(type) {
+    var L = currentLang === 'es';
+    var natal = getNatalData();
+    if (!natal) return;
+    var nc = null;
+    try {
+        var pch = localStorage.getItem('natalChart_' + natal.id);
+        nc = pch ? JSON.parse(pch) : JSON.parse(localStorage.getItem('natalChart'));
+    } catch(e) { return; }
+    if (!nc || !nc.planets) return;
+
+    var today = new Date();
+    var returnDate = null;
+    var title = '';
+    var color = '';
+
+    if (type === 'solar') {
+        var natalSunLon = nc.planets.sun.longitude;
+        var [bY, bM, bD] = natal.date.split('-').map(Number);
+        var approxBirthday = new Date(today.getFullYear(), bM - 1, bD);
+        if (approxBirthday <= today) approxBirthday = new Date(today.getFullYear() + 1, bM - 1, bD);
+        returnDate = findExactSolarReturnNear(natalSunLon, approxBirthday);
+        if (!returnDate) returnDate = approxBirthday;
+        title = L ? 'Carta de Retorno Solar' : 'Solar Return Chart';
+        color = '#ffd54f';
+    } else {
+        var natalMoonLon = nc.planets.moon.longitude;
+        returnDate = findNextLunarReturn(natalMoonLon, today);
+        if (!returnDate) return;
+        title = L ? 'Carta de Retorno Lunar' : 'Lunar Return Chart';
+        color = '#b39ddb';
+    }
+
+    // Calculate natal chart for the return moment at user's location
+    var returnChart = calculateNatalChart(returnDate);
+    if (!returnChart) return;
+
+    var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith'};
+
+    var html = '<div class="modal-header"><h2 style="color:' + color + ';">' + title + '</h2><span class="close" onclick="document.getElementById(\'returnChartModal\').classList.remove(\'show\')">&times;</span></div>';
+    html += '<div style="padding:10px 0;">';
+
+    // Date info
+    html += '<div style="text-align:center;margin-bottom:12px;">';
+    html += '<div style="font-size:1.1em;font-weight:700;color:' + color + ';">' + returnDate.toLocaleDateString(L?'es':'en', {weekday:'long', day:'numeric', month:'long', year:'numeric'}) + '</div>';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.4);">' + returnDate.toLocaleTimeString(L?'es':'en', {hour:'2-digit', minute:'2-digit'}) + ' — ' + ASTRO_USER_NAME.split(',')[0] + '</div>';
+    html += '</div>';
+
+    // Chart wheel
+    html += '<div id="returnChartWheel" style="margin-bottom:12px;"></div>';
+
+    // Planets table
+    html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Posiciones Planetarias':'Planetary Positions') + '</div>';
+    html += '<table class="natal-data-table" style="font-size:0.82em;"><thead><tr><th>' + (L?'Planeta':'Planet') + '</th><th>' + (L?'Signo':'Sign') + '</th><th>' + (L?'Grado':'Degree') + '</th><th>' + (L?'Casa':'House') + '</th></tr></thead><tbody>';
+    Object.keys(returnChart.planets).forEach(function(p) {
+        var pl = returnChart.planets[p];
+        var house = returnChart.houses ? getHouseForLongitude(pl.longitude, returnChart.houses.cusps) : '-';
+        html += '<tr><td>' + (pNms[p]||p) + '</td><td>' + pl.sign + '</td><td>' + pl.degree + '\u00b0' + (pl.minute<10?'0':'') + pl.minute + "'" + (pl.isRetrograde?' <span style="color:#e74c3c;font-weight:700;">R</span>':'') + '</td><td style="text-align:center;">' + house + '</td></tr>';
+    });
+    html += '</tbody></table>';
+
+    // Key themes
+    html += '<div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:0.8em;color:rgba(255,255,255,0.5);">';
+    if (type === 'solar') {
+        var srAsc = returnChart.houses ? returnChart.houses.ascFormatted : '?';
+        var srMoon = returnChart.planets.moon ? returnChart.planets.moon.formatted : '?';
+        html += '<div style="margin-bottom:4px;"><b style="color:#ffd54f;">ASC:</b> ' + srAsc + ' — ' + (L?'El tono del ano':'The tone of the year') + '</div>';
+        html += '<div style="margin-bottom:4px;"><b style="color:#b39ddb;">☽:</b> ' + srMoon + ' — ' + (L?'La necesidad emocional del ano':'Emotional need of the year') + '</div>';
+    } else {
+        var lrAsc = returnChart.houses ? returnChart.houses.ascFormatted : '?';
+        html += '<div style="margin-bottom:4px;"><b style="color:#b39ddb;">ASC:</b> ' + lrAsc + ' — ' + (L?'El tono del mes lunar':'The tone of the lunar month') + '</div>';
+    }
+    html += '</div>';
+
+    html += '</div>';
+
+    // Create/reuse modal
+    var modal = document.getElementById('returnChartModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'returnChartModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '1260';
+        modal.onclick = function(e) { if(e.target===modal) modal.classList.remove('show'); };
+        modal.innerHTML = '<div class="modal-content" style="max-width:550px;" id="returnChartModalContent"></div>';
+        document.body.appendChild(modal);
+    }
+    document.getElementById('returnChartModalContent').innerHTML = html;
+    modal.classList.add('show');
+
+    // Draw wheel after modal visible — store chart temporarily for drawNatalWheel
+    setTimeout(function() {
+        var origChart = localStorage.getItem('natalChart');
+        localStorage.setItem('natalChart', JSON.stringify(returnChart));
+        drawNatalWheel('returnChartWheel');
+        localStorage.setItem('natalChart', origChart);
+    }, 150);
+};
 
 // --- Multi-Profile Birth Data Storage ---
 function getNatalProfiles() {
@@ -12632,22 +13296,125 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         </div>`;
 
     // ===== (Elements content now inline in Chart tab above) =====
-    // ===== TAB: HOY (Today's transits - same compact format as old calendar tab) =====
+    // ===== TAB: HOY (Today's transits with date navigation) =====
+    // Initialize transit date if not set
+    if (!window._transitViewDate) window._transitViewDate = new Date();
+
+    function renderTransitRow(t, idx, isMoon) {
+        var apLabel = t.applying ? '<span style="color:#2ecc71;font-size:0.7em;font-weight:700;margin-left:3px;">Ap</span>' : '<span style="color:#e67e22;font-size:0.7em;font-weight:700;margin-left:3px;">Sep</span>';
+        var orbInfo = '<span style="color:rgba(255,255,255,0.3);margin-left:auto;font-size:0.75em;">' + (t.orb||'') + '\u00b0 ' + '</span>' + apLabel;
+        return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\', ' + idx + ')" style="cursor:pointer;' + (isMoon ? 'opacity:0.7;' : '') + '" onmouseover="this.style.opacity=\'0.6\'" onmouseout="this.style.opacity=\'' + (isMoon ? '0.7' : '1') + '\'">'
+            + '<span style="font-size:1.1em;">' + t.transitSymbol + '</span>'
+            + '<span style="color:' + t.color + ';">' + t.symbol + '</span>'
+            + '<span style="font-size:1.1em;">' + t.natalSymbol + '</span>'
+            + '<span style="color:rgba(255,255,255,0.5);margin-left:4px;flex:1;">' + (planetNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span>'
+            + orbInfo
+            + '</div>';
+    }
+
+    var minorTransits = todayTransits.filter(function(t) { return !t.major && !['moon'].includes(t.transitPlanet); }).slice(0, 6);
+
     const hoyTab = `
         <div class="personal-natal-card">
-            <h3>🌟 ${L ? 'Tránsitos de Hoy' : "Today's Transits"} — ${today.toLocaleDateString(L?'es':'en', {day:'numeric',month:'long'})}</h3>
-            ${majorTransits.length > 0 ? '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L ? 'Aspectos Mayores' : 'Major Aspects') + '</div>' + majorTransits.map(function(t, idx){ return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\', ' + idx + ')" style="cursor:pointer;" onmouseover="this.style.opacity=\'0.7\'" onmouseout="this.style.opacity=\'1\'"><span style="font-size:1.1em;">' + t.transitSymbol + '</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span style="font-size:1.1em;">' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.5);margin-left:4px;">' + (planetNms[t.transitPlanet]||t.transitPlanet) + ' ' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (L ? 'Sin aspectos mayores hoy' : 'No major aspects today') + '</div>'}
-            ${moonTransits.length > 0 ? '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (L ? 'Luna transitando' : 'Moon transiting') + '</div>' + moonTransits.map(function(t, idx){ var gIdx = majorTransits.length + idx; return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\', ' + gIdx + ')" style="opacity:0.7;cursor:pointer;" onmouseover="this.style.opacity=\'0.5\'" onmouseout="this.style.opacity=\'0.7\'"><span>☽</span><span style="color:' + t.color + ';">' + t.symbol + '</span><span>' + t.natalSymbol + '</span><span style="color:rgba(255,255,255,0.4);margin-left:4px;">' + t.symbol + ' natal ' + (planetNms[t.natalPlanet]||t.natalPlanet) + '</span></div>'; }).join('') + '</div>' : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <button onclick="changeTransitDate(-1)" style="padding:6px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;">&#9664;</button>
+                <div style="text-align:center;">
+                    <h3 style="margin:0;">🌟 ${L ? 'Tránsitos' : 'Transits'}</h3>
+                    <div id="transitDateLabel" style="font-size:0.8em;color:rgba(255,255,255,0.5);">${today.toLocaleDateString(L?'es':'en', {weekday:'short',day:'numeric',month:'long'})}</div>
+                </div>
+                <button onclick="changeTransitDate(1)" style="padding:6px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);font-size:0.9em;cursor:pointer;">&#9654;</button>
+            </div>
+            <div style="text-align:center;margin-bottom:8px;">
+                <button onclick="changeTransitDate(0)" style="padding:3px 10px;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.35);font-size:0.68em;cursor:pointer;">${L ? 'Hoy' : 'Today'}</button>
+            </div>
+            <div id="transitAspectsContainer">
+            ${majorTransits.length > 0 ? '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L ? 'Aspectos Mayores' : 'Major Aspects') + '</div>' + majorTransits.map(function(t, idx){ return renderTransitRow(t, idx, false); }).join('') + '</div>' : '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (L ? 'Sin aspectos mayores' : 'No major aspects') + '</div>'}
+            ${minorTransits.length > 0 ? '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L ? 'Aspectos Menores' : 'Minor Aspects') + '</div>' + minorTransits.map(function(t, idx){ var gIdx = majorTransits.length + idx; return renderTransitRow(t, gIdx, false); }).join('') + '</div>' : ''}
+            ${moonTransits.length > 0 ? '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (L ? 'Luna transitando' : 'Moon transiting') + '</div>' + moonTransits.map(function(t, idx){ var gIdx = majorTransits.length + minorTransits.length + idx; return renderTransitRow(t, gIdx, true); }).join('') + '</div>' : ''}
+            </div>
         </div>
         <div style="text-align:center;margin-top:10px;">
             <button onclick="interpretarHoyCompleto()" style="padding:12px 20px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.9em;font-weight:700;cursor:pointer;width:90%;max-width:400px;">
-                ✨ ${L ? 'Interpretación de Hoy' : "Today's Interpretation"}
+                ✨ ${L ? 'Interpretación del Día' : "Day's Interpretation"}
             </button>
         </div>
         <div class="personal-natal-card" style="text-align:center;margin-top:8px;">
-            <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Carta Natal' : 'Natal Chart'}</div>
+            <div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Carta Natal + Tránsitos' : 'Natal Chart + Transits'}</div>
             <div id="hoyNatalWheelCanvas" style="max-width:100%;margin:0 auto;display:block;"></div>
         </div>`;
+
+    // Transit date navigation function
+    window.changeTransitDate = function(delta) {
+        if (delta === 0) {
+            window._transitViewDate = new Date();
+        } else {
+            if (!window._transitViewDate) window._transitViewDate = new Date();
+            window._transitViewDate = new Date(window._transitViewDate.getTime() + delta * 86400000);
+        }
+        refreshTransitView();
+    };
+
+    window.refreshTransitView = function() {
+        var d = window._transitViewDate || new Date();
+        var nc = null;
+        try {
+            var nat = getNatalData();
+            var pch = localStorage.getItem('natalChart_' + nat.id);
+            nc = pch ? JSON.parse(pch) : JSON.parse(localStorage.getItem('natalChart'));
+        } catch(e) { return; }
+        if (!nc || !nc.planets) return;
+        var L = currentLang === 'es';
+        var pN = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+        var transits = calculateTransitsToNatal(d, nc);
+        var major = transits.filter(function(t) { return t.major && !['moon','mercury'].includes(t.transitPlanet); }).slice(0, 8);
+        var minor = transits.filter(function(t) { return !t.major && !['moon'].includes(t.transitPlanet); }).slice(0, 6);
+        var moon = transits.filter(function(t) { return t.transitPlanet === 'moon'; }).slice(0, 4);
+        globalTodayTransits = [].concat(major, minor, moon);
+
+        // Update date label
+        var label = document.getElementById('transitDateLabel');
+        if (label) {
+            var isToday = d.toDateString() === new Date().toDateString();
+            label.innerHTML = (isToday ? '<b>' + (L?'Hoy':'Today') + '</b> — ' : '') + d.toLocaleDateString(L?'es':'en', {weekday:'short',day:'numeric',month:'long'});
+        }
+
+        // Helper to render row
+        function rr(t, idx, isMn) {
+            var apL = t.applying ? '<span style="color:#2ecc71;font-size:0.7em;font-weight:700;margin-left:3px;">Ap</span>' : '<span style="color:#e67e22;font-size:0.7em;font-weight:700;margin-left:3px;">Sep</span>';
+            var oi = '<span style="color:rgba(255,255,255,0.3);margin-left:auto;font-size:0.75em;">' + (t.orb||'') + '\u00b0</span>' + apL;
+            return '<div class="transit-aspect-row ' + t.class + '" onclick="showNatalDetail(\'transit\',' + idx + ')" style="cursor:pointer;' + (isMn?'opacity:0.7;':'') + '">'
+                + '<span style="font-size:1.1em;">' + t.transitSymbol + '</span>'
+                + '<span style="color:' + t.color + ';">' + t.symbol + '</span>'
+                + '<span style="font-size:1.1em;">' + t.natalSymbol + '</span>'
+                + '<span style="color:rgba(255,255,255,0.5);margin-left:4px;flex:1;">' + (pN[t.transitPlanet]||t.transitPlanet) + ' ' + t.symbol + ' natal ' + (pN[t.natalPlanet]||t.natalPlanet) + '</span>'
+                + oi + '</div>';
+        }
+
+        var html = '';
+        if (major.length > 0) {
+            html += '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L?'Aspectos Mayores':'Major Aspects') + '</div>';
+            major.forEach(function(t,i) { html += rr(t,i,false); });
+            html += '</div>';
+        } else {
+            html += '<div style="font-size:0.8em;color:rgba(255,255,255,0.3);padding:8px;">' + (L?'Sin aspectos mayores':'No major aspects') + '</div>';
+        }
+        if (minor.length > 0) {
+            html += '<div style="margin-bottom:8px;"><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">' + (L?'Aspectos Menores':'Minor Aspects') + '</div>';
+            minor.forEach(function(t,i) { html += rr(t, major.length+i, false); });
+            html += '</div>';
+        }
+        if (moon.length > 0) {
+            html += '<div><div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">☽ ' + (L?'Luna transitando':'Moon transiting') + '</div>';
+            moon.forEach(function(t,i) { html += rr(t, major.length+minor.length+i, true); });
+            html += '</div>';
+        }
+
+        var cont = document.getElementById('transitAspectsContainer');
+        if (cont) cont.innerHTML = html;
+
+        // Redraw biwheel with transits for selected date
+        setTimeout(function() { drawNatalWheelOnCanvas('hoyNatalWheelCanvas', d); }, 100);
+    };
 
     // ===== TAB: CICLOS CÓSMICOS =====
     var ciclosTab = '';
@@ -12672,6 +13439,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                     <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
                 </div>
                 <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'El Sol regresa al grado exacto de tu nacimiento (' + (natalChart.planets.sun?.formatted || '?') + ').' : 'The Sun returns to your exact birth degree (' + (natalChart.planets.sun?.formatted || '?') + ').'}</div>
+                <button onclick="event.stopPropagation();openReturnChart('solar')" style="margin-top:8px;padding:6px 14px;background:linear-gradient(135deg,rgba(255,213,79,0.2),rgba(255,149,0,0.15));border:1px solid rgba(255,213,79,0.4);border-radius:8px;color:#ffd54f;font-size:0.78em;font-weight:600;cursor:pointer;">${L ? 'Ver Carta de Retorno Solar' : 'View Solar Return Chart'}</button>
             </div>
 
             <!-- Lunar Return -->
@@ -12686,6 +13454,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                     <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">✨</span>
                 </div>
                 <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'La Luna regresa al grado exacto de tu nacimiento (' + (natalChart.planets.moon?.formatted || '?') + '). Ciclo emocional ~27 días.' : 'The Moon returns to your exact birth degree (' + (natalChart.planets.moon?.formatted || '?') + '). ~27-day emotional cycle.'}</div>
+                <button onclick="event.stopPropagation();openReturnChart('lunar')" style="margin-top:8px;padding:6px 14px;background:linear-gradient(135deg,rgba(179,157,219,0.2),rgba(155,89,182,0.15));border:1px solid rgba(179,157,219,0.4);border-radius:8px;color:#b39ddb;font-size:0.78em;font-weight:600;cursor:pointer;">${L ? 'Ver Carta de Retorno Lunar' : 'View Lunar Return Chart'}</button>
             </div>
 
             <!-- Solar Half-Return -->
@@ -12743,6 +13512,19 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
                     var isPast = e.date < today;
                     return '<div style="padding:4px 0;color:' + (isPast ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.6)') + ';' + (isPast ? 'text-decoration:line-through;' : '') + '">' + (e.type === 'solar' ? '🌑' : '🌕') + ' ' + e.date.toLocaleDateString(L?'es':'en',{day:'numeric',month:'short'}) + ' — ' + e.name + ' ' + e.degree + '</div>';
                 }).join('') + '</div>' : ''}
+            </div>
+
+            <!-- Planetary Hours -->
+            <div class="cosmic-cycle-card" onclick="openPlanetaryHours()" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:1.8em;">&#9788;</span>
+                    <div>
+                        <div style="font-weight:700;color:#f0c040;font-size:1em;">${L ? 'Horas Planetarias' : 'Planetary Hours'}</div>
+                        <div style="font-size:0.78em;color:rgba(255,255,255,0.5);">${L ? 'Las 24 horas del dia regidas por planetas' : 'The 24 hours ruled by planets'}</div>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.8em;color:rgba(201,168,64,0.6);">&#9776;</span>
+                </div>
+                <div style="font-size:0.75em;color:rgba(255,255,255,0.35);">${L ? 'Sistema caldeo: cada hora del dia tiene un regente planetario. Usa las horas favorables para iniciar actividades importantes.' : 'Chaldean system: each hour has a planetary ruler. Use favorable hours to start important activities.'}</div>
             </div>
         </div>`;
     } catch(e) {
@@ -12897,7 +13679,7 @@ function switchNatalTab(tabName, btn) {
         }, 150);
     }
     if (tabName === 'hoy') {
-        setTimeout(function() { drawNatalWheelOnCanvas('hoyNatalWheelCanvas'); }, 100);
+        setTimeout(function() { drawNatalWheelOnCanvas('hoyNatalWheelCanvas', window._transitViewDate || new Date()); }, 100);
     }
     if (tabName === 'tables') {
         setTimeout(function() {
@@ -13141,7 +13923,7 @@ function drawPieChart(canvasId, data) {
 }
 
 // ===== NATAL WHEEL CHART =====
-function drawNatalWheel(canvasId) {
+function drawNatalWheel(canvasId, transitDate) {
     try {
         var stored = localStorage.getItem('natalChart');
         if (!stored) return;
@@ -13299,8 +14081,8 @@ function drawNatalWheel(canvasId) {
         });
 
         // ===== PLANETS (in planet ring between tick ring and inner circle) =====
-        var planetGlyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','northnode':'☊','southnode':'☋'};
-        var planetClrs = {'sun':'#e67e22','moon':'#2c3e50','mercury':'#b8860b','venus':'#27ae60','mars':'#c0392b','jupiter':'#6a5acd','saturn':'#2c3e50','uranus':'#16a085','neptune':'#2980b9','pluto':'#555','chiron':'#d4a017','lilith':'#444','northnode':'#555','southnode':'#555'};
+        var planetGlyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','lilith':'⚸','northnode':'☊','southnode':'☋','partOfFortune':'⊕','vertex':'Vx'};
+        var planetClrs = {'sun':'#e67e22','moon':'#2c3e50','mercury':'#b8860b','venus':'#27ae60','mars':'#c0392b','jupiter':'#6a5acd','saturn':'#2c3e50','uranus':'#16a085','neptune':'#2980b9','pluto':'#555','chiron':'#d4a017','lilith':'#444','northnode':'#555','southnode':'#555','partOfFortune':'#d4a017','vertex':'#78909c'};
 
         var planetPositions = [];
         planetKeys.forEach(function(p){
@@ -13357,7 +14139,64 @@ function drawNatalWheel(canvasId) {
         // ===== OUTER BORDER =====
         svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_signOuter+'" fill="none" stroke="#333" stroke-width="1.5"/>';
 
-        container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+S+' '+S+'" style="width:100%;height:auto;max-width:700px;display:block;margin:0 auto;">' + svg + '</svg>';
+        // ===== TRANSIT BIWHEEL (outer ring) =====
+        if (transitDate) {
+            var tPlanets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron'];
+            var tGlyphs = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷'};
+            var tClrs = {'sun':'#ff6b35','moon':'#64B5F6','mercury':'#ffd54f','venus':'#66bb6a','mars':'#ef5350','jupiter':'#7e57c2','saturn':'#78909c','uranus':'#26c6da','neptune':'#42a5f5','pluto':'#ab47bc','chiron':'#ffca28'};
+            var R_tOuter = R_signOuter + 50;
+            var R_tInner = R_signOuter + 4;
+            var R_tMid = (R_tOuter + R_tInner) / 2;
+
+            // Transit ring background
+            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_tOuter+'" fill="none" stroke="rgba(100,181,246,0.15)" stroke-width="1"/>';
+            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_tInner+'" fill="none" stroke="rgba(100,181,246,0.15)" stroke-width="0.5"/>';
+
+            // Compute transit positions
+            var tPositions = [];
+            tPlanets.forEach(function(tp) {
+                var lon = getPlanetPosition(tp, transitDate);
+                tPositions.push({key:tp, lon:lon, nudge:0});
+            });
+            tPositions.sort(function(a,b){return a.lon-b.lon;});
+
+            // Collision avoidance
+            for(var tp2=0;tp2<6;tp2++){
+                for(var ti2=1;ti2<tPositions.length;ti2++){
+                    var tprev=tPositions[ti2-1], tcur=tPositions[ti2];
+                    var tsep=tcur.lon-tprev.lon; if(tsep<0)tsep+=360;
+                    if(tsep<9) tcur.nudge = tprev.nudge + 1;
+                }
+            }
+
+            tPositions.forEach(function(tp) {
+                var angle = L2A(tp.lon);
+                var tpr = R_tMid + tp.nudge * 8;
+                if (tpr > R_tOuter - 4) tpr = R_tOuter - 4;
+                var tppx = cx + tpr * Math.cos(angle);
+                var tppy = cy + tpr * Math.sin(angle);
+
+                // Pointer line from outer zodiac ring to transit planet
+                svg += '<line x1="'+px(R_signOuter,angle)+'" y1="'+py(R_signOuter,angle)+'" x2="'+tppx.toFixed(1)+'" y2="'+tppy.toFixed(1)+'" stroke="rgba(100,181,246,0.25)" stroke-width="0.5"/>';
+
+                // Transit planet glyph
+                var tcol = tClrs[tp.key] || '#64B5F6';
+                svg += '<text x="'+tppx.toFixed(1)+'" y="'+(tppy-1).toFixed(1)+'" fill="'+tcol+'" font-size="13" font-weight="bold" font-family="serif" text-anchor="middle" dominant-baseline="central">'+(tGlyphs[tp.key]||tp.key[0].toUpperCase())+'</text>';
+
+                // Small degree label
+                var tLon = tp.lon;
+                var tpD = Math.floor(tLon%30);
+                var tpSI = Math.floor(tLon/30)%12;
+                svg += '<text x="'+tppx.toFixed(1)+'" y="'+(tppy+9).toFixed(1)+'" fill="rgba(100,181,246,0.5)" font-size="5.5" font-family="system-ui,sans-serif" text-anchor="middle">'+tpD+'°'+signGlyphs[tpSI]+'</text>';
+            });
+
+            // Transit outer border
+            svg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+R_tOuter+'" fill="none" stroke="rgba(100,181,246,0.3)" stroke-width="1"/>';
+        }
+
+        var totalR = transitDate ? (R_signOuter + 55) : R_signOuter + 15;
+        var vb = (cx - totalR) + ' ' + (cy - totalR) + ' ' + (totalR*2) + ' ' + (totalR*2);
+        container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + vb + '" style="width:100%;height:auto;max-width:700px;display:block;margin:0 auto;">' + svg + '</svg>';
 
     } catch(e) { console.error('Wheel chart error:', e); }
 }
@@ -13380,7 +14219,7 @@ function toggleAspectGrid() {
     }
 }
 
-function drawNatalWheelOnCanvas(id) { drawNatalWheel(id); }
+function drawNatalWheelOnCanvas(id, transitDate) { drawNatalWheel(id, transitDate); }
 
 // ===== SORTABLE ASPECTS TABLE =====
 var aspSortCol = -1;
@@ -14732,7 +15571,7 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    const NATAL_ENGINE_VER = 'v174';
+    const NATAL_ENGINE_VER = 'v395';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
@@ -15693,6 +16532,8 @@ function answerNatalQuestion(question, natalChart, natal) {
                 if (myVenus && theirVenus) {
                     answer += `<p>♀ Venus: ${signNames[lang][signKeys.indexOf(myVenus)]} + ${signNames[lang][signKeys.indexOf(theirVenus)]}</p>`;
                 }
+                // Full synastry link
+                answer += `<div style="margin-top:8px;"><button onclick="openSynastryView('${p.id}')" style="padding:8px 14px;background:linear-gradient(135deg,rgba(100,181,246,0.2),rgba(155,89,182,0.15));border:1px solid rgba(100,181,246,0.4);border-radius:8px;color:#64B5F6;font-size:0.82em;font-weight:600;cursor:pointer;">${L?'Ver Sinastria Completa':'View Full Synastry'}</button></div>`;
                 answer += `</div>`;
             } catch(e) {}
         });
@@ -21673,7 +22514,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v394';
+const APP_VERSION = 'v395';
 var _pendingSW = null;
 
 function showUpdateBanner() {
