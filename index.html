@@ -16730,10 +16730,35 @@ function generateSolarWeeks(sign) {
         { name: decanNames[2], subtitle: decanSubtitles[2], days: totalDays - 20 } // Los días restantes
     ];
     
+    // Pre-compute lunar cycles for the sign's date range (avoid recalculating per day)
+    var _solarAspectsCache = {};
+    try {
+        // A solar month spans at most 2 lunar cycles
+        var nm1 = findNearestNewMoon(startDate);
+        var wks1 = calculateLunarCycle(nm1);
+        for (var wi = 0; wi < wks1.length; wi++) {
+            for (var di = 0; di < wks1[wi].days.length; di++) {
+                var d = wks1[wi].days[di];
+                _solarAspectsCache[d.date.toDateString()] = d.aspects || [];
+            }
+        }
+        // Check if we need a second cycle
+        var nm2 = findNearestNewMoon(endDate);
+        if (nm2.toDateString() !== nm1.toDateString()) {
+            var wks2 = calculateLunarCycle(nm2);
+            for (var wi2 = 0; wi2 < wks2.length; wi2++) {
+                for (var di2 = 0; di2 < wks2[wi2].days.length; di2++) {
+                    var d2 = wks2[wi2].days[di2];
+                    _solarAspectsCache[d2.date.toDateString()] = d2.aspects || [];
+                }
+            }
+        }
+    } catch(e) { /* ignore */ }
+
     let html = '';
     let currentDate = new Date(startDate);
     let dayCounter = 1;
-    
+
     decans.forEach((decan, decanIndex) => {
         // Start decan div
         html += `<div class="lunar-week">`;
@@ -16791,21 +16816,8 @@ function generateSolarWeeks(sign) {
                 </div>
             ` : '';
             
-            // Get lunar aspects for this day
-            let solarDayAspects = [];
-            try {
-                const nm = findNearestNewMoon(dayDate);
-                const wks = calculateLunarCycle(nm);
-                for (const wk of wks) {
-                    for (const d of wk.days) {
-                        if (d.date.toDateString() === dayDate.toDateString()) {
-                            solarDayAspects = d.aspects || [];
-                            break;
-                        }
-                    }
-                    if (solarDayAspects.length > 0) break;
-                }
-            } catch(e) { /* ignore */ }
+            // Get lunar aspects for this day (from pre-computed cache)
+            let solarDayAspects = _solarAspectsCache[dayDate.toDateString()] || [];
             const dayDataStr = JSON.stringify({date: dayDate, lunarDay: realLunarDay, aspects: solarDayAspects}).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             
             html += `
@@ -21077,7 +21089,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v383';
+const APP_VERSION = 'v384';
 var _pendingSW = null;
 
 function showUpdateBanner() {
