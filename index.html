@@ -13098,7 +13098,7 @@ function saveNatalForm() {
 }
 
 // --- Natal Sub-Tabs Builder ---
-function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today) {
+function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today, todayTransits) {
     const planetSyms = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','northnode':'☊','lilith':'⚸','ASC':'↑','MC':'★'};
     const planetNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','ASC':'ASC','MC':'MC'};
 
@@ -13312,7 +13312,12 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             + '</div>';
     }
 
-    var minorTransits = todayTransits.filter(function(t) { return !t.major && !['moon'].includes(t.transitPlanet); }).slice(0, 6);
+    var allTransits = todayTransits || [].concat(majorTransits, moonTransits);
+    var minorTransits = allTransits.filter(function(t) { return !t.major && !['moon'].includes(t.transitPlanet); }).slice(0, 6);
+    // Update global transits to include minors
+    if (typeof globalTodayTransits !== 'undefined') {
+        globalTodayTransits = [].concat(majorTransits, minorTransits, moonTransits);
+    }
 
     const hoyTab = `
         <div class="personal-natal-card">
@@ -15676,7 +15681,7 @@ function renderPersonalCalendar() {
     const profileDisplayName = natal.name || natal.cityName || (L ? 'Mi Carta' : 'My Chart');
 
     // --- Build sub-tab content for Natal section ---
-    const natalSubTabsHTML = buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today);
+    const natalSubTabsHTML = buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, moonSign, ascSign, mcSign, majorTransits, moonTransits, today, todayTransits);
 
     // First day of sign period weekday alignment
     let startDow = signStart.getDay(); // 0=Sun
@@ -22514,7 +22519,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v395';
+const APP_VERSION = 'v395b';
 var _pendingSW = null;
 
 function showUpdateBanner() {
