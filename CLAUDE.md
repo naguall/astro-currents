@@ -9,6 +9,7 @@ PWA de una sola página (`index.html`, ~23000 líneas) para seguimiento lunar, s
 1. **Siempre leer el código relevante** antes de editar — la app es un solo archivo enorme y el contexto es vital
 2. **Mostrar los prompts de IA** al usuario antes de modificarlos (son los personas en `_aiPersonas`)
 3. **Preguntar antes de cambiar** la brújula/compass — el usuario ha calibrado manualmente muchos valores
+4. **No agregar emojis ni iconos** al crear elementos nuevos en la UI — mantener texto limpio. Solo usar emojis donde ya existen
 
 ### Versionado
 - `APP_VERSION` en `index.html` y `CACHE_NAME` en `sw.js` **deben coincidir siempre**
