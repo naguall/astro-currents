@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moon-sync-v415';
+const CACHE_NAME = 'moon-sync-v416';
 const ASSETS = [
   '/moon-sync/',
   '/moon-sync/index.html',
@@ -47,9 +47,16 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
     clearEverything().then(() => {
+      var url = '/moon-sync/';
+      if (e.notification.data && e.notification.data.dreamAlarm) {
+        url = '/moon-sync/?dreamAlarm=1';
+      }
       return clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
-        if (cls.length > 0) { return cls[0].focus(); }
-        return clients.openWindow('/moon-sync/');
+        if (cls.length > 0) {
+          cls[0].navigate(url);
+          return cls[0].focus();
+        }
+        return clients.openWindow(url);
       });
     })
   );
@@ -74,6 +81,19 @@ self.addEventListener('message', e => {
   }
   if (e.data && e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  if (e.data && e.data.type === 'DREAM_ALARM') {
+    e.waitUntil(
+      self.registration.showNotification(e.data.title, {
+        body: e.data.body,
+        icon: '/moon-sync/icons/icon-192.png',
+        badge: '/moon-sync/icons/icon-192.png',
+        tag: 'dream-alarm',
+        requireInteraction: true,
+        vibrate: [300, 200, 300, 200, 300],
+        data: { dreamAlarm: true }
+      })
+    );
   }
 });
 

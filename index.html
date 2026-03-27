@@ -680,6 +680,14 @@
                 height: auto !important;
             }
         }
+        /* Dream Alarm Toggle Switch */
+        .dream-alarm-switch { position:relative;display:inline-block;width:44px;height:24px; }
+        .dream-alarm-switch input { opacity:0;width:0;height:0; }
+        .dream-alarm-slider { position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.15);transition:.3s;border-radius:24px; }
+        .dream-alarm-slider:before { content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:rgba(255,255,255,0.6);transition:.3s;border-radius:50%; }
+        .dream-alarm-switch input:checked + .dream-alarm-slider { background:rgba(138,43,226,0.5); }
+        .dream-alarm-switch input:checked + .dream-alarm-slider:before { transform:translateX(20px);background:#ce93d8; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
     <!-- Google Identity Services for Calendar sync -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1090,6 +1098,26 @@
                         ✨ <span data-i18n="dreamInterpret">Interpretar Sueño con AI</span>
                     </button>
                     <div id="dreamInterpContainer" style="margin-top:12px;"></div>
+                    <!-- Dream Alarm (Ensueños) -->
+                    <div style="margin-top:16px;padding:14px;background:linear-gradient(135deg,rgba(138,43,226,0.1),rgba(75,0,130,0.08));border:1px solid rgba(138,43,226,0.25);border-radius:12px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:1.1em;">🌙</span>
+                                <span style="color:#ce93d8;font-weight:700;font-size:0.88em;" data-i18n="dreamAlarmTitle">Alarma de Ensueños</span>
+                            </div>
+                            <label class="dream-alarm-switch">
+                                <input type="checkbox" id="dreamAlarmToggle" onchange="toggleDreamAlarm()">
+                                <span class="dream-alarm-slider"></span>
+                            </label>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <span style="color:rgba(255,255,255,0.5);font-size:0.78em;" data-i18n="dreamAlarmTimeLabel">Hora:</span>
+                            <input type="time" id="dreamAlarmTimeInput" value="03:00" onchange="setDreamAlarmTime(this.value)" style="padding:6px 10px;background:rgba(0,0,0,0.3);border:1px solid rgba(138,43,226,0.3);border-radius:8px;color:#ce93d8;font-size:0.85em;cursor:pointer;outline:none;">
+                            <button onclick="openDreamRecorder()" style="padding:6px 12px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.78em;cursor:pointer;white-space:nowrap;" data-i18n="dreamAlarmTest">🎤 Grabar ahora</button>
+                        </div>
+                        <div id="dreamAlarmStatus" style="font-size:0.72em;color:rgba(255,255,255,0.3);"></div>
+                        <div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;" data-i18n="dreamAlarmDesc">La alarma suena 5 seg, abre el diario y activa el micrófono. Se detiene tras 2 min sin voz.</div>
+                    </div>
                 </div>
                 <button onclick="closeDiarioModal()" style="width: 100%; padding: 12px; margin-top: 15px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: white; cursor: pointer;">Cerrar</button>
             </div>
@@ -5040,22 +5068,32 @@ function initVoiceRecognition() {
     return true;
 }
 
-function toggleVoiceInput() {
+function toggleVoiceInput(mode) {
+    if (mode === 'dream') {
+        // Use the dream-specific voice recording
+        if (_dreamRecording) {
+            stopDreamVoiceRecording(true);
+        } else {
+            startDreamVoiceRecording();
+        }
+        return;
+    }
+    // ── Personal diary mode ──
     console.log('🎤 toggleVoiceInput called');
     console.log('  Recognition:', recognition);
     console.log('  isRecording:', isRecording);
-    
+
     if (!recognition) {
         console.log('  Initializing voice recognition...');
         const supported = initVoiceRecognition();
         if (!supported) {
-            alert(currentLang === 'es' ? 
+            alert(currentLang === 'es' ?
                 'Tu navegador no soporta reconocimiento de voz.\n\nPrueba con Chrome, Edge o Safari.' :
                 'Your browser does not support voice recognition.\n\nTry Chrome, Edge or Safari.');
             return;
         }
     }
-    
+
     if (isRecording) {
         console.log('  Stopping voice input...');
         stopVoiceInput();
@@ -7097,6 +7135,9 @@ function openDiarioModal(date, lunarDay) {
     // Populate dream persona dropdown
     populateDreamPersonaDropdown();
 
+    // Update dream alarm UI
+    updateDreamAlarmUI();
+
     document.getElementById('diarioModal').classList.add('show');
 }
 
@@ -7226,6 +7267,357 @@ function interpretDream() {
     fetchAIInterpretation(prompt, 'dreamAiInterpDiv', readingTitle);
     _activePersonaId = originalPersonaId;
 }
+
+// ══════════════════════════════════════════════════════════
+// ── DREAM ALARM (Ensueños) ──
+// ══════════════════════════════════════════════════════════
+
+var _dreamAlarmTimeout = null;
+var _dreamAlarmEnabled = localStorage.getItem('dreamAlarmEnabled') === 'true';
+var _dreamAlarmTime = localStorage.getItem('dreamAlarmTime') || '03:00';
+var _dreamSilenceTimer = null;
+var _dreamRecording = false;
+var _dreamRecognition = null;
+
+function toggleDreamAlarm() {
+    _dreamAlarmEnabled = !_dreamAlarmEnabled;
+    localStorage.setItem('dreamAlarmEnabled', _dreamAlarmEnabled);
+    if (_dreamAlarmEnabled) {
+        scheduleDreamAlarm();
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    } else {
+        cancelDreamAlarm();
+    }
+    updateDreamAlarmUI();
+}
+
+function setDreamAlarmTime(timeStr) {
+    _dreamAlarmTime = timeStr;
+    localStorage.setItem('dreamAlarmTime', timeStr);
+    if (_dreamAlarmEnabled) {
+        scheduleDreamAlarm();
+    }
+    updateDreamAlarmUI();
+}
+
+function scheduleDreamAlarm() {
+    cancelDreamAlarm();
+    var now = new Date();
+    var parts = _dreamAlarmTime.split(':');
+    var hours = parseInt(parts[0], 10);
+    var minutes = parseInt(parts[1], 10);
+    var alarmDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+    // If the time already passed today, schedule for tomorrow
+    if (alarmDate <= now) {
+        alarmDate.setDate(alarmDate.getDate() + 1);
+    }
+
+    var msUntilAlarm = alarmDate.getTime() - now.getTime();
+    console.log('🌙 Dream alarm scheduled for', alarmDate.toLocaleString(), '(' + Math.round(msUntilAlarm/60000) + ' min)');
+
+    _dreamAlarmTimeout = setTimeout(function() {
+        triggerDreamAlarm();
+    }, msUntilAlarm);
+}
+
+function cancelDreamAlarm() {
+    if (_dreamAlarmTimeout) {
+        clearTimeout(_dreamAlarmTimeout);
+        _dreamAlarmTimeout = null;
+    }
+}
+
+function triggerDreamAlarm() {
+    console.log('🌙✨ Dream alarm triggered!');
+
+    // 1. Vibrate (pattern: short bursts for 5 seconds)
+    if (navigator.vibrate) {
+        navigator.vibrate([300, 200, 300, 200, 300, 200, 300, 200, 300, 200, 300, 200, 300, 200, 300]);
+    }
+
+    // 2. Play gentle alarm sound (5 seconds) using Web Audio API
+    playDreamAlarmSound();
+
+    // 3. Show notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'DREAM_ALARM',
+                title: currentLang === 'es' ? '🌙 Ensueño — Graba tu sueño' : '🌙 Dream — Record your dream',
+                body: currentLang === 'es' ? 'Toca para abrir el diario y dictar tu sueño' : 'Tap to open journal and dictate your dream'
+            });
+        } else {
+            new Notification(currentLang === 'es' ? '🌙 Ensueño' : '🌙 Dream', {
+                body: currentLang === 'es' ? 'Toca para grabar tu sueño' : 'Tap to record your dream',
+                icon: '/moon-sync/icons/icon-192.png',
+                tag: 'dream-alarm',
+                requireInteraction: true
+            });
+        }
+    }
+
+    // 4. Auto-open dream journal with mic
+    openDreamRecorder();
+
+    // 5. Reschedule for tomorrow
+    scheduleDreamAlarm();
+}
+
+function playDreamAlarmSound() {
+    try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var duration = 5; // 5 seconds
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        // Gentle, dreamy tone (low frequency sine wave with slow tremolo)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(396, ctx.currentTime); // Solfeggio frequency
+
+        // Gentle volume envelope - fade in and out
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.5);
+        // Tremolo effect
+        for (var t = 0.5; t < duration - 0.5; t += 0.8) {
+            gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + t);
+            gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + t + 0.4);
+        }
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + duration);
+
+        // Cleanup
+        setTimeout(function() { ctx.close(); }, (duration + 1) * 1000);
+    } catch(e) {
+        console.error('Dream alarm sound error:', e);
+    }
+}
+
+function openDreamRecorder() {
+    // Open dream journal for today
+    var today = new Date();
+    var lunarDay = typeof getLunarDay === 'function' ? getLunarDay(today) : 0;
+    openDiarioModal(today, lunarDay);
+
+    // Switch to dreams tab after a short delay
+    setTimeout(function() {
+        switchDiarioTab('dreams');
+        // Auto-start dream voice recording after another short delay
+        setTimeout(function() {
+            startDreamVoiceRecording();
+        }, 500);
+    }, 300);
+}
+
+function startDreamVoiceRecording() {
+    var L = currentLang === 'es';
+    _dreamRecording = true;
+
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.error('Speech recognition not supported');
+        return;
+    }
+
+    _dreamRecognition = new SpeechRecognition();
+    _dreamRecognition.continuous = true;
+    _dreamRecognition.interimResults = false;
+    _dreamRecognition.lang = L ? 'es-ES' : 'en-US';
+
+    var lastSpeechTime = Date.now();
+    var SILENCE_TIMEOUT = 120000; // 2 minutes
+
+    _dreamRecognition.onstart = function() {
+        console.log('🌙🎤 Dream recording started');
+        _dreamRecording = true;
+        lastSpeechTime = Date.now();
+
+        var btn = document.getElementById('voiceDreamBtn');
+        if (btn) {
+            btn.style.background = 'rgba(255,107,107,0.3)';
+            btn.style.borderColor = 'rgba(255,107,107,0.8)';
+            btn.style.animation = 'pulse 1.5s infinite';
+            btn.innerHTML = '🔴';
+        }
+
+        // Show recording status
+        var status = document.getElementById('dreamSaveStatus');
+        if (status) {
+            status.innerHTML = L ? '🎤 Grabando sueño... (se detiene tras 2 min de silencio)' : '🎤 Recording dream... (stops after 2 min silence)';
+            status.style.color = '#ff6b6b';
+        }
+
+        // Start silence check timer
+        _dreamSilenceTimer = setInterval(function() {
+            if (Date.now() - lastSpeechTime > SILENCE_TIMEOUT) {
+                console.log('🌙 2 min silence — auto-stopping dream recording');
+                stopDreamVoiceRecording(true);
+            }
+        }, 10000); // Check every 10 seconds
+    };
+
+    _dreamRecognition.onresult = function(event) {
+        var textarea = document.getElementById('dreamText');
+        if (!textarea) return;
+
+        lastSpeechTime = Date.now(); // Reset silence timer
+
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+                var transcript = event.results[i][0].transcript;
+                var cursorPos = textarea.selectionStart;
+                var textBefore = textarea.value.substring(0, cursorPos);
+                var textAfter = textarea.value.substring(cursorPos);
+                textarea.value = textBefore + transcript + ' ' + textAfter;
+                var newPos = cursorPos + transcript.length + 1;
+                textarea.setSelectionRange(newPos, newPos);
+                textarea.dispatchEvent(new Event('input')); // Trigger auto-save
+                console.log('🌙 Dream transcribed:', transcript.substring(0, 50) + '...');
+            }
+        }
+    };
+
+    _dreamRecognition.onerror = function(event) {
+        console.error('🌙 Dream voice error:', event.error);
+        if (event.error === 'not-allowed') {
+            var status = document.getElementById('dreamSaveStatus');
+            if (status) {
+                status.innerHTML = L ? '⚠️ Micrófono bloqueado — permite el acceso' : '⚠️ Mic blocked — allow access';
+                status.style.color = '#ff6b6b';
+            }
+            stopDreamVoiceRecording(false);
+        } else if (event.error === 'no-speech') {
+            // Don't stop, just log — silence timer handles this
+            console.log('🌙 No speech detected, waiting...');
+        }
+    };
+
+    _dreamRecognition.onend = function() {
+        console.log('🌙 Dream recognition ended, recording:', _dreamRecording);
+        if (_dreamRecording) {
+            // Auto-restart to keep recording
+            try {
+                _dreamRecognition.start();
+            } catch(e) {
+                console.error('🌙 Could not restart dream recording:', e);
+                stopDreamVoiceRecording(true);
+            }
+        }
+    };
+
+    try {
+        _dreamRecognition.start();
+    } catch(e) {
+        console.error('🌙 Could not start dream recording:', e);
+    }
+}
+
+function stopDreamVoiceRecording(autoSave) {
+    _dreamRecording = false;
+
+    if (_dreamSilenceTimer) {
+        clearInterval(_dreamSilenceTimer);
+        _dreamSilenceTimer = null;
+    }
+
+    if (_dreamRecognition) {
+        try { _dreamRecognition.stop(); } catch(e) {}
+        _dreamRecognition = null;
+    }
+
+    var btn = document.getElementById('voiceDreamBtn');
+    if (btn) {
+        btn.style.background = 'rgba(138,43,226,0.2)';
+        btn.style.borderColor = 'rgba(138,43,226,0.5)';
+        btn.style.animation = 'none';
+        btn.innerHTML = '🎤';
+    }
+
+    var L = currentLang === 'es';
+    var status = document.getElementById('dreamSaveStatus');
+
+    if (autoSave) {
+        // Trigger save
+        var textarea = document.getElementById('dreamText');
+        if (textarea) {
+            textarea.dispatchEvent(new Event('input'));
+        }
+        if (status) {
+            status.innerHTML = L ? '✅ Sueño guardado automáticamente' : '✅ Dream auto-saved';
+            status.style.color = '#4ecdc4';
+        }
+    } else {
+        if (status) {
+            status.innerHTML = L ? '⏹ Grabación detenida' : '⏹ Recording stopped';
+            status.style.color = 'rgba(255,255,255,0.4)';
+        }
+    }
+}
+
+function updateDreamAlarmUI() {
+    var toggle = document.getElementById('dreamAlarmToggle');
+    var timeInput = document.getElementById('dreamAlarmTimeInput');
+    var statusEl = document.getElementById('dreamAlarmStatus');
+    var L = currentLang === 'es';
+
+    if (toggle) toggle.checked = _dreamAlarmEnabled;
+    if (timeInput) timeInput.value = _dreamAlarmTime;
+
+    if (statusEl) {
+        if (_dreamAlarmEnabled) {
+            var now = new Date();
+            var parts = _dreamAlarmTime.split(':');
+            var h = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10);
+            var alarmDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+            if (alarmDate <= now) alarmDate.setDate(alarmDate.getDate() + 1);
+            var hoursUntil = Math.round((alarmDate - now) / 3600000 * 10) / 10;
+            statusEl.innerHTML = L
+                ? '✅ Alarma activa — en ~' + hoursUntil + 'h'
+                : '✅ Alarm active — in ~' + hoursUntil + 'h';
+            statusEl.style.color = '#4ecdc4';
+        } else {
+            statusEl.innerHTML = L ? '⏸ Alarma desactivada' : '⏸ Alarm off';
+            statusEl.style.color = 'rgba(255,255,255,0.3)';
+        }
+    }
+}
+
+// Initialize dream alarm on page load
+if (_dreamAlarmEnabled) {
+    scheduleDreamAlarm();
+}
+
+// Check URL params for dream alarm auto-open
+(function checkDreamAlarmParam() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('dreamAlarm') === '1') {
+        // Remove param from URL without reload
+        var url = new URL(window.location);
+        url.searchParams.delete('dreamAlarm');
+        window.history.replaceState({}, '', url);
+        // Auto-open dream recorder after page loads
+        setTimeout(function() {
+            openDreamRecorder();
+        }, 1500);
+    }
+})();
+
+// Expose globally
+window.toggleDreamAlarm = toggleDreamAlarm;
+window.setDreamAlarmTime = setDreamAlarmTime;
+window.openDreamRecorder = openDreamRecorder;
+window.startDreamVoiceRecording = startDreamVoiceRecording;
+window.stopDreamVoiceRecording = stopDreamVoiceRecording;
+window.updateDreamAlarmUI = updateDreamAlarmUI;
 
 // ══════════════════════════════════════════════════════════
 // ── MOON COMPASS (Brújula Lunar) ──
@@ -23056,7 +23448,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v415';
+const APP_VERSION = 'v416';
 var _pendingSW = null;
 
 function showUpdateBanner() {
