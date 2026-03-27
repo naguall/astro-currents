@@ -85,9 +85,13 @@ PWA de una sola página (`index.html`, ~23000 líneas) para seguimiento lunar, s
 
 ### Interpretaciones IA
 - 2 personas: `energy-reader` (lecturas energéticas) y `shadow-mirror` (sombra/espejo)
-- Chats guardados en localStorage con `getInterpChatKey(chatId)`
-- Botones de borrar en 3 lugares: ventana inicial, vista cached del banner, y chat expandido
-- `deleteInterpChat(chatId)` borra del localStorage y remueve el DOM
+- **REGLA CRÍTICA: Todos los chats de IA deben persistir en localStorage** vinculados al perfil del usuario. Solo se borran cuando el usuario lo solicita explícitamente (botón Borrar). Nunca auto-borrar chats.
+- `chatId` es un hash determinístico de `profileId + prompt` — el mismo aspecto/planeta siempre reabre el mismo chat con su historial completo
+- Chats guardados en localStorage con `getInterpChatKey(chatId)` → `interp_chat_` + chatId
+- `saveInterpChat(chatId, data)` guarda, `getInterpChat(chatId)` recupera, `deleteInterpChat(chatId)` borra con confirmación
+- Cada interpretación tiene botones: Chat (continuar conversación), Guardar (como lectura), Compartir, Borrar
+- Interpretaciones de ciclos cósmicos se cachean con `saveInterpCache()` → `interp_` + profilePrefix + key
+- Cartas de retorno solar/lunar: cada aspecto es clickeable y abre su propia interpretación AI con chat persistente
 
 ### Panel solar (rendimiento)
 - `renderSolarInfoPanel()` es la función más pesada — genera SVG con continentes, terminator día/noche, trayectoria solar

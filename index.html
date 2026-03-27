@@ -12681,6 +12681,40 @@ window.openReturnChart = function(type) {
     });
     html += '</tbody></table>';
 
+    // Aspects of the return chart (clickable for AI interpretation)
+    var returnAspects = returnChart.natalAspects || [];
+    var aspectSymbols = {'conjunction':'☌','sextile':'⚹','square':'□','trine':'△','opposition':'☍','semisextile':'⚺','quincunx':'⚻'};
+    var aspectColors = {'conjunction':'#e74c3c','sextile':'#3498db','square':'#f1c40f','trine':'#2ecc71','opposition':'#c0392b','semisextile':'#78909c','quincunx':'#8e44ad'};
+    var pSyms = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','northnode':'☊','lilith':'⚸','partOfFortune':'⊕','vertex':'Vx','ASC':'↑','MC':'★'};
+
+    // Store return aspects globally for click handler
+    window._returnChartAspects = returnAspects;
+    window._returnChartType = type;
+    window._returnChartDateStr = returnDate.toLocaleDateString(L?'es':'en', {day:'numeric', month:'long', year:'numeric'});
+
+    if (returnAspects.length > 0) {
+        html += '<div style="margin-top:14px;">';
+        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Aspectos de la Carta':'Chart Aspects') + ' (' + returnAspects.length + ')</div>';
+        returnAspects.forEach(function(a, idx) {
+            var p1Name = pNms[a.planet1] || a.planet1;
+            var p2Name = pNms[a.planet2] || a.planet2;
+            var asp = a.aspect || {};
+            var sym = asp.symbol || '?';
+            var clr = asp.color || '#999';
+            var p1Sym = pSyms[a.planet1] || '';
+            var p2Sym = pSyms[a.planet2] || '';
+            html += '<div onclick="interpretReturnAspect(' + idx + ')" style="display:flex;align-items:center;gap:6px;padding:6px 8px;margin-bottom:3px;background:rgba(255,255,255,0.03);border-left:2px solid ' + clr + ';border-radius:4px;cursor:pointer;font-size:0.82em;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.08)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'">';
+            html += '<span style="font-size:1.05em;">' + p1Sym + '</span>';
+            html += '<span style="color:' + clr + ';font-weight:700;">' + sym + '</span>';
+            html += '<span style="font-size:1.05em;">' + p2Sym + '</span>';
+            html += '<span style="color:rgba(255,255,255,0.6);flex:1;">' + p1Name + ' ' + sym + ' ' + p2Name + '</span>';
+            html += '<span style="color:rgba(255,255,255,0.3);font-size:0.8em;">' + (a.orb !== undefined ? a.orb.toFixed(1) + '\u00b0' : '') + '</span>';
+            html += '<span style="color:rgba(201,168,64,0.5);font-size:0.7em;">✨</span>';
+            html += '</div>';
+        });
+        html += '</div>';
+    }
+
     // Key themes
     html += '<div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:0.8em;color:rgba(255,255,255,0.5);">';
     if (type === 'solar') {
@@ -12694,10 +12728,10 @@ window.openReturnChart = function(type) {
     }
     html += '</div>';
 
-    // Interpret button
+    // Interpret full chart button
     var btnLabel = type === 'solar'
-        ? (L ? 'Interpretar Retorno Solar' : 'Interpret Solar Return')
-        : (L ? 'Interpretar Retorno Lunar' : 'Interpret Lunar Return');
+        ? (L ? 'Interpretar Retorno Solar Completo' : 'Interpret Full Solar Return')
+        : (L ? 'Interpretar Retorno Lunar Completo' : 'Interpret Full Lunar Return');
     html += '<div style="text-align:center;margin-top:14px;">';
     html += '<button id="returnInterpBtn" onclick="interpretReturnChartInline(\'' + type + '\')" style="padding:12px 20px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(255,149,0,0.2));border:1px solid rgba(201,168,64,0.5);border-radius:12px;color:#ffd54f;font-size:0.9em;font-weight:700;cursor:pointer;width:90%;max-width:400px;">';
     html += '✨ ' + btnLabel + '</button></div>';
@@ -12733,6 +12767,59 @@ window.openReturnChart = function(type) {
         drawNatalWheel('returnChartWheel');
         localStorage.setItem('natalChart', origChart);
     }, 150);
+};
+
+// Click handler for individual return chart aspect -> opens natalDetailModal with AI interpretation
+window.interpretReturnAspect = function(idx) {
+    var aspects = window._returnChartAspects;
+    if (!aspects || !aspects[idx]) return;
+    var a = aspects[idx];
+    var L = currentLang === 'es';
+    var type = window._returnChartType || 'solar';
+    var dateStr = window._returnChartDateStr || '';
+
+    var pNmsLocal = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex','ASC':'ASC','MC':'MC'};
+    var aspectSyms = {'conjunction':'☌','sextile':'⚹','square':'□','trine':'△','opposition':'☍','semisextile':'⚺','quincunx':'⚻'};
+    var aspectClrs = {'conjunction':'#e74c3c','sextile':'#3498db','square':'#f1c40f','trine':'#2ecc71','opposition':'#c0392b','semisextile':'#78909c','quincunx':'#8e44ad'};
+
+    var p1Name = pNmsLocal[a.planet1] || a.planet1;
+    var p2Name = pNmsLocal[a.planet2] || a.planet2;
+    var asp = a.aspect || {};
+    var sym = asp.symbol || '?';
+    var aspName = L ? (asp.name || asp.nameEn || '') : (asp.nameEn || asp.name || '');
+    var clr = asp.color || '#999';
+    var returnLabel = type === 'solar' ? (L ? 'Retorno Solar' : 'Solar Return') : (L ? 'Retorno Lunar' : 'Lunar Return');
+
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+
+    titleEl.textContent = returnLabel + ': ' + p1Name + ' ' + sym + ' ' + p2Name;
+
+    var html = '<div style="border-bottom: 2px solid ' + clr + '; padding-bottom: 12px; margin-bottom: 15px;">';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + returnLabel + ' — ' + dateStr + '</div>';
+    html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Planeta 1:' : 'Planet 1:') + '</strong> ' + p1Name + '</div>';
+    html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Aspecto:' : 'Aspect:') + '</strong> <span style="color:' + clr + ';font-weight:700;">' + aspName + ' ' + sym + '</span></div>';
+    html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Planeta 2:' : 'Planet 2:') + '</strong> ' + p2Name + '</div>';
+    if (a.orb !== undefined) html += '<div style="font-size:0.9em;"><strong>' + (L ? 'Orbe:' : 'Orb:') + '</strong> ' + a.orb.toFixed(2) + '\u00b0</div>';
+    html += '</div>';
+
+    // AI interpretation section
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    // Send AI prompt for this specific aspect in the return chart context
+    var orbStr = a.orb !== undefined ? a.orb.toFixed(1) + '\u00b0' : '?';
+    var prompt = L
+        ? 'Interpreta este aspecto en la CARTA DE ' + returnLabel.toUpperCase() + ' (' + dateStr + '): ' + p1Name + ' en ' + aspName + ' con ' + p2Name + ' (orbe: ' + orbStr + '). Explica: 1) Qué significa este aspecto en una carta de retorno, 2) Cómo afecta el período que cubre este retorno, 3) Qué área de vida activa, 4) Consejo práctico.'
+        : 'Interpret this aspect in the ' + returnLabel.toUpperCase() + ' CHART (' + dateStr + '): ' + p1Name + ' in ' + aspName + ' with ' + p2Name + ' (orb: ' + orbStr + '). Explain: 1) What this aspect means in a return chart, 2) How it affects the period this return covers, 3) What life area it activates, 4) Practical advice.';
+
+    var readingTitle = returnLabel + ': ' + p1Name + ' ' + sym + ' ' + p2Name;
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle);
+    }, 100);
 };
 
 // Interpret return chart inline within the modal
@@ -22660,7 +22747,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v397';
+const APP_VERSION = 'v398';
 var _pendingSW = null;
 
 function showUpdateBanner() {
