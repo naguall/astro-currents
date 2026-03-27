@@ -716,7 +716,8 @@
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
-                <button id="aspects2026ModeBtn" onclick="switchToAspects2026Mode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="asp2026ButtonLabel">2026</span></button>
+                <!-- 2026 moved inside Astro tab as subtab (v429) -->
+                <button id="aspects2026ModeBtn" onclick="switchToAspects2026Mode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="asp2026ButtonLabel">2026</span></button>
                 <button id="notificationBtn" onclick="toggleNotifications()" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🔔</button>
                 <button id="langES" style="background:transparent;border:1px solid rgba(255,255,255,0.3);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;flex-shrink:0;display:none;">🇪🇸</button>
                 <button id="langEN" style="background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:5px;padding:2px 4px;cursor:pointer;font-size:0.7em;opacity:0.5;flex-shrink:0;display:none;">🇺🇸</button>
@@ -3995,7 +3996,8 @@ function updateUILanguage() {
     } else if (calendarMode === 'solarsystem') {
         switchToSolarSystemMode();
     } else if (calendarMode === 'aspects2026') {
-        switchToAspects2026Mode();
+        // 2026 is now a subtab inside Astro — redirect to personal mode
+        switchToPersonalMode();
     } else if (calendarMode === 'personal') {
         switchToPersonalMode();
     }
@@ -11584,6 +11586,30 @@ function renderAspects2026Panel() {
     panel.innerHTML = html;
 }
 
+// Render 2026 aspects content inside the Astro subtab
+function renderAspects2026InSubtab() {
+    var container = document.getElementById('natalTabAspects2026');
+    if (!container) return;
+    // Reuse the existing renderAspects2026Panel logic:
+    // temporarily swap the target panel, render, then restore
+    var existingPanel = document.getElementById('aspects2026Panel');
+    // Create a temp panel inside the subtab
+    var tempPanel = document.getElementById('aspects2026PanelSubtab');
+    if (!tempPanel) {
+        tempPanel = document.createElement('div');
+        tempPanel.id = 'aspects2026PanelSubtab';
+        container.appendChild(tempPanel);
+    }
+    // Copy logic from renderAspects2026Panel but target our subtab panel
+    // We'll just call it and then move the content
+    renderAspects2026Panel();
+    var srcPanel = document.getElementById('aspects2026Panel');
+    if (srcPanel) {
+        tempPanel.innerHTML = srcPanel.innerHTML;
+        srcPanel.style.display = 'none';
+    }
+}
+
 function toggleAspect2026Details(idx) {
     const el = document.getElementById('asp2026Details' + idx);
     const arrow = document.getElementById('asp2026Arrow' + idx);
@@ -15279,6 +15305,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${L?'Calend':'Calend'}</span><span class="subtab-full">${L?'Calendario':'Calendar'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('aspects2026',this)">2026</button>
             <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('comparar',this)">${L?'Comparar':'Compare'}</button>
         </div>
@@ -15287,6 +15314,7 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div id="natalTabCalendar" class="natal-tab-content" style="display:block;">${calendarTransitsTab}</div>
         <div id="natalTabHoy" class="natal-tab-content" style="display:none;">${hoyTab}</div>
         <div id="natalTabCiclos" class="natal-tab-content" style="display:none;">${ciclosTab}</div>
+        <div id="natalTabAspects2026" class="natal-tab-content" style="display:none;"></div>
         <div id="natalTabCartography" class="natal-tab-content" style="display:none;">${cartographyTab}</div>
         <div id="natalTabComparar" class="natal-tab-content" style="display:none;"></div>`;
 }
@@ -15339,6 +15367,16 @@ function switchNatalTab(tabName, btn) {
         setTimeout(function() {
             if (aspSortCol === -1) { sortAspectsTable(0); }
         }, 50);
+    }
+    if (tabName === 'aspects2026') {
+        // Render the 2026 aspects panel inside the Astro subtab
+        var a2026Tab = document.getElementById('natalTabAspects2026');
+        if (a2026Tab && !a2026Tab.hasChildNodes()) {
+            // Temporarily redirect renderAspects2026Panel to render inside the subtab
+            var oldPanel = document.getElementById('aspects2026Panel');
+            if (oldPanel) oldPanel.style.display = 'none';
+        }
+        setTimeout(function() { renderAspects2026InSubtab(); }, 100);
     }
     if (tabName === 'comparar') {
         setTimeout(renderCompararTab, 100);
@@ -21162,7 +21200,8 @@ if (calendarMode === 'solar') {
 } else if (calendarMode === 'solarsystem') {
     switchToSolarSystemMode();
 } else if (calendarMode === 'aspects2026') {
-    switchToAspects2026Mode();
+    // 2026 is now a subtab inside Astro — redirect to personal mode
+    switchToPersonalMode();
 } else if (calendarMode === 'gregorian') {
     document.body.classList.add('gregorian-mode');
     renderGregorianCalendar();
@@ -24009,7 +24048,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v428';
+const APP_VERSION = 'v429';
 var _pendingSW = null;
 
 function showUpdateBanner() {
