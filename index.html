@@ -843,7 +843,7 @@
     <div id="categoryPanelOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;" onclick="closeCategoryPanel()"></div>
 
     <!-- Modal de Opciones del Día -->
-    <div id="dayOptionsModal" class="modal" onclick="if(event.target===this)closeDayOptionsModal()"
+    <div id="dayOptionsModal" class="modal" onclick="if(event.target===this)closeDayOptionsModal()">
         <div class="modal-content" style="max-width: 360px;padding:0;border-radius:16px;overflow:hidden;">
             <div style="padding:14px 16px;background:rgba(201,168,64,0.08);border-bottom:1px solid rgba(201,168,64,0.15);">
                 <div style="text-align:center;font-weight:700;color:#ffd54f;font-size:0.95em;" id="dayOptionsTitle">Opciones del Día</div>
@@ -5453,11 +5453,18 @@ function handleDayClick(element) {
         const modal = document.getElementById('dayOptionsModal');
         const aspectsBtn = document.getElementById('aspectsOptionBtn');
 
-        modal.querySelector('h2').textContent = t('dayOptions');
-        modal.querySelector('button[onclick="selectDayOption(\'agenda\')"]').innerHTML = t('agenda');
-        aspectsBtn.innerHTML = `${t('aspects')} (<span id="aspectsCount">${allEvents}</span>)`;
-        modal.querySelector('button[onclick="selectDayOption(\'diario\')"]').innerHTML = t('diary');
-        modal.querySelector('button[onclick="closeDayOptionsModal()"]').innerHTML = `❌ ${t('cancel')}`;
+        var titleEl = modal.querySelector('h2') || document.getElementById('dayOptionsTitle');
+        if (titleEl) titleEl.textContent = t('dayOptions');
+        var agendaEl = modal.querySelector('button[onclick="selectDayOption(\'agenda\')"]') || modal.querySelector('div[onclick="selectDayOption(\'agenda\')"]');
+        if (agendaEl) { var agLabel = agendaEl.querySelector('[data-i18n="dayOptAgenda"]'); if (agLabel) agLabel.textContent = t('agenda'); }
+        var aspLabel = aspectsBtn.querySelector('[data-i18n="dayOptAspects"]');
+        if (aspLabel) { aspLabel.textContent = t('aspects'); }
+        var aspCount = aspectsBtn.querySelector('#aspectsCount') || document.getElementById('aspectsCount');
+        if (aspCount) aspCount.textContent = allEvents;
+        var diarioEl = modal.querySelector('button[onclick="selectDayOption(\'diario\')"]') || modal.querySelector('div[onclick="selectDayOption(\'diario\')"]');
+        if (diarioEl) { var diLabel = diarioEl.querySelector('[data-i18n="dayOptDiary"]'); if (diLabel) diLabel.textContent = t('diary'); }
+        var cancelEl = modal.querySelector('button[onclick="closeDayOptionsModal()"]');
+        if (cancelEl) cancelEl.innerHTML = `❌ ${t('cancel')}`;
 
         // Update astro button
         const astroBtn = document.getElementById('astroOptionBtn');
@@ -5468,11 +5475,12 @@ function handleDayClick(element) {
         // Update interpretation button
         const interpretBtn = document.getElementById('interpretDayBtn');
         if (interpretBtn) {
-            interpretBtn.innerHTML = currentLang === 'es' ? '✨ Interpretación del día' : '✨ Day interpretation';
+            var interpLabel = interpretBtn.querySelector('[data-i18n="dayOptInterp"]');
+            if (interpLabel) interpLabel.textContent = currentLang === 'es' ? 'Interpretación del Día' : 'Day Interpretation';
         }
 
         // IMPORTANTE: Mostrar botón de aspectos SIEMPRE (incluso si es 0)
-        aspectsBtn.style.display = 'block';
+        aspectsBtn.style.display = 'flex';
         aspectsBtn.style.visibility = 'visible';
         aspectsBtn.style.opacity = '1';
 
@@ -23042,7 +23050,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v413';
+const APP_VERSION = 'v414';
 var _pendingSW = null;
 
 function showUpdateBanner() {
