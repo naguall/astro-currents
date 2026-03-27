@@ -19176,31 +19176,39 @@ function checkNotifications() {
 function checkCustomMessages(now, todayKey) {
     if (!window.CUSTOM_MESSAGES) return;
 
-    var msg = window.CUSTOM_MESSAGES[todayKey];
-    if (!msg || !msg.message) return;
+    var entry = window.CUSTOM_MESSAGES[todayKey];
+    if (!entry) return;
 
-    var notifKey = 'notif-custom-msg-' + todayKey;
-    if (localStorage.getItem(notifKey)) return;
+    // Support both single object and array of messages
+    var messages = Array.isArray(entry) ? entry : [entry];
 
-    // Parse send time (default 08:00 CR)
-    var sendTime = msg.time || '08:00';
-    var parts = sendTime.split(':');
-    var sendHour = parseInt(parts[0]) || 8;
-    var sendMin = parseInt(parts[1]) || 0;
+    for (var i = 0; i < messages.length; i++) {
+        var msg = messages[i];
+        if (!msg || !msg.message) continue;
 
-    var scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sendHour, sendMin, 0, 0);
-    var diff = now.getTime() - scheduledTime.getTime();
+        var notifKey = 'notif-custom-msg-' + todayKey + '-' + i;
+        if (localStorage.getItem(notifKey)) continue;
 
-    // Send if we're past the scheduled time (within 24h window)
-    if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
-        var title = msg.title || 'Moon Sync';
-        sendNotif(title, {
-            body: msg.message,
-            tag: 'custom-msg-' + todayKey,
-            requireInteraction: true
-        });
-        localStorage.setItem(notifKey, 'true');
-        console.log('Custom message sent for', todayKey, ':', msg.message.substring(0, 50));
+        // Parse send time (default 08:00 CR)
+        var sendTime = msg.time || '08:00';
+        var parts = sendTime.split(':');
+        var sendHour = parseInt(parts[0]) || 8;
+        var sendMin = parseInt(parts[1]) || 0;
+
+        var scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sendHour, sendMin, 0, 0);
+        var diff = now.getTime() - scheduledTime.getTime();
+
+        // Send if we're past the scheduled time (within 24h window)
+        if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
+            var title = msg.title || 'Moon Sync';
+            sendNotif(title, {
+                body: msg.message,
+                tag: 'custom-msg-' + todayKey + '-' + i,
+                requireInteraction: true
+            });
+            localStorage.setItem(notifKey, 'true');
+            console.log('Custom message sent for', todayKey, '[' + i + ']:', msg.message.substring(0, 50));
+        }
     }
 }
 
