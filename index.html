@@ -859,27 +859,24 @@
                 <p id="dayOptionsDate" style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.78em;margin:4px 0 0;"></p>
             </div>
             <div style="padding:6px 0;">
-                <div onclick="selectDayOption('agenda')" style="display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
-                    <div>
-                        <div style="color:rgba(255,255,255,0.9);font-size:0.88em;font-weight:600;" data-i18n="dayOptAgenda">Agenda / Eventos</div>
+                <div onclick="selectDayOption('agenda')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
+                    <div style="text-align:center;">
+                        <div style="color:rgba(255,255,255,0.9);font-size:0.88em;font-weight:600;" data-i18n="dayOptAgenda">📅 Agenda / Eventos</div>
                         <div style="color:rgba(255,255,255,0.35);font-size:0.7em;" data-i18n="dayOptAgendaDesc">Citas, recordatorios, eventos</div>
                     </div>
-                    <span style="margin-left:auto;color:rgba(255,255,255,0.2);font-size:0.8em;">›</span>
                 </div>
-                <div onclick="selectDayOption('aspectos')" id="aspectsOptionBtn" style="display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
-                    <div>
-                        <div style="color:#f0e68c;font-size:0.88em;font-weight:600;"><span data-i18n="dayOptAspects">Aspectos Planetarios</span> (<span id="aspectsCount">0</span>)</div>
+                <div onclick="selectDayOption('aspectos')" id="aspectsOptionBtn" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
+                    <div style="text-align:center;">
+                        <div style="color:#f0e68c;font-size:0.88em;font-weight:600;">⭐ <span data-i18n="dayOptAspects">Aspectos Planetarios</span> (<span id="aspectsCount">0</span>)</div>
                         <div style="color:rgba(255,255,255,0.35);font-size:0.7em;" data-i18n="dayOptAspectsDesc">Conjunciones, trígonos, cuadraturas</div>
                     </div>
-                    <span style="margin-left:auto;color:rgba(255,255,255,0.2);font-size:0.8em;">›</span>
                 </div>
                 <div style="height:1px;background:rgba(255,255,255,0.06);margin:2px 16px;"></div>
-                <div onclick="selectDayOption('diario')" style="display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
-                    <div>
-                        <div style="color:rgba(255,255,255,0.9);font-size:0.88em;font-weight:600;" data-i18n="dayOptDiary">Diarios y Reflexiones</div>
+                <div onclick="selectDayOption('diario')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background='transparent'">
+                    <div style="text-align:center;">
+                        <div style="color:rgba(255,255,255,0.9);font-size:0.88em;font-weight:600;" data-i18n="dayOptDiary">📓 Diarios y Reflexiones</div>
                         <div style="color:rgba(255,255,255,0.35);font-size:0.7em;" data-i18n="dayOptDiaryDesc">Reflexiones, emociones, sueños</div>
                     </div>
-                    <span style="margin-left:auto;color:rgba(255,255,255,0.2);font-size:0.8em;">›</span>
                 </div>
             </div>
             <div style="padding:8px 16px 12px;border-top:1px solid rgba(255,255,255,0.06);">
@@ -13521,6 +13518,7 @@ window.showSynastryAspectDetail = function(dataStr) {
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
+    modal.style.zIndex = '1300';
 
     titleEl.textContent = p1Name + ' ' + sym + ' ' + p2Name;
 
@@ -13576,6 +13574,7 @@ window.showSynastryHouseDetail = function(dataStr) {
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
+    modal.style.zIndex = '1300';
 
     titleEl.textContent = pName + ' ' + (L?'en Casa':'in House') + ' ' + house;
 
@@ -13792,6 +13791,7 @@ window.openCompositeView = function(profileId) {
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
+    modal.style.zIndex = '1300';
 
     titleEl.textContent = (L?'Carta Compuesta':'Composite Chart') + ': ' + name1 + ' + ' + name2;
 
@@ -13893,6 +13893,7 @@ window.openDavisonView = function(profileId) {
     var titleEl = document.getElementById('natalDetailTitle');
     var bodyEl = document.getElementById('natalDetailBody');
     if (!modal || !titleEl || !bodyEl) return;
+    modal.style.zIndex = '1300';
 
     titleEl.textContent = (L?'Carta de Davison':'Davison Chart') + ': ' + name1 + ' + ' + name2;
 
