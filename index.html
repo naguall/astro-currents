@@ -19137,6 +19137,71 @@ function checkNotifications() {
             }
         });
     }
+
+    // 8. Check custom messages from custom-messages.js
+    checkCustomMessages(now, todayKey);
+}
+
+// ─── Custom Messages System ───────────────────────────────────
+// Reads window.CUSTOM_MESSAGES from custom-messages.js
+// Auto-reloads the file every 12 hours to pick up new messages
+(function() {
+    var CUSTOM_MSG_RELOAD_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
+    var lastCustomMsgReload = 0;
+
+    window.reloadCustomMessages = function() {
+        var script = document.querySelector('script[src="custom-messages.js"]');
+        if (!script) return;
+        var newScript = document.createElement('script');
+        newScript.src = 'custom-messages.js?t=' + Date.now();
+        newScript.onload = function() {
+            console.log('custom-messages.js reloaded, messages:',
+                window.CUSTOM_MESSAGES ? Object.keys(window.CUSTOM_MESSAGES).length : 0);
+            lastCustomMsgReload = Date.now();
+        };
+        newScript.onerror = function() {
+            console.log('custom-messages.js reload failed (file may not exist yet)');
+        };
+        script.parentNode.insertBefore(newScript, script.nextSibling);
+    };
+
+    // Auto-reload every 12 hours
+    setInterval(function() {
+        if (Date.now() - lastCustomMsgReload > CUSTOM_MSG_RELOAD_INTERVAL) {
+            window.reloadCustomMessages();
+        }
+    }, 30 * 60 * 1000); // Check every 30 min if reload needed
+})();
+
+function checkCustomMessages(now, todayKey) {
+    if (!window.CUSTOM_MESSAGES) return;
+
+    var msg = window.CUSTOM_MESSAGES[todayKey];
+    if (!msg || !msg.message) return;
+
+    var notifKey = 'notif-custom-msg-' + todayKey;
+    if (localStorage.getItem(notifKey)) return;
+
+    // Parse send time (default 08:00 CR)
+    var sendTime = msg.time || '08:00';
+    var parts = sendTime.split(':');
+    var sendHour = parseInt(parts[0]) || 8;
+    var sendMin = parseInt(parts[1]) || 0;
+
+    var scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sendHour, sendMin, 0, 0);
+    var diff = now.getTime() - scheduledTime.getTime();
+
+    // Send if we're past the scheduled time (within 24h window)
+    if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
+        var title = msg.title || 'Moon Sync';
+        sendNotif(title, {
+            body: msg.message,
+            tag: 'custom-msg-' + todayKey,
+            requireInteraction: true
+        });
+        localStorage.setItem(notifKey, 'true');
+        console.log('Custom message sent for', todayKey, ':', msg.message.substring(0, 50));
+    }
 }
 
 function handleNotifCategoryToggle(categoryId, enabled) {
@@ -21303,7 +21368,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v389';
+const APP_VERSION = 'v390';
 var _pendingSW = null;
 
 function showUpdateBanner() {
@@ -21395,6 +21460,9 @@ if ('serviceWorker' in navigator) {
     
     <!-- DATOS LUNARES EXTERNOS — editar lunar-data.js para actualizar años -->
     <script src="lunar-data.js"></script>
+
+    <!-- MENSAJES PERSONALIZADOS — editar custom-messages.js o usar Excel -->
+    <script src="custom-messages.js"></script>
     
     <!-- MULTI-YEAR NOTIFICATION SYSTEM - Load in order -->
     <script src="multiyear-csv-system.js"></script>
