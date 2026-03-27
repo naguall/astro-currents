@@ -9732,11 +9732,11 @@ function switchToSolarMode() {
     // Update buttons immediately so the UI responds to the tap
     updateModeButtons();
 
-    // Defer ALL heavy rendering to next frame so the button state updates instantly
+    // Defer rendering: calendar grid first, then heavy panel later
     requestAnimationFrame(function() {
         renderSolarCalendar();
-        setTimeout(reapplyCellSize, 300);
-        setTimeout(refreshAllLiveData, 50);
+        setTimeout(reapplyCellSize, 200);
+        setTimeout(refreshAllLiveData, 400);
     });
 }
 
@@ -16329,8 +16329,8 @@ function renderSolarCalendar() {
     // Update currentDayInfo to show solar data instead of lunar
     updateCurrentDayInfoForMode('solar');
 
-    // Defer the heavy solar info panel (SVG map) so calendar grid renders first
-    setTimeout(renderSolarInfoPanel, 10);
+    // Defer the heavy solar info panel (SVG map) so calendar grid paints first
+    setTimeout(renderSolarInfoPanel, 80);
 
     // Show lunar info banner
     const cday = getLunarDayForDate(today);
@@ -16371,9 +16371,9 @@ function renderSolarInfoPanel() {
     // Distance from subsolar point to user
     const distToUser = haversineKm(uLat, uLon, sunDecl, subsolarLon);
 
-    // Find closest approach in next 12h
+    // Find closest approach in next 12h (30min steps for performance)
     let closestDist = distToUser, closestTime = now;
-    for (let m = 0; m <= 720; m += 15) {
+    for (let m = 0; m <= 720; m += 30) {
         const t = new Date(now.getTime() + m * 60000);
         const sLat = getSunDeclination(t);
         const sLon = getSubsolarLonDeg(t);
@@ -16382,13 +16382,13 @@ function renderSolarInfoPanel() {
     }
     const closestTimeStr = closestTime.toLocaleTimeString(locale, timeFmt);
 
-    // Solar trajectory: future only, stop at map edge
+    // Solar trajectory: future only, stop at map edge (30min steps for performance)
     const W = 860, H = 430;
     const mx = lo => ((lo + 180) / 360 * W);
     const my = la => ((90 - la) / 180 * H);
     const futurePts = [];
     let prevLon = subsolarLon;
-    for (let m = 0; m <= 780; m += 10) {
+    for (let m = 0; m <= 780; m += 30) {
         const t = new Date(now.getTime() + m * 60000);
         const pLon = getSubsolarLonDeg(t);
         const pLat = getSunDeclination(t);
@@ -16454,7 +16454,7 @@ function renderSolarInfoPanel() {
         // Day/night terminator overlay — scanline approach (handles wrapping correctly)
         + (function() {
             const DR = Math.PI/180;
-            const bandDeg = 2;
+            const bandDeg = 5;
             let nightSVG = '';
             const eveningPts = [];
             const morningPts = [];
@@ -21077,7 +21077,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v381';
+const APP_VERSION = 'v382';
 var _pendingSW = null;
 
 function showUpdateBanner() {
