@@ -12631,6 +12631,13 @@ window.openSynastryView = function(profileId) {
         html += '</div>';
     }
 
+    // AI Interpretation button
+    html += '<div style="margin-top:14px;">';
+    html += '<button onclick="interpretSynastry(\'' + name1.replace(/'/g,"\\'") + '\',\'' + name2.replace(/'/g,"\\'") + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(155,89,182,0.15));border:1px solid rgba(155,89,182,0.4);border-radius:10px;color:#c39bd3;font-size:0.88em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">';
+    html += '✨ ' + (L?'Interpretar Sinastría con AI':'Interpret Synastry with AI');
+    html += '</button></div>';
+    html += '<div id="synastryInterpContainer"></div>';
+
     html += '</div>';
 
     // Create or reuse modal
@@ -12649,6 +12656,89 @@ window.openSynastryView = function(profileId) {
 
     // Draw biwheel after modal is visible
     setTimeout(function() { drawSynastryBiwheel('synastryBiwheel', nc1, nc2, name1, name2); }, 150);
+};
+
+// Open synastry picker — choose which profile to compare
+window.openSynastryPicker = function() {
+    var L = currentLang === 'es';
+    var profiles = getNatalProfiles();
+    var activeId = getActiveProfileId();
+    var others = profiles.filter(function(p) { return p.id !== activeId; });
+    if (others.length === 0) return;
+    if (others.length === 1) {
+        openSynastryView(others[0].id);
+        return;
+    }
+    // Multiple profiles — show picker
+    var html = '<div style="padding:20px;text-align:center;">';
+    html += '<div style="font-size:1em;font-weight:700;color:#64B5F6;margin-bottom:14px;">💞 ' + (L?'Sinastría — Elegir perfil':'Synastry — Choose profile') + '</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:14px;">' + (L?'Comparar tu carta natal con:':'Compare your natal chart with:') + '</div>';
+    others.forEach(function(p) {
+        html += '<button onclick="document.getElementById(\'synastryPickerModal\').classList.remove(\'show\');openSynastryView(\'' + p.id + '\');" style="width:100%;padding:12px 16px;margin-bottom:8px;background:rgba(100,181,246,0.08);border:1px solid rgba(100,181,246,0.25);border-radius:10px;color:#e8eaf6;font-size:0.88em;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">' +
+            '<span style="font-size:1.2em;">🔮</span>' +
+            '<div><div style="font-weight:600;">' + (p.name || p.cityName || 'Perfil') + '</div>' +
+            '<div style="font-size:0.75em;color:rgba(255,255,255,0.35);">' + (p.date || '') + ' · ' + (p.cityName || '') + '</div></div>' +
+        '</button>';
+    });
+    html += '</div>';
+
+    var modal = document.getElementById('synastryPickerModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'synastryPickerModal';
+        modal.className = 'modal';
+        modal.style.zIndex = '1240';
+        modal.onclick = function(e) { if(e.target===modal) modal.classList.remove('show'); };
+        modal.innerHTML = '<div class="modal-content" style="max-width:400px;" id="synastryPickerContent"></div>';
+        document.body.appendChild(modal);
+    }
+    document.getElementById('synastryPickerContent').innerHTML = html;
+    modal.classList.add('show');
+};
+
+// Interpret synastry with AI
+window.interpretSynastry = function(name1, name2) {
+    var L = currentLang === 'es';
+    var container = document.getElementById('synastryInterpContainer');
+    if (!container) return;
+
+    // Gather synastry data as text
+    var activeId = getActiveProfileId();
+    var profiles = getNatalProfiles();
+    var otherProfile = profiles.find(function(p) { return p.name === name2 || p.cityName === name2; });
+    if (!otherProfile) otherProfile = profiles.find(function(p) { return p.id !== activeId; });
+    if (!otherProfile) return;
+
+    var nc1 = JSON.parse(localStorage.getItem('natalChart_' + activeId) || localStorage.getItem('natalChart') || 'null');
+    var nc2 = JSON.parse(localStorage.getItem('natalChart_' + otherProfile.id) || 'null');
+    if (!nc1 || !nc2) return;
+
+    var synAspects = calculateSynastryAspects(nc1, nc2);
+    var score = calculateSynastryCompatibility(synAspects);
+    var overlay = calculateHouseOverlay(nc1.houses, nc2.planets);
+
+    var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+
+    var synData = 'SINASTRÍA: ' + name1 + ' + ' + name2 + '\n';
+    synData += 'Puntaje de compatibilidad: ' + score + '%\n\n';
+    synData += 'ASPECTOS CRUZADOS:\n';
+    synAspects.forEach(function(a) {
+        synData += (pN[a.planet1]||a.planet1) + ' ' + a.aspectName + ' ' + (pN[a.planet2]||a.planet2) + ' (orbe: ' + a.orb + '°)' + (a.major?' [MAYOR]':' [menor]') + '\n';
+    });
+    if (overlay.length > 0) {
+        synData += '\nPLANETAS DE ' + name2.toUpperCase() + ' EN CASAS DE ' + name1.toUpperCase() + ':\n';
+        overlay.forEach(function(o) {
+            synData += (pN[o.planet]||o.planet) + ' en Casa ' + o.house + '\n';
+        });
+    }
+
+    var prompt = L
+        ? 'Interpreta esta sinastría astrológica entre ' + name1 + ' y ' + name2 + '. Analiza los aspectos cruzados más importantes, la dinámica de la relación, las áreas de armonía y tensión. Incluye la superposición de casas.\n\n' + synData
+        : 'Interpret this astrological synastry between ' + name1 + ' and ' + name2 + '. Analyze the most important cross-aspects, relationship dynamics, areas of harmony and tension. Include house overlays.\n\n' + synData;
+
+    var chatId = 'synastry_' + activeId + '_' + otherProfile.id;
+    var title = L ? 'Sinastría: ' + name1 + ' + ' + name2 : 'Synastry: ' + name1 + ' + ' + name2;
+    fetchAIInterpretation(prompt, 'synastryInterpContainer', title);
 };
 
 // ===== PLANETARY HOURS =====
@@ -13399,6 +13489,7 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
             <button onclick="addNewProfile()" class="profile-action-btn" title="${L?'Agregar perfil':'Add profile'}">＋</button>
             <button onclick="renderPersonalSetupForm()" class="profile-action-btn" title="${L?'Editar datos':'Edit data'}">✏️</button>
             <button onclick="shareNatalProfile()" class="profile-action-btn" title="${L?'Compartir':'Share'}">📤</button>
+            ${profiles.length >= 2 ? `<button onclick="openSynastryPicker()" class="profile-action-btn" title="${L?'Sinastría':'Synastry'}" style="color:#64B5F6;">💞</button>` : ''}
         </div>
         ${chartInfo}
     </div>`;
@@ -22874,7 +22965,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v410';
+const APP_VERSION = 'v411';
 var _pendingSW = null;
 
 function showUpdateBanner() {
