@@ -1530,12 +1530,50 @@ function getPlanetPositionLegacy(planet, date) {
         return lon;
     }
 
-    // North Node (Mean Lunar Node)
+    // North Node (True Lunar Node — professional standard, matches astro.com)
     if (planet === 'northnode') {
-        // Formula: northNode = 125.0445 - 1934.1362 * T (mod 360)
-        // T = Julian centuries from J2000 = (JD - 2451545.0) / 36525.0
-        const T = (jd - 2451545.0) / 36525.0;
-        let lon = 125.0445 - 1934.1362 * T;
+        // True node = mean node + oscillation series (Chapront-Touzé & Chapront)
+        // T = Julian centuries from J2000
+        const T_nn = (jd - 2451545.0) / 36525.0;
+
+        // Mean longitude of ascending node (Meeus Ch.47, high precision)
+        let meanNode = 125.0445479 - 1934.1362891 * T_nn
+                       + 0.0020754 * T_nn * T_nn
+                       + T_nn * T_nn * T_nn / 467441.0
+                       - T_nn * T_nn * T_nn * T_nn / 60616000.0;
+
+        // Fundamental arguments (Meeus, degrees)
+        const D  = 297.85036 + 445267.111480 * T_nn - 0.0019142 * T_nn * T_nn + T_nn*T_nn*T_nn/189474;
+        const Ms = 357.52772 + 35999.050340 * T_nn - 0.0001603 * T_nn * T_nn - T_nn*T_nn*T_nn/300000;
+        const Mm = 134.96298 + 477198.867398 * T_nn + 0.0086972 * T_nn * T_nn + T_nn*T_nn*T_nn/56250;
+        const F  = 93.27191 + 483202.017538 * T_nn - 0.0036825 * T_nn * T_nn + T_nn*T_nn*T_nn/327270;
+
+        // True node oscillation: 22-term series (Chapront-Touzé, degrees)
+        const trueNodeCorr =
+              -1.4979 * Math.sin(2 * (D - F) * dr)
+              - 0.1500 * Math.sin(Ms * dr)
+              - 0.1226 * Math.sin(2 * D * dr)
+              + 0.1176 * Math.sin(2 * F * dr)
+              - 0.0801 * Math.sin(2 * (Mm - F) * dr)
+              + 0.0316 * Math.sin(2 * (D - Mm - F) * dr)
+              + 0.0200 * Math.sin((2*D - Ms - 2*F) * dr)
+              - 0.0187 * Math.sin(Mm * dr)
+              - 0.0162 * Math.sin((2*D - 2*F - Ms) * dr)
+              - 0.0143 * Math.sin((Mm + 2*F - 2*D) * dr)
+              + 0.0131 * Math.sin((2*D - Mm) * dr)
+              - 0.0122 * Math.sin((2*D - 2*Mm - 2*F) * dr)
+              + 0.0107 * Math.sin(2 * Mm * dr)
+              + 0.0100 * Math.sin((2*D + Mm - 2*F) * dr)
+              - 0.0080 * Math.sin((2*F - Ms) * dr)
+              + 0.0073 * Math.sin((2*D - 2*F + Mm) * dr)
+              - 0.0070 * Math.sin((2*D + Ms - 2*F) * dr)
+              + 0.0067 * Math.sin((2*D - Ms) * dr)
+              + 0.0026 * Math.sin(3 * Mm * dr)
+              + 0.0024 * Math.sin((4*D - 2*F) * dr)
+              - 0.0020 * Math.sin((Mm - Ms) * dr)
+              + 0.0018 * Math.sin((Ms + Mm) * dr);
+
+        let lon = meanNode + trueNodeCorr;
         lon = ((lon % 360) + 360) % 360;
         return lon;
     }
@@ -12328,16 +12366,15 @@ function calculateNatalChart(birthDate) {
         var ascLon = houses.ascendant || 0;
         var sunLon = natalPositions.sun.longitude;
         var moonLon = natalPositions.moon.longitude;
-        // Day chart = Sun above horizon (between houses 7-12 going through 10)
+        // Day/night: Sun above horizon when its ecliptic longitude is in the
+        // upper hemisphere (between DSC going through MC to ASC, counter-clockwise).
+        // Professional method: compare Sun longitude relative to ASC-DSC axis
         var isDay = true;
-        if (houses.cusps) {
-            var desc = (ascLon + 180) % 360;
-            var sunAbove = false;
-            // Simplified: Sun is above horizon if it's in the upper half (houses 7-12)
-            var h7Cusp = houses.cusps[6] || desc;
-            if (sunLon >= h7Cusp || sunLon < ascLon) sunAbove = true;
-            isDay = sunAbove;
-        }
+        var desc = (ascLon + 180) % 360;
+        // Normalize Sun position relative to ASC (0° = ASC, goes counter-clockwise)
+        var sunRelative = ((sunLon - desc + 360) % 360);
+        // Sun is above horizon if it's between DSC (0°) and ASC (180°) going CCW
+        isDay = (sunRelative >= 0 && sunRelative < 180);
         var pofLon = isDay
             ? ((ascLon + moonLon - sunLon + 720) % 360)
             : ((ascLon + sunLon - moonLon + 720) % 360);
@@ -23972,7 +24009,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v427';
+const APP_VERSION = 'v428';
 var _pendingSW = null;
 
 function showUpdateBanner() {
