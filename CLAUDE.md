@@ -14,6 +14,9 @@ PWA de una sola página (`index.html`, ~23000 líneas) para seguimiento lunar, s
 - `APP_VERSION` en `index.html` y `CACHE_NAME` en `sw.js` **deben coincidir siempre**
 - Formato: `'v382'` en index.html, `'moon-sync-v382'` en sw.js
 - Incrementar en cada commit
+- **Al inicio de cada chat**: decirle al usuario cuál es la versión actual (leer `APP_VERSION` de index.html)
+- **Al terminar cada commit**: informar la nueva versión claramente en el chat
+- **Después de cada commit**: presentar `index.html` como archivo clickeable en el chat usando `present_files` para que el usuario pueda ver los cambios sin hacer push
 
 ### Git
 - Push no funciona desde la VM de Cowork (proxy bloquea). Decirle al usuario que haga push desde su máquina:
