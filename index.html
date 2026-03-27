@@ -1049,6 +1049,7 @@
                         <div id="diarioSaveStatus" style="color: #4ecdc4;"></div>
                         <div id="diarioWordCount" style="color: #a8b2d1;"></div>
                     </div>
+                    <div id="diaryMetaInfo" style="margin-top:6px;font-size:0.72em;color:rgba(255,255,255,0.35);"></div>
                 </div>
                 <!-- Dreams diary tab -->
                 <div id="diarioPanelDreams" style="display:none;">
@@ -1069,6 +1070,7 @@
                         <div id="dreamSaveStatus" style="color: #9b59b6;"></div>
                         <div id="dreamWordCount" style="color: #a8b2d1;"></div>
                     </div>
+                    <div id="dreamMetaInfo" style="margin-top:6px;font-size:0.72em;color:rgba(255,255,255,0.35);"></div>
                     <!-- Dream Persona Selector -->
                     <div id="dreamPersonaSelector" style="margin-top:12px;display:flex;align-items:center;gap:8px;">
                         <span style="font-size:0.78em;color:rgba(255,255,255,0.4);">🧠</span>
@@ -6041,6 +6043,8 @@ function openSavedReadingsModal(tab) {
                     html += '<button onclick="shareDiaryEntry(\'' + safeDate + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Compartir':'Share') + '">📤</button>';
                     html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteDiaryEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
                     html += '</div></div>';
+                    var pMeta = getDiaryMeta(entry.date, 'personal');
+                    if (pMeta) html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-bottom:6px;">' + formatDiaryMeta(pMeta) + '</div>';
                     html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;margin-bottom:8px;">' + preview + '</div>';
                     html += '<div style="display:flex;gap:6px;">';
                     html += '<button onclick="viewDiaryEntry(\'' + safeDate + '\')" style="padding:5px 14px;background:rgba(155,89,182,0.12);border:1px solid rgba(155,89,182,0.25);border-radius:6px;color:#9b59b6;font-size:0.8em;cursor:pointer;">' + (L ? 'Leer' : 'Read') + '</button>';
@@ -6064,6 +6068,8 @@ function openSavedReadingsModal(tab) {
                     html += '<div style="display:flex;gap:4px;">';
                     html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteDreamEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario-suenos\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
                     html += '</div></div>';
+                    var dMeta = getDiaryMeta(entry.date, 'dreams');
+                    if (dMeta) html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-bottom:6px;">' + formatDiaryMeta(dMeta) + '</div>';
                     html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;">' + preview + '</div>';
                     html += '</div>';
                 });
@@ -6097,6 +6103,8 @@ function saveDiaryText(dateKey, text) {
     journalsData[dateKey] = text;
     localStorage.setItem('lunarCalendarJournals_' + profileId, JSON.stringify(journalsData));
     localStorage.setItem('diary_' + dateKey, text);
+    // Save metadata (timestamp + GPS)
+    if (text && text.trim()) saveDiaryMeta(dateKey, 'personal');
 }
 function deleteDiaryEntry(dateKey) {
     var profileId = getActiveProfileId() || 'default';
@@ -6112,6 +6120,87 @@ function deleteDreamEntry(dateKey) {
     try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
     delete dreamsData[dateKey];
     localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(dreamsData));
+}
+
+// ── Diary Metadata: timestamp + GPS for each entry ──
+// Cached GPS position to avoid repeated lookups
+var _lastGpsPos = null;
+var _gpsWatchId = null;
+
+function initDiaryGps() {
+    if (_gpsWatchId !== null) return;
+    if (navigator.geolocation) {
+        _gpsWatchId = navigator.geolocation.watchPosition(
+            function(pos) { _lastGpsPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: Math.round(pos.coords.accuracy) }; },
+            function() { /* GPS denied or unavailable — no problem */ },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        );
+    }
+}
+
+function saveDiaryMeta(dateKey, type) {
+    // type = 'personal' or 'dreams'
+    var profileId = getActiveProfileId() || 'default';
+    var metaKey = 'diaryMeta_' + profileId;
+    var allMeta = {};
+    try { allMeta = JSON.parse(localStorage.getItem(metaKey) || '{}'); } catch(e) {}
+
+    var now = new Date();
+    var entry = {
+        time: now.toISOString(),
+        timeLocal: now.toLocaleTimeString(currentLang === 'es' ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }),
+        type: type
+    };
+    if (_lastGpsPos) {
+        entry.lat = _lastGpsPos.lat;
+        entry.lon = _lastGpsPos.lon;
+        entry.acc = _lastGpsPos.acc;
+    }
+
+    // Store per dateKey: keep the latest timestamp per type
+    if (!allMeta[dateKey]) allMeta[dateKey] = {};
+    allMeta[dateKey][type] = entry;
+
+    localStorage.setItem(metaKey, JSON.stringify(allMeta));
+
+    // Update UI indicator if visible
+    updateDiaryMetaDisplay(dateKey, type);
+}
+
+function getDiaryMeta(dateKey, type) {
+    var profileId = getActiveProfileId() || 'default';
+    var metaKey = 'diaryMeta_' + profileId;
+    try {
+        var allMeta = JSON.parse(localStorage.getItem(metaKey) || '{}');
+        if (allMeta[dateKey] && allMeta[dateKey][type]) return allMeta[dateKey][type];
+    } catch(e) {}
+    return null;
+}
+
+function formatDiaryMeta(meta) {
+    if (!meta) return '';
+    var L = currentLang === 'es';
+    var parts = [];
+    // Time
+    if (meta.timeLocal) {
+        parts.push('🕐 ' + meta.timeLocal);
+    } else if (meta.time) {
+        var d = new Date(meta.time);
+        parts.push('🕐 ' + d.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }));
+    }
+    // Location
+    if (meta.lat !== undefined && meta.lon !== undefined) {
+        parts.push('📍 ' + meta.lat.toFixed(4) + ', ' + meta.lon.toFixed(4));
+    }
+    return parts.join('  ');
+}
+
+function updateDiaryMetaDisplay(dateKey, type) {
+    var elId = type === 'dreams' ? 'dreamMetaInfo' : 'diaryMetaInfo';
+    var el = document.getElementById(elId);
+    if (!el) return;
+    var meta = getDiaryMeta(dateKey, type);
+    el.textContent = formatDiaryMeta(meta);
 }
 function buildAstroContextHTML(dateKey) {
     var L = currentLang === 'es';
@@ -7208,6 +7297,13 @@ function openDiarioModal(date, lunarDay) {
     // Update dream alarm UI
     updateDreamAlarmUI();
 
+    // Initialize GPS tracking for diary metadata
+    initDiaryGps();
+
+    // Show existing metadata
+    updateDiaryMetaDisplay(dateKey, 'personal');
+    updateDiaryMetaDisplay(dateKey, 'dreams');
+
     document.getElementById('diarioModal').classList.add('show');
 }
 
@@ -7256,6 +7352,8 @@ function saveDreamText(dateKey, text) {
     try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
     dreamsData[dateKey] = text;
     localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(dreamsData));
+    // Save metadata (timestamp + GPS)
+    if (text && text.trim()) saveDiaryMeta(dateKey, 'dreams');
 }
 
 // ── Dream AI Interpretation ──
@@ -24164,7 +24262,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v431';
+const APP_VERSION = 'v432';
 var _pendingSW = null;
 
 function showUpdateBanner() {
