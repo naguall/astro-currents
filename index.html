@@ -12674,11 +12674,16 @@ window.openReturnChart = function(type) {
     // Planets table
     html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">' + (L?'Posiciones Planetarias':'Planetary Positions') + '</div>';
     html += '<table class="natal-data-table" style="font-size:0.82em;"><thead><tr><th>' + (L?'Planeta':'Planet') + '</th><th>' + (L?'Signo':'Sign') + '</th><th>' + (L?'Grado':'Degree') + '</th><th>' + (L?'Casa':'House') + '</th></tr></thead><tbody>';
+    var _rcPlanetKeys = [];
     Object.keys(returnChart.planets).forEach(function(p) {
         var pl = returnChart.planets[p];
         var house = returnChart.houses ? getHouseForLongitude(pl.longitude, returnChart.houses.cusps) : '-';
-        html += '<tr><td>' + (pNms[p]||p) + '</td><td>' + pl.sign + '</td><td>' + pl.degree + '\u00b0' + (pl.minute<10?'0':'') + pl.minute + "'" + (pl.isRetrograde?' <span style="color:#e74c3c;font-weight:700;">R</span>':'') + '</td><td style="text-align:center;">' + house + '</td></tr>';
+        var idx = _rcPlanetKeys.length;
+        _rcPlanetKeys.push(p);
+        html += '<tr onclick="interpretReturnPlanet(\'' + p + '\')" style="cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'\'"><td>' + (pNms[p]||p) + '</td><td>' + pl.sign + '</td><td>' + pl.degree + '\u00b0' + (pl.minute<10?'0':'') + pl.minute + "'" + (pl.isRetrograde?' <span style="color:#e74c3c;font-weight:700;">R</span>':'') + '</td><td style="text-align:center;">' + house + '</td><td style="color:rgba(201,168,64,0.5);font-size:0.7em;">✨</td></tr>';
     });
+    window._returnChartPlanets = returnChart.planets;
+    window._returnChartHouses = returnChart.houses;
     html += '</tbody></table>';
 
     // Key themes
@@ -12817,6 +12822,56 @@ window.interpretReturnAspect = function(idx) {
         : 'Interpret this aspect in the ' + returnLabel.toUpperCase() + ' CHART (' + dateStr + '): ' + p1Name + ' in ' + aspName + ' with ' + p2Name + ' (orb: ' + orbStr + '). Explain: 1) What this aspect means in a return chart, 2) How it affects the period this return covers, 3) What life area it activates, 4) Practical advice.';
 
     var readingTitle = returnLabel + ': ' + p1Name + ' ' + sym + ' ' + p2Name;
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle);
+    }, 100);
+};
+
+// Click handler for individual return chart planet -> opens natalDetailModal with AI interpretation
+window.interpretReturnPlanet = function(key) {
+    var planets = window._returnChartPlanets;
+    if (!planets || !planets[key]) return;
+    var pl = planets[key];
+    var L = currentLang === 'es';
+    var type = window._returnChartType || 'solar';
+    var dateStr = window._returnChartDateStr || '';
+    var houses = window._returnChartHouses;
+
+    var pNmsLocal = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex'};
+    var pSymsLocal = {'sun':'☉','moon':'☽','mercury':'☿','venus':'♀','mars':'♂','jupiter':'♃','saturn':'♄','uranus':'♅','neptune':'♆','pluto':'♇','chiron':'⚷','northnode':'☊','lilith':'⚸','partOfFortune':'⊕','vertex':'Vx'};
+
+    var name = pNmsLocal[key] || key;
+    var sym = pSymsLocal[key] || '';
+    var house = houses ? getHouseForLongitude(pl.longitude, houses.cusps) : '-';
+    var returnLabel = type === 'solar' ? (L ? 'Retorno Solar' : 'Solar Return') : (L ? 'Retorno Lunar' : 'Lunar Return');
+
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+
+    titleEl.textContent = returnLabel + ': ' + sym + ' ' + name;
+
+    var html = '<div style="border-bottom: 2px solid #c9a840; padding-bottom: 12px; margin-bottom: 15px;">';
+    html += '<div style="font-size:0.82em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + returnLabel + ' — ' + dateStr + '</div>';
+    html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Planeta:' : 'Planet:') + '</strong> ' + sym + ' ' + name + '</div>';
+    html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Signo:' : 'Sign:') + '</strong> ' + (pl.sign || '?') + '</div>';
+    html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Grado:' : 'Degree:') + '</strong> ' + pl.degree + '\u00b0' + (pl.minute < 10 ? '0' : '') + pl.minute + "'" + (pl.isRetrograde ? ' R' : '') + '</div>';
+    html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Casa:' : 'House:') + '</strong> ' + house + '</div>';
+    if (pl.isRetrograde) html += '<div style="font-size:0.9em;color:#e74c3c;margin-bottom:8px;"><strong>' + (L ? 'Retrogrado' : 'Retrograde') + '</strong></div>';
+    html += '</div>';
+
+    // AI interpretation section
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretacion' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    var posStr = pl.sign + ' ' + pl.degree + '\u00b0' + pl.minute + "'" + (pl.isRetrograde ? ' R' : '');
+    var prompt = L
+        ? 'Interpreta este planeta en la CARTA DE ' + returnLabel.toUpperCase() + ' (' + dateStr + '): ' + name + ' en ' + posStr + ', Casa ' + house + '. Explica: 1) Que significa ' + name + ' en ' + pl.sign + ' en una carta de retorno, 2) El efecto de estar en Casa ' + house + ', 3) Como afecta el periodo que cubre este retorno' + (pl.isRetrograde ? ', 4) El significado de estar retrogrado' : '') + '. Da consejo practico.'
+        : 'Interpret this planet in the ' + returnLabel.toUpperCase() + ' CHART (' + dateStr + '): ' + name + ' in ' + posStr + ', House ' + house + '. Explain: 1) What ' + name + ' in ' + pl.sign + ' means in a return chart, 2) The effect of being in House ' + house + ', 3) How it affects the period this return covers' + (pl.isRetrograde ? ', 4) The meaning of being retrograde' : '') + '. Give practical advice.';
+
+    var readingTitle = returnLabel + ': ' + sym + ' ' + name + ' ' + pl.sign;
     setTimeout(function() {
         fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle);
     }, 100);
@@ -22745,7 +22800,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v399';
+const APP_VERSION = 'v400';
 var _pendingSW = null;
 
 function showUpdateBanner() {
