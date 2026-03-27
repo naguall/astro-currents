@@ -11252,6 +11252,36 @@ function updateCurrentDayInfoForMode(mode) {
                 const cStart = wksCycle[0].startDate;
                 lunarCycleLine = formatDate(cStart) + ' - ' + formatDate(cEnd) + ' · ' + cTotal + (currentLang==='es'?' días':' days');
             } catch(e) {}
+        } else if (mode === 'gregorian') {
+            // Find moons within the current Gregorian month
+            var gMonthStart = new Date(currentGregorianYear, currentGregorianMonth, 1);
+            var gMonthEnd = new Date(currentGregorianYear, currentGregorianMonth + 1, 0, 23, 59, 59);
+            var gm = currentLang==='es' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var gregMoons = [];
+            for (var nmi = 0; nmi < newMoonsLocal.length; nmi++) {
+                var nmDate = newMoonsLocal[nmi];
+                if (nmDate >= gMonthStart && nmDate <= gMonthEnd) {
+                    gregMoons.push({ type: 'new', date: nmDate, label: currentLang==='es' ? 'Nueva' : 'New' });
+                }
+            }
+            for (var fmi = 0; fmi < fullMoonsLocal.length; fmi++) {
+                var fmDate = fullMoonsLocal[fmi];
+                if (fmDate >= gMonthStart && fmDate <= gMonthEnd) {
+                    gregMoons.push({ type: 'full', date: fmDate, label: currentLang==='es' ? 'Llena' : 'Full' });
+                }
+            }
+            gregMoons.sort(function(a, b) { return a.date - b.date; });
+            var gregMoonsHTML = '';
+            if (gregMoons.length > 0) {
+                gregMoonsHTML = '<div style="font-size:0.45em;color:rgba(255,255,255,0.7);line-height:1.3;margin-top:auto;padding-top:2px;border-top:1px solid rgba(255,255,255,0.08);">';
+                for (var mi = 0; mi < gregMoons.length; mi++) {
+                    var m = gregMoons[mi];
+                    var moonColor = m.type === 'full' ? '#ffd54f' : '#aaa';
+                    gregMoonsHTML += '<div style="color:' + moonColor + ';">' + (m.type === 'full' ? '\uD83C\uDF15' : '\uD83C\uDF11') + ' ' + m.label + ' ' + m.date.getDate() + ' ' + gm[m.date.getMonth()] + '</div>';
+                }
+                gregMoonsHTML += '</div>';
+            }
+            window._solarMoonsHTML = gregMoonsHTML;
         } else if (mode === 'solar') {
             const sg = solarSigns2026[typeof currentSignIndex !== 'undefined' ? currentSignIndex : getCurrentSign()];
             if (sg) {
@@ -21585,7 +21615,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v392';
+const APP_VERSION = 'v393';
 var _pendingSW = null;
 
 function showUpdateBanner() {
