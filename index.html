@@ -13107,7 +13107,6 @@ window.openSynastryView = function(profileId) {
     html += '<button onclick="interpretSynastry(\'' + name1.replace(/'/g,"\\'") + '\',\'' + name2.replace(/'/g,"\\'") + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(155,89,182,0.15));border:1px solid rgba(155,89,182,0.4);border-radius:10px;color:#c39bd3;font-size:0.88em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">';
     html += '✨ ' + (L?'Interpretar Sinastría':'Interpret Synastry');
     html += '</button></div>';
-    html += '<div id="synastryInterpContainer"></div>';
 
     html += '</div>';
 
@@ -13167,11 +13166,9 @@ window.openSynastryPicker = function() {
     modal.classList.add('show');
 };
 
-// Interpret synastry with AI
+// Interpret synastry — opens in its own modal page
 window.interpretSynastry = function(name1, name2) {
     var L = currentLang === 'es';
-    var container = document.getElementById('synastryInterpContainer');
-    if (!container) return;
 
     // Gather synastry data as text
     var activeId = getActiveProfileId();
@@ -13189,12 +13186,13 @@ window.interpretSynastry = function(name1, name2) {
     var overlay = calculateHouseOverlay(nc1.houses, nc2.planets);
 
     var pN = {'sun':'Sol','moon':'Luna','mercury':'Mercurio','venus':'Venus','mars':'Marte','jupiter':'Júpiter','saturn':'Saturno','uranus':'Urano','neptune':'Neptuno','pluto':'Plutón','chiron':'Quirón','northnode':'Nodo Norte','lilith':'Lilith','ASC':'ASC','MC':'MC'};
+    var aspN = L ? {'conjunction':'Conjunción','sextile':'Sextil','square':'Cuadratura','trine':'Trígono','opposition':'Oposición','semisextile':'Semisextil','quincunx':'Quincuncio'} : {'conjunction':'Conjunction','sextile':'Sextile','square':'Square','trine':'Trine','opposition':'Opposition','semisextile':'Semisextile','quincunx':'Quincunx'};
 
     var synData = 'SINASTRÍA: ' + name1 + ' + ' + name2 + '\n';
     synData += 'Puntaje de compatibilidad: ' + score + '%\n\n';
     synData += 'ASPECTOS CRUZADOS:\n';
     synAspects.forEach(function(a) {
-        synData += (pN[a.planet1]||a.planet1) + ' ' + a.aspectName + ' ' + (pN[a.planet2]||a.planet2) + ' (orbe: ' + a.orb + '°)' + (a.major?' [MAYOR]':' [menor]') + '\n';
+        synData += (pN[a.planet1]||a.planet1) + ' de ' + name1 + ' ' + (aspN[a.type]||a.type) + ' ' + (pN[a.planet2]||a.planet2) + ' de ' + name2 + ' (orbe: ' + a.orb + '°)' + (a.major?' [MAYOR]':' [menor]') + '\n';
     });
     if (overlay.length > 0) {
         synData += '\nPLANETAS DE ' + name2.toUpperCase() + ' EN CASAS DE ' + name1.toUpperCase() + ':\n';
@@ -13207,9 +13205,39 @@ window.interpretSynastry = function(name1, name2) {
         ? 'Interpreta esta sinastría astrológica entre ' + name1 + ' y ' + name2 + '. Analiza los aspectos cruzados más importantes, la dinámica de la relación, las áreas de armonía y tensión. Incluye la superposición de casas.\n\n' + synData
         : 'Interpret this astrological synastry between ' + name1 + ' and ' + name2 + '. Analyze the most important cross-aspects, relationship dynamics, areas of harmony and tension. Include house overlays.\n\n' + synData;
 
-    var chatId = 'synastry_' + activeId + '_' + otherProfile.id;
     var title = L ? 'Sinastría: ' + name1 + ' + ' + name2 : 'Synastry: ' + name1 + ' + ' + name2;
-    fetchAIInterpretation(prompt, 'synastryInterpContainer', title);
+
+    // Open in natalDetailModal — its own scrollable page
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    if (!modal || !titleEl || !bodyEl) return;
+    titleEl.textContent = title;
+
+    var scoreColor = score >= 70 ? '#2ecc71' : score >= 45 ? '#f1c40f' : '#e74c3c';
+    var html = '<div style="text-align:center;margin-bottom:14px;">';
+    html += '<div style="font-size:2.2em;font-weight:700;color:' + scoreColor + ';">' + score + '%</div>';
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);">' + (L?'Compatibilidad':'Compatibility') + '</div>';
+    html += '<div style="width:80%;max-width:300px;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;margin:6px auto;">';
+    html += '<div style="width:' + score + '%;height:100%;background:' + scoreColor + ';border-radius:3px;"></div></div></div>';
+
+    // Summary of aspects
+    var majorCount = synAspects.filter(function(a){return a.major;}).length;
+    var minorCount = synAspects.filter(function(a){return !a.major;}).length;
+    html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:12px;text-align:center;">';
+    html += (L?'Aspectos mayores: ':'Major aspects: ') + majorCount + ' · ' + (L?'Menores: ':'Minor: ') + minorCount;
+    if (overlay.length > 0) html += ' · ' + (L?'Casas: ':'Houses: ') + overlay.length;
+    html += '</div>';
+
+    html += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+
+    bodyEl.innerHTML = html;
+    modal.classList.add('show');
+
+    // Trigger interpretation
+    setTimeout(function() {
+        fetchAIInterpretation(prompt, 'aiInterpDiv', title);
+    }, 200);
 };
 
 // ===== PLANETARY HOURS =====
@@ -23557,7 +23585,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v419';
+const APP_VERSION = 'v420';
 var _pendingSW = null;
 
 function showUpdateBanner() {
