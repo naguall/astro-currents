@@ -6083,15 +6083,32 @@ function getDiaryText(dateKey) {
     var profileId = getActiveProfileId() || 'default';
     var journalsData = {};
     try { journalsData = JSON.parse(localStorage.getItem('lunarCalendarJournals_' + profileId) || '{}'); } catch(e) {}
-    if (journalsData[dateKey]) return journalsData[dateKey];
+    if (journalsData[dateKey]) return _extractDiaryText(journalsData[dateKey]);
 
     // Fallback to global (migration)
     try {
         var globalJournals = JSON.parse(localStorage.getItem('lunarCalendarJournals') || '{}');
-        if (globalJournals[dateKey]) return globalJournals[dateKey];
+        if (globalJournals[dateKey]) return _extractDiaryText(globalJournals[dateKey]);
     } catch(e) {}
 
-    return localStorage.getItem('diary_' + dateKey) || '';
+    return _extractDiaryText(localStorage.getItem('diary_' + dateKey) || '');
+}
+// Safety: if diary value was stored as JSON object instead of plain text, extract the text
+function _extractDiaryText(val) {
+    if (!val || typeof val !== 'string') return val || '';
+    var trimmed = val.trim();
+    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+            var parsed = JSON.parse(trimmed);
+            if (parsed && typeof parsed === 'object') {
+                if (parsed.text) return parsed.text;
+                if (parsed.content) return parsed.content;
+                if (parsed.entry) return parsed.entry;
+                if (parsed.body) return parsed.body;
+            }
+        } catch(e) {}
+    }
+    return val;
 }
 function saveDiaryText(dateKey, text) {
     var profileId = getActiveProfileId() || 'default';
@@ -15874,7 +15891,7 @@ function renderNatalLunarCal() {
 
             var moreEvents = dayEvents.length > 3 ? '<div style="text-align:center;font-style:italic;font-size:0.85em;margin-top:2px;color:#a8b2d1;">+' + (dayEvents.length - 3) + '</div>' : '';
 
-            var dayDataStr = JSON.stringify(day).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            var dayDataStr = JSON.stringify({lunarDay: day.lunarDay, aspects: day.aspects, date: day.date.toISOString()}).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
 
             // Right-side astro symbols
             var astroSymbols = '';
@@ -15899,7 +15916,7 @@ function renderNatalLunarCal() {
                 + ' data-date="' + day.date.getTime() + '"'
                 + ' data-lunar-day="' + day.lunarDay + '"'
                 + ' data-has-aspects="' + (day.aspects.length > 0) + '"'
-                + " data-day-data='" + dayDataStr + "'"
+                + ' data-day-data="' + dayDataStr + '"'
                 + ' onclick="handleDayClick(this)">'
                 + '<div class="day-header" style="display:flex;justify-content:space-between;align-items:baseline;width:100%;">'
                 + '<div class="day-number">' + day.lunarDay + '</div>'
@@ -19237,7 +19254,7 @@ function generateGregorianMonth() {
         const dayDataStr = JSON.stringify(dayData).replace(/"/g, '&quot;');
         
         const isPastSolar = date < today && !isToday;
-        html += `<div class="day-cell ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''} ${isPastSolar ? 'past' : ''}" onclick="handleDayClick(this)" data-date="${date.getTime()}" data-day-data="${dayDataStr}" style="min-width: unset; overflow: hidden;">`;
+        html += `<div class="day-cell ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''} ${isPastSolar ? 'past' : ''}" onclick="handleDayClick(this)" data-date="${date.getTime()}" data-lunar-day="0" data-day-data="${dayDataStr}" style="min-width: unset; overflow: hidden;">`;
         html += `<div class="day-header" style="display:flex;justify-content:space-between;align-items:baseline;"><div class="day-number">${day}</div></div>`;
         html += '<div class="day-content" style="font-size: 0.7em; display: flex; flex-direction: row; gap: 4px; justify-content: space-between;">';
         
@@ -21438,14 +21455,14 @@ function renderCalendar() {
                 </div>
             ` : '';
             
-            const dayDataStr = JSON.stringify(day).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            
+            const dayDataStr = JSON.stringify({lunarDay: day.lunarDay, aspects: day.aspects, date: day.date.toISOString()}).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+
             return `
                 <div class="day-cell ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${day.date < today && !isToday ? 'past' : ''}"
                      data-date="${day.date.getTime()}"
                      data-lunar-day="${day.lunarDay}"
                      data-has-aspects="${hasAspects}"
-                     data-day-data='${dayDataStr}'
+                     data-day-data="${dayDataStr}"
                      onclick="handleDayClick(this)">
                     
                     <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
