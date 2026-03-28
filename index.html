@@ -13859,8 +13859,9 @@ window.showCompositePlanetDetail = function(dataStr) {
 };
 
 // ── Trigger full chart interpretation from button click ──
-window.triggerCompositeInterpretation = function(dataJson) {
-    var data = JSON.parse(dataJson);
+window.triggerCompositeInterpretation = function(dataKey) {
+    var data = window._compositeInterpData && window._compositeInterpData[dataKey];
+    if (!data) return;
     var L = currentLang === 'es';
 
     var detailModal = document.getElementById('compositePlanetDetailModal');
@@ -13940,26 +13941,29 @@ window.openCompositeView = function(profileId) {
     html += '</div>';
 
     // Interpretation button — does NOT auto-run
-    var compData = (L?'CARTA COMPUESTA':'COMPOSITE CHART') + ': ' + name1 + ' + ' + name2 + '\\n';
+    // Store interpretation data in global variable to avoid broken onclick from special chars
+    var compData = (L?'CARTA COMPUESTA':'COMPOSITE CHART') + ': ' + name1 + ' + ' + name2 + '\n';
     Object.keys(comp.planets).forEach(function(p) {
         var d = comp.planets[p];
         var house = comp.houses ? getHouseForLongitude(d.longitude, comp.houses.cusps) : '?';
-        compData += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "\\' (Casa " + house + ')\\n';
+        compData += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "' (Casa " + house + ')\n';
     });
 
     var interpPrompt = L
-        ? 'Interpreta esta carta compuesta entre ' + name1 + ' y ' + name2 + '. La carta compuesta representa la relación como entidad propia. Analiza los planetas compuestos, sus signos y casas. Identifica los temas principales de esta relación, sus fortalezas y desafíos.\\n\\n' + compData
-        : 'Interpret this composite chart between ' + name1 + ' and ' + name2 + '. The composite chart represents the relationship as its own entity. Analyze the composite planets, their signs and houses. Identify the main themes of this relationship, its strengths and challenges.\\n\\n' + compData;
+        ? 'Interpreta esta carta compuesta entre ' + name1 + ' y ' + name2 + '. La carta compuesta representa la relación como entidad propia. Analiza los planetas compuestos, sus signos y casas. Identifica los temas principales de esta relación, sus fortalezas y desafíos.\n\n' + compData
+        : 'Interpret this composite chart between ' + name1 + ' and ' + name2 + '. The composite chart represents the relationship as its own entity. Analyze the composite planets, their signs and houses. Identify the main themes of this relationship, its strengths and challenges.\n\n' + compData;
 
-    var interpData = JSON.stringify({
+    if (!window._compositeInterpData) window._compositeInterpData = {};
+    var _compInterpKey = 'comp_' + Date.now();
+    window._compositeInterpData[_compInterpKey] = {
         title: (L?'Interpretación Carta Compuesta':'Composite Chart Interpretation') + ': ' + name1 + ' + ' + name2,
         icon: '⊕',
         subtitle: L?'Análisis completo de la carta compuesta':'Complete composite chart analysis',
         prompt: interpPrompt
-    }).replace(/'/g, '&#39;');
+    };
 
     html += '<div style="margin-top:10px;">';
-    html += '<button onclick="triggerCompositeInterpretation(\'' + interpData + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(46,204,113,0.15),rgba(46,204,113,0.05));border:1px solid rgba(46,204,113,0.3);border-radius:12px;color:#2ecc71;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.2s;">';
+    html += '<button onclick="triggerCompositeInterpretation(\'' + _compInterpKey + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(46,204,113,0.15),rgba(46,204,113,0.05));border:1px solid rgba(46,204,113,0.3);border-radius:12px;color:#2ecc71;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.2s;">';
     html += '✦ ' + (L?'Interpretación Completa':'Full Interpretation');
     html += '</button>';
     html += '</div>';
@@ -14057,28 +14061,31 @@ window.openDavisonView = function(profileId) {
     html += '</div>';
 
     // Interpretation button — does NOT auto-run
-    var compData = (L?'CARTA DE DAVISON':'DAVISON CHART') + ': ' + name1 + ' + ' + name2 + '\\n';
-    compData += (L?'Fecha de la relación: ':'Relationship date: ') + dav.dateStr + ' ' + dav.timeStr + '\\n';
-    compData += (L?'Ubicación: ':'Location: ') + dav.cityName + '\\n\\n';
+    // Store interpretation data in global variable to avoid broken onclick from special chars
+    var compData = (L?'CARTA DE DAVISON':'DAVISON CHART') + ': ' + name1 + ' + ' + name2 + '\n';
+    compData += (L?'Fecha de la relación: ':'Relationship date: ') + dav.dateStr + ' ' + dav.timeStr + '\n';
+    compData += (L?'Ubicación: ':'Location: ') + dav.cityName + '\n\n';
     Object.keys(comp.planets).forEach(function(p) {
         var d = comp.planets[p];
         var house = comp.houses ? getHouseForLongitude(d.longitude, comp.houses.cusps) : '?';
-        compData += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "\\' (Casa " + house + ')\\n';
+        compData += (pN[p]||p) + ': ' + d.sign + ' ' + d.degree + '°' + (d.minute<10?'0':'') + d.minute + "' (Casa " + house + ')\n';
     });
 
     var interpPrompt = L
-        ? 'Interpreta esta carta de Davison entre ' + name1 + ' y ' + name2 + '. La carta de Davison calcula el punto medio en tiempo y espacio entre ambos nacimientos, creando una carta natal real para la relación. Fecha de la relación: ' + dav.dateStr + '. Analiza los planetas, signos, casas y el significado evolutivo de esta relación.\\n\\n' + compData
-        : 'Interpret this Davison chart between ' + name1 + ' and ' + name2 + '. The Davison chart calculates the midpoint in time and space between both births, creating a real natal chart for the relationship. Relationship date: ' + dav.dateStr + '. Analyze planets, signs, houses and the evolutionary meaning of this relationship.\\n\\n' + compData;
+        ? 'Interpreta esta carta de Davison entre ' + name1 + ' y ' + name2 + '. La carta de Davison calcula el punto medio en tiempo y espacio entre ambos nacimientos, creando una carta natal real para la relación. Fecha de la relación: ' + dav.dateStr + '. Analiza los planetas, signos, casas y el significado evolutivo de esta relación.\n\n' + compData
+        : 'Interpret this Davison chart between ' + name1 + ' and ' + name2 + '. The Davison chart calculates the midpoint in time and space between both births, creating a real natal chart for the relationship. Relationship date: ' + dav.dateStr + '. Analyze planets, signs, houses and the evolutionary meaning of this relationship.\n\n' + compData;
 
-    var interpData = JSON.stringify({
+    if (!window._compositeInterpData) window._compositeInterpData = {};
+    var _davInterpKey = 'dav_' + Date.now();
+    window._compositeInterpData[_davInterpKey] = {
         title: (L?'Interpretación Carta Davison':'Davison Chart Interpretation') + ': ' + name1 + ' + ' + name2,
         icon: '✦',
         subtitle: L?'Análisis completo de la carta de Davison':'Complete Davison chart analysis',
         prompt: interpPrompt
-    }).replace(/'/g, '&#39;');
+    };
 
     html += '<div style="margin-top:10px;">';
-    html += '<button onclick="triggerCompositeInterpretation(\'' + interpData + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(241,196,15,0.15),rgba(241,196,15,0.05));border:1px solid rgba(241,196,15,0.3);border-radius:12px;color:#f1c40f;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.2s;">';
+    html += '<button onclick="triggerCompositeInterpretation(\'' + _davInterpKey + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(241,196,15,0.15),rgba(241,196,15,0.05));border:1px solid rgba(241,196,15,0.3);border-radius:12px;color:#f1c40f;font-size:0.9em;font-weight:600;cursor:pointer;transition:background 0.2s;">';
     html += '✦ ' + (L?'Interpretación Completa':'Full Interpretation');
     html += '</button>';
     html += '</div>';
