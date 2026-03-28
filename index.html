@@ -6490,11 +6490,26 @@ let globalNatalChart = null;
 let globalTodayTransits = [];
 
 // AI interpretation for modals — sends specific prompt + full chart context
-async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, storageKey) {
+async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, storageKey, cachedHtml) {
     var div = document.getElementById(targetDivId);
     if (!div) return;
     var L = currentLang === 'es';
     var _readingTitle = readingTitle || (L ? 'Lectura' : 'Reading');
+
+    // If we have cached text, skip the API call and build the chat UI directly
+    var text = '';
+    var formattedHtml = '';
+    if (cachedHtml) {
+        // cachedHtml is raw text (markdown-like), same as original API response
+        text = cachedHtml;
+        formattedHtml = text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+    }
+
+    if (!cachedHtml) {
     div.innerHTML = '<div style="text-align:center;padding:15px;"><div style="display:inline-block;width:24px;height:24px;border:3px solid rgba(201,168,64,0.3);border-top-color:#c9a840;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="margin-top:8px;font-size:0.8em;color:rgba(255,255,255,0.4);">' + (L ? 'Consultando las estrellas...' : 'Consulting the stars...') + '</div></div>';
 
     try {
@@ -6537,17 +6552,24 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
         if (!response.ok) throw new Error('API error: ' + response.status);
 
         var result = await response.json();
-        var text = '';
+        text = '';
         if (result.candidates && result.candidates[0] && result.candidates[0].content) {
             text = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
         }
+    } catch(err) {
+        div.innerHTML = '<p style="color:#ff6b6b;font-size:0.85em;text-align:center;">' + (L ? 'Error al obtener la interpretación: ' : 'Error getting interpretation: ') + err.message + '</p>';
+        return;
+    }
+    } // end if !cachedHtml
 
-        if (text) {
-            var formattedHtml = text
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/\n/g, '<br>');
+        if (text || cachedHtml) {
+            if (!cachedHtml) {
+                formattedHtml = text
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+            }
             // Store reading data globally for safe button access
             var readingKey = '_aiReading_' + Date.now();
             // Deterministic chatId based on prompt + profile so same aspect reopens same chat
@@ -6600,9 +6622,9 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             chatHtml += '</div>';
             div.innerHTML = chatHtml;
             // Save interpretation to localStorage if storageKey provided (for composite/davison charts)
-            if (storageKey) {
+            if (storageKey && !cachedHtml) {
                 try {
-                    localStorage.setItem(storageKey, '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:92%;padding:10px 14px;border-radius:12px;font-size:0.85em;line-height:1.6;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.88);"><div style="position:relative;"><p>' + formattedHtml + '</p></div></div></div>');
+                    localStorage.setItem(storageKey, text);
                 } catch(storageErr) {
                     console.warn('Could not save interpretation to localStorage:', storageErr);
                 }
@@ -6616,10 +6638,6 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
         } else {
             div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'No se pudo generar interpretación.' : 'Could not generate interpretation.') + '</p>';
         }
-    } catch(e) {
-        console.warn('AI interpretation error:', e);
-        div.innerHTML = '<p style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + (L ? 'Error al consultar: ' + e.message : 'Query error: ' + e.message) + '</p>';
-    }
 }
 
 // Expand short reading into full deep reading
@@ -13917,12 +13935,15 @@ window.triggerCompositeInterpretation = function(dataKey) {
     bodyEl.innerHTML = html;
     detailModal.classList.add('show');
 
-    // Check if we have a saved interpretation
+    // Check if we have a saved interpretation (raw text)
     var storageKey = data.storageKey;
     if (storageKey) {
         var saved = localStorage.getItem(storageKey);
         if (saved) {
-            document.getElementById('compFullInterpDiv').innerHTML = saved;
+            // Load cached interpretation but build full chat UI with input and buttons
+            setTimeout(function() {
+                fetchAIInterpretation(data.prompt, 'compFullInterpDiv', data.title, storageKey, saved);
+            }, 200);
             return;
         }
     }
@@ -22927,23 +22948,47 @@ function openPreferencesModal() {
     var savedVoiceEn = localStorage.getItem('ttsVoice_en') || '';
     var savedRate = parseFloat(localStorage.getItem('ttsRate') || '1.0');
     var voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    var esVoices = voices.filter(function(v) { return v.lang.startsWith('es') && v.lang !== 'es-ES' && v.lang !== 'es_ES'; });
+    // Categorize Spanish voices: Latin American first, then Spain
+    var esLatamVoices = voices.filter(function(v) { return v.lang.startsWith('es') && v.lang !== 'es-ES' && v.lang !== 'es_ES'; });
+    var esSpainVoices = voices.filter(function(v) { return v.lang === 'es-ES' || v.lang === 'es_ES'; });
     var enVoices = voices.filter(function(v) { return v.lang.startsWith('en'); });
-    // If no non-Spain voices found, show all Spanish voices as fallback
-    if (esVoices.length === 0) esVoices = voices.filter(function(v) { return v.lang.startsWith('es'); });
+    // Filter out novelty/joke voices
+    var _noveltyNames = ['Bad News','Bahh','Bells','Boing','Bubbles','Cellos','Good News','Jester','Organ','Superstar','Trinoids','Whisper','Wobble','Zarvox','Ralph','Fred','Junior','Kathy','Vicki','Victoria','Princess'];
+    enVoices = enVoices.filter(function(v) { return _noveltyNames.indexOf(v.name) === -1; });
+
+    // Helper to guess gender from voice name
+    var _femaleNames = ['Mónica','Paulina','Catherine','Flo','Grandma','Sandy','Shelley','Karen','Samantha','Tessa','Moira','Fiona','Allison','Ava','Susan','Zoe','Nicky','Alice'];
+    var _maleNames = ['Carlos','Aaron','Albert','Arthur','Daniel','Eddy','Grandpa','Reed','Rocko','Alex','Tom','Oliver','Rishi','Lee','Gordon','Otoya','Luca','Thomas'];
+    function _genderTag(name) {
+        if (_femaleNames.some(function(f) { return name.indexOf(f) !== -1; })) return ' 👩';
+        if (_maleNames.some(function(m) { return name.indexOf(m) !== -1; })) return ' 👨';
+        return '';
+    }
 
     var voiceContent = '';
     // Spanish voice selector
     voiceContent += '<div style="margin-bottom:12px;">';
-    voiceContent += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:600;">🇪🇸 ' + (currentLang==='es'?'Voz en Español':'Spanish Voice') + '</div>';
+    voiceContent += '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-bottom:6px;font-weight:600;">🇲🇽 ' + (currentLang==='es'?'Voz en Español':'Spanish Voice') + '</div>';
     voiceContent += '<select id="ttsVoiceEs" onchange="localStorage.setItem(\'ttsVoice_es\',this.value);" style="width:100%;padding:10px 12px;background:rgba(20,10,40,0.8);border:1px solid rgba(102,126,234,0.35);border-radius:8px;color:#667eea;font-size:0.82em;cursor:pointer;">';
     voiceContent += '<option value="">' + (currentLang==='es'?'Automática (predeterminada)':'Automatic (default)') + '</option>';
-    esVoices.forEach(function(v) {
-        var label = v.name + ' (' + v.lang + ')' + (v.localService ? '' : ' ☁️');
-        voiceContent += '<option value="' + v.name + '"' + (savedVoiceEs === v.name ? ' selected' : '') + '>' + label + '</option>';
-    });
+    if (esLatamVoices.length > 0) {
+        voiceContent += '<optgroup label="' + (currentLang==='es'?'🌎 Latinoamérica':'🌎 Latin America') + '">';
+        esLatamVoices.forEach(function(v) {
+            var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
+            voiceContent += '<option value="' + v.name + '"' + (savedVoiceEs === v.name ? ' selected' : '') + '>' + label + '</option>';
+        });
+        voiceContent += '</optgroup>';
+    }
+    if (esSpainVoices.length > 0) {
+        voiceContent += '<optgroup label="' + (currentLang==='es'?'🇪🇸 España':'🇪🇸 Spain') + '">';
+        esSpainVoices.forEach(function(v) {
+            var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
+            voiceContent += '<option value="' + v.name + '"' + (savedVoiceEs === v.name ? ' selected' : '') + '>' + label + '</option>';
+        });
+        voiceContent += '</optgroup>';
+    }
     voiceContent += '</select>';
-    if (esVoices.length === 0) voiceContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-top:4px;">' + (currentLang==='es'?'No se encontraron voces en español. Intenta recargar.':'No Spanish voices found. Try reloading.') + '</div>';
+    if (esLatamVoices.length === 0 && esSpainVoices.length === 0) voiceContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-top:4px;">' + (currentLang==='es'?'No se encontraron voces. Intenta recargar.':'No voices found. Try reloading.') + '</div>';
     voiceContent += '<button onclick="testTTSVoice(\'es\')" style="margin-top:6px;padding:5px 14px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.3);border-radius:16px;color:#667eea;font-size:0.75em;cursor:pointer;">▶ ' + (currentLang==='es'?'Probar voz':'Test voice') + '</button>';
     voiceContent += '</div>';
 
@@ -22953,7 +22998,7 @@ function openPreferencesModal() {
     voiceContent += '<select id="ttsVoiceEn" onchange="localStorage.setItem(\'ttsVoice_en\',this.value);" style="width:100%;padding:10px 12px;background:rgba(20,10,40,0.8);border:1px solid rgba(102,126,234,0.35);border-radius:8px;color:#667eea;font-size:0.82em;cursor:pointer;">';
     voiceContent += '<option value="">' + (currentLang==='es'?'Automática (predeterminada)':'Automatic (default)') + '</option>';
     enVoices.forEach(function(v) {
-        var label = v.name + ' (' + v.lang + ')' + (v.localService ? '' : ' ☁️');
+        var label = v.name + ' (' + v.lang + ')' + _genderTag(v.name) + (v.localService ? '' : ' ☁️');
         voiceContent += '<option value="' + v.name + '"' + (savedVoiceEn === v.name ? ' selected' : '') + '>' + label + '</option>';
     });
     voiceContent += '</select>';
@@ -24980,6 +25025,8 @@ window._getTTSVoice = function(langCode) {
 // Test voice from preferences — reads directly from the select element
 window.testTTSVoice = function(lang) {
     if (!window.speechSynthesis) return;
+    // Stop any current speech first
+    window.speechSynthesis.cancel();
     window.speechSynthesis.cancel();
     // Read the CURRENT select value (not just localStorage, which may be stale)
     var selectId = lang === 'es' ? 'ttsVoiceEs' : 'ttsVoiceEn';
@@ -25009,9 +25056,9 @@ window.testTTSVoice = function(lang) {
 window._ttsPlayer = { chunks: [], currentIdx: 0, elementId: null, playing: false };
 
 window._ttsStop = function() {
-    window.speechSynthesis.cancel();
+    window._ttsPlayer._navigating = false;
     window._ttsPlayer.playing = false;
-    // Note: _ttsUpdatePlayerUI will handle hiding when finished; _ttsStop allows resuming without hiding
+    window.speechSynthesis.cancel();
     window._ttsUpdatePlayerUI();
 };
 
@@ -25020,10 +25067,14 @@ window._ttsPlayChunk = function(idx) {
     if (idx < 0 || idx >= p.chunks.length) {
         p.playing = false;
         p.currentIdx = 0;
+        p._navigating = false;
         window._ttsUpdatePlayerUI();
         return;
     }
+    // Set navigating flag to prevent onerror/onend from cancelling during chunk switch
+    p._navigating = true;
     window.speechSynthesis.cancel();
+    p._navigating = false;
     p.currentIdx = idx;
     p.playing = true;
     window._ttsUpdatePlayerUI();
@@ -25033,16 +25084,20 @@ window._ttsPlayChunk = function(idx) {
     var rate = parseFloat(localStorage.getItem('ttsRate') || '1.0');
 
     var utter = new SpeechSynthesisUtterance(p.chunks[idx]);
-    utter.lang = currentLang === 'es' ? 'es-ES' : 'en-US';
+    utter.lang = currentLang === 'es' ? 'es-MX' : 'en-US';
     utter.rate = rate;
     utter.pitch = 1.0;
     if (preferred) utter.voice = preferred;
     utter.onend = function() {
-        if (p.playing) window._ttsPlayChunk(idx + 1);
+        if (p.playing && !p._navigating) window._ttsPlayChunk(idx + 1);
     };
-    utter.onerror = function() {
-        p.playing = false;
-        window._ttsUpdatePlayerUI();
+    utter.onerror = function(e) {
+        // Ignore 'interrupted' errors (caused by navigation between chunks)
+        if (e && e.error === 'interrupted') return;
+        if (!p._navigating) {
+            p.playing = false;
+            window._ttsUpdatePlayerUI();
+        }
     };
     window.speechSynthesis.speak(utter);
 };
@@ -25079,7 +25134,7 @@ window._ttsUpdatePlayerUI = function() {
                 '<option value="1.5"' + (parseFloat(localStorage.getItem('ttsRate')||'1.0')===1.5?' selected':'') + '>1.5x</option>' +
                 '<option value="2.0"' + (parseFloat(localStorage.getItem('ttsRate')||'1.0')===2.0?' selected':'') + '>2.0x</option>' +
             '</select>' +
-            '<button onclick="document.getElementById(\'ttsPlayerBar\').style.display=\'none\';" style="padding:4px 8px;background:rgba(255,59,48,0.15);border:1px solid rgba(255,59,48,0.3);border-radius:6px;color:#ff3b30;font-size:0.8em;cursor:pointer;font-weight:600;" title="' + (L?'Cerrar':'Close') + '">✕</button>' +
+            '<button onclick="_ttsStop();_ttsPlayer.currentIdx=0;_ttsUpdatePlayerUI();document.getElementById(\'ttsPlayerBar\').style.display=\'none\';" style="padding:4px 8px;background:rgba(255,59,48,0.15);border:1px solid rgba(255,59,48,0.3);border-radius:6px;color:#ff3b30;font-size:0.8em;cursor:pointer;font-weight:600;" title="' + (L?'Cerrar':'Close') + '">✕</button>' +
         '</div>';
 };
 
