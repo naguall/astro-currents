@@ -5308,12 +5308,66 @@ function openAspectsModal(date, lunarDay, dayData) {
     const retrogrades = getRetrogrades(date);
     const interAspects = getInterPlanetaryAspects(date);
     const eclipse = getEclipseInfo(date);
-    
+    const moonEvent = getMoonEventForDate(date);
+
+    // Compute lunar phase for quarter detection
+    const _phaseElong = calculateLunarPhase(date);
+    let _lunarPhaseEvent = null;
+    if (moonEvent) {
+        // New Moon or Full Moon
+        const moonLon = getMoonPosition(date);
+        const moonSign = getZodiacSignFromLongitude(moonLon);
+        const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
+        if (moonEvent.type === 'new') {
+            _lunarPhaseEvent = {
+                icon: '🌑',
+                name: currentLang==='es' ? 'Luna Nueva' : 'New Moon',
+                detail: currentLang==='es' ? 'Luna Nueva en ' + moonSignName : 'New Moon in ' + moonSignName,
+                color: '#a8b2d1',
+                sign: moonSignName
+            };
+        } else if (moonEvent.type === 'full') {
+            _lunarPhaseEvent = {
+                icon: '🌕',
+                name: currentLang==='es' ? 'Luna Llena' : 'Full Moon',
+                detail: currentLang==='es' ? 'Luna Llena en ' + moonSignName : 'Full Moon in ' + moonSignName,
+                color: '#FFD700',
+                sign: moonSignName
+            };
+        }
+    } else {
+        // Check for quarters (First Quarter ~90°, Last Quarter ~270°)
+        const _prevElong = calculateLunarPhase(new Date(date.getTime() - 86400000));
+        if ((_prevElong < 90 && _phaseElong >= 90) || (Math.abs(_phaseElong - 90) < 5 && Math.abs(_prevElong - 90) >= 5)) {
+            const moonLon = getMoonPosition(date);
+            const moonSign = getZodiacSignFromLongitude(moonLon);
+            const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
+            _lunarPhaseEvent = {
+                icon: '🌓',
+                name: currentLang==='es' ? 'Cuarto Creciente' : 'First Quarter',
+                detail: currentLang==='es' ? 'Cuarto Creciente en ' + moonSignName : 'First Quarter in ' + moonSignName,
+                color: '#7ec8ff',
+                sign: moonSignName
+            };
+        } else if ((_prevElong < 270 && _phaseElong >= 270) || (Math.abs(_phaseElong - 270) < 5 && Math.abs(_prevElong - 270) >= 5)) {
+            const moonLon = getMoonPosition(date);
+            const moonSign = getZodiacSignFromLongitude(moonLon);
+            const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
+            _lunarPhaseEvent = {
+                icon: '🌗',
+                name: currentLang==='es' ? 'Cuarto Menguante' : 'Last Quarter',
+                detail: currentLang==='es' ? 'Cuarto Menguante en ' + moonSignName : 'Last Quarter in ' + moonSignName,
+                color: '#a8b2d1',
+                sign: moonSignName
+            };
+        }
+    }
+
     // Mostrar aspectos Luna + eventos planetarios
     const aspectsDetails = document.getElementById('aspectsDetails');
-    
+
     let htmlContent = '';
-    
+
     // 0. Eclipse (si hay)
     if (eclipse) {
         const eclipseIcon = eclipse.type === 'solar' ? '☀️' : '🌒';
@@ -5327,6 +5381,28 @@ function openAspectsModal(date, lunarDay, dayData) {
             <div class="aspect-description">
                 ${eclipse.degree}<br>
                 <span style="font-size: 0.85em; opacity: 0.8;">${eclipse.visibility}</span>
+            </div>
+        </div>
+        `;
+    }
+
+    // 0b. Fase Lunar (Luna Nueva, Llena, Cuartos)
+    if (_lunarPhaseEvent) {
+        const phaseClickText = (_lunarPhaseEvent.icon + ' ' + _lunarPhaseEvent.detail).replace(/'/g, "\\'");
+        const phaseMeaning = _lunarPhaseEvent.name.includes('Nueva') || _lunarPhaseEvent.name.includes('New')
+            ? (currentLang==='es' ? 'Momento de nuevos comienzos, intenciones y siembra. La energía es introspectiva y fértil para planificar.' : 'Time for new beginnings, intentions and planting seeds. Energy is introspective and fertile for planning.')
+            : _lunarPhaseEvent.name.includes('Llena') || _lunarPhaseEvent.name.includes('Full')
+            ? (currentLang==='es' ? 'Culminación, revelaciones y máxima iluminación emocional. Momento de cosecha y liberación.' : 'Culmination, revelations and peak emotional illumination. Time for harvest and release.')
+            : _lunarPhaseEvent.name.includes('Creciente') || _lunarPhaseEvent.name.includes('First')
+            ? (currentLang==='es' ? 'Momento de acción, toma de decisiones y avance. La energía impulsa a construir y superar obstáculos.' : 'Time for action, decision-making and progress. Energy drives building and overcoming obstacles.')
+            : (currentLang==='es' ? 'Momento de soltar, reflexionar y prepararse para el nuevo ciclo. La energía invita a la introspección.' : 'Time to let go, reflect and prepare for the new cycle. Energy invites introspection.');
+        htmlContent += `
+        <div class="aspect-detail" style="border-left-color: ${_lunarPhaseEvent.color}; background: rgba(${_lunarPhaseEvent.color === '#FFD700' ? '255,215,0' : _lunarPhaseEvent.color === '#7ec8ff' ? '126,200,255' : '168,178,209'},0.08); cursor:pointer;" onclick="showBannerAspectDetail('${phaseClickText}')">
+            <div class="aspect-planets" style="font-size:1.05em;">
+                ${_lunarPhaseEvent.icon} <span style="font-weight:700;color:${_lunarPhaseEvent.color};">${_lunarPhaseEvent.name}</span> <span style="color:rgba(255,255,255,0.5);font-size:0.85em;">${currentLang==='es'?'en':'in'} ${_lunarPhaseEvent.sign}</span>
+            </div>
+            <div class="aspect-description">
+                ${phaseMeaning}
             </div>
         </div>
         `;
@@ -5455,6 +5531,7 @@ function openAspectsModal(date, lunarDay, dayData) {
     if (htmlContent) {
         // Add "Day interpretation" button at bottom
         var allDayTexts = [];
+        if (_lunarPhaseEvent) allDayTexts.push(_lunarPhaseEvent.detail);
         if (eclipse) allDayTexts.push((eclipse.type === 'solar' ? 'Eclipse Solar' : 'Eclipse Lunar') + (eclipse.sign ? ' en ' + eclipse.sign : ''));
         signChanges.forEach(function(ch) { allDayTexts.push(tp(ch.planet) + ' → ' + ts(ch.toSign)); });
         retrogrades.forEach(function(ret) { allDayTexts.push(tp(ret.planet) + (ret.isStart ? ' Retrógrado INICIA' : ' Directo') + (ret.sign ? ' en ' + ret.sign : '')); });
@@ -5519,8 +5596,16 @@ function handleDayClick(element) {
         const interAspects = getInterPlanetaryAspects(date);
         const eclipse = getEclipseInfo(date);
         const moonEvent = getMoonEventForDate(date);
+        // Detect lunar quarter phases too
+        let _hasQuarter = false;
+        if (!moonEvent) {
+            const _el = calculateLunarPhase(date);
+            const _elPrev = calculateLunarPhase(new Date(date.getTime() - 86400000));
+            if ((_elPrev < 90 && _el >= 90) || (Math.abs(_el - 90) < 5 && Math.abs(_elPrev - 90) >= 5)) _hasQuarter = true;
+            if ((_elPrev < 270 && _el >= 270) || (Math.abs(_el - 270) < 5 && Math.abs(_elPrev - 270) >= 5)) _hasQuarter = true;
+        }
         const aspectsCount = dayData.aspects ? dayData.aspects.length : 0;
-        const allEvents = aspectsCount + signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0);
+        const allEvents = aspectsCount + signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + (_hasQuarter ? 1 : 0);
 
         // Translate and update modal
         const modal = document.getElementById('dayOptionsModal');
@@ -25855,7 +25940,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v455';
+const APP_VERSION = 'v456';
 var _pendingSW = null;
 
 // What's New removed per user request
