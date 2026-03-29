@@ -15924,10 +15924,8 @@ function switchProfile(id) {
     hoyInterpHistory = [];
     hoyInterpTyping = false;
     currentInterpCacheKey = null;
-    var interpModal = document.getElementById('hoyInterpModal');
+    var interpModal = document.getElementById('natalDetailModal');
     if (interpModal) interpModal.classList.remove('show');
-    var interpMsgs = document.getElementById('hoyInterpMessages');
-    if (interpMsgs) interpMsgs.innerHTML = '';
 
     renderPersonalCalendar();
 }
@@ -18085,32 +18083,12 @@ function interpretAstroCartography(locationDesc) {
     } catch(e) { return; }
     if (!natalChart) return;
 
-    currentInterpCacheKey = 'cartography_' + natal.id;
-
-    var modal = document.getElementById('hoyInterpModal');
-    modal.classList.add('show');
-    document.getElementById('hoyInterpTitle').textContent = L ? 'Cartografía Astral' : 'Astrocartography';
-    document.getElementById('hoyInterpDate').textContent = natal.name || natal.cityName || '';
-
-    var cached = getInterpCache(currentInterpCacheKey);
-    if (cached) {
-        restoreInterpFromCache(cached);
-        return;
-    }
-
-    hoyInterpHistory = [];
-    hoyInterpTyping = false;
-    updateDeleteBtnVisibility(false);
-    var container = document.getElementById('hoyInterpMessages');
-    container.innerHTML = '<div class="ai-msg loading">🗺️ ' + (L ? 'Analizando tu cartografía astral...' : 'Analyzing your astrocartography...') + '</div>';
-
     // Build context
     var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + ' (Lat:' + natal.lat + ', Lon:' + natal.lon + '). ';
     natalSummary += 'Sol: ' + (natalChart.planets.sun?.formatted || '?') + ', Luna: ' + (natalChart.planets.moon?.formatted || '?');
     if (natalChart.houses) natalSummary += ', ASC: ' + (natalChart.houses.ascFormatted || '?') + ', MC: ' + (natalChart.houses.mcFormatted || '?');
     natalSummary += '. ';
 
-    // Calculate lines for context
     var birthUTC = getBirthUTCTime(natal.date, natal.time, natal.lat, natal.lon, natal.countryCode);
     var acLines = calculateAstroCartographyLines(birthUTC, natalChart);
     var linesSummary = '';
@@ -18124,8 +18102,19 @@ function interpretAstroCartography(locationDesc) {
         ? natalSummary + 'CARTOGRAFÍA ASTRAL: Las líneas planetarias principales son: ' + linesSummary + (locationDesc ? 'El usuario pregunta sobre: ' + locationDesc + '. ' : '') + 'Dame una interpretación completa de mi cartografía astral: 1) Qué es la cartografía astral y cómo funciona, 2) Explica mis líneas planetarias más importantes (Sol MC/IC/AC/DC, Luna, Venus, Júpiter, Saturno) y qué significan geográficamente, 3) Mejores lugares para vivir, trabajar, amor y crecimiento espiritual, 4) Lugares que debería evitar o que representan desafíos, 5) Cómo las líneas que pasan cerca de mi lugar de nacimiento me afectan.'
         : natalSummary + 'ASTROCARTOGRAPHY: Main planetary lines are: ' + linesSummary + (locationDesc ? 'User asks about: ' + locationDesc + '. ' : '') + 'Give me a complete astrocartography interpretation: 1) What astrocartography is and how it works, 2) Explain my most important planetary lines (Sun MC/IC/AC/DC, Moon, Venus, Jupiter, Saturn) and what they mean geographically, 3) Best places to live, work, love and spiritual growth, 4) Places to avoid or that represent challenges, 5) How lines passing near my birthplace affect me.';
 
-    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
-    sendHoyInterpRequest();
+    var _title = L ? 'Cartografía Astral' : 'Astrocartography';
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">🗺️</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + (natal.name || natal.cityName || '') + '</div>'
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _title;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
 }
 
 // Chat about specific location on astrocartography map
@@ -18139,22 +18128,6 @@ function interpretAstroLocation(locQuestion) {
         var profileChart = localStorage.getItem('natalChart_' + natal.id);
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { return; }
-
-    currentInterpCacheKey = 'cartoloc_' + locQuestion.replace(/[^a-zA-Z0-9]/g,'').substring(0,30) + '_' + natal.id;
-
-    var modal = document.getElementById('hoyInterpModal');
-    modal.classList.add('show');
-    document.getElementById('hoyInterpTitle').textContent = L ? 'Cartografía — Consulta' : 'Astrocartography — Query';
-    document.getElementById('hoyInterpDate').textContent = locQuestion;
-
-    var cached = getInterpCache(currentInterpCacheKey);
-    if (cached) { restoreInterpFromCache(cached); return; }
-
-    hoyInterpHistory = [];
-    hoyInterpTyping = false;
-    updateDeleteBtnVisibility(false);
-    var container = document.getElementById('hoyInterpMessages');
-    container.innerHTML = '<div class="ai-msg loading">🗺️ ' + (L ? 'Analizando...' : 'Analyzing...') + '</div>';
 
     var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + '. ';
     natalSummary += 'Sol: ' + (natalChart.planets.sun?.formatted || '?') + ', Luna: ' + (natalChart.planets.moon?.formatted || '?');
@@ -18173,8 +18146,19 @@ function interpretAstroLocation(locQuestion) {
         ? natalSummary + '. Líneas de cartografía astral: ' + linesSummary + '. Mi pregunta sobre cartografía astral es: ' + locQuestion + '. Responde de forma específica sobre esta ubicación o pregunta en relación a mi carta natal y mis líneas de cartografía astral.'
         : natalSummary + '. Astrocartography lines: ' + linesSummary + '. My astrocartography question is: ' + locQuestion + '. Respond specifically about this location or question in relation to my natal chart and astrocartography lines.';
 
-    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
-    sendHoyInterpRequest();
+    var _title = L ? 'Cartografía — Consulta' : 'Astrocartography — Query';
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">🗺️</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + locQuestion + '</div>'
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _title;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -18292,23 +18276,6 @@ function interpretCartoLine(planet, type) {
     var planetNameMap = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto'};
     var pName = planetNameMap[planet] || planet;
 
-    var cacheKey = 'cartoline_' + planet + '_' + type + '_' + natal.id;
-    currentInterpCacheKey = cacheKey;
-
-    var modal = document.getElementById('hoyInterpModal');
-    modal.classList.add('show');
-    document.getElementById('hoyInterpTitle').textContent = pName + ' ' + type;
-    document.getElementById('hoyInterpDate').textContent = L ? 'Línea de Cartografía Astral' : 'Astrocartography Line';
-
-    var cached = getInterpCache(cacheKey);
-    if (cached) { restoreInterpFromCache(cached); return; }
-
-    hoyInterpHistory = [];
-    hoyInterpTyping = false;
-    updateDeleteBtnVisibility(false);
-    var container = document.getElementById('hoyInterpMessages');
-    container.innerHTML = '<div class="ai-msg loading">' + targetLine.symbol + ' ' + (L ? 'Interpretando línea...' : 'Interpreting line...') + '</div>';
-
     var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + '. ';
     natalSummary += 'Sol: ' + (natalChart.planets.sun?.formatted || '?') + ', Luna: ' + (natalChart.planets.moon?.formatted || '?');
     if (natalChart.houses) natalSummary += ', ASC: ' + (natalChart.houses.ascFormatted || '?') + ', MC: ' + (natalChart.houses.mcFormatted || '?');
@@ -18322,8 +18289,21 @@ function interpretCartoLine(planet, type) {
         ? natalSummary + '. LÍNEA ESPECÍFICA DE CARTOGRAFÍA ASTRAL: ' + pName + ' ' + type + '. ' + lonInfo + 'Países que atraviesa: ' + countriesStr + '. Dame una interpretación profunda y detallada de esta línea específica: 1) Qué significa tener ' + pName + ' en la línea ' + type + ' en tu cartografía astral — su energía fundamental, 2) Cómo afecta vivir cerca o visitar lugares en esta línea — áreas de vida que activa (carrera, relaciones, creatividad, desafíos), 3) Análisis de cada país/región principal que atraviesa y cómo la energía de ' + pName + ' ' + type + ' se manifiesta ahí considerando la cultura local, 4) Aspectos positivos y desafíos de esta línea, 5) Recomendaciones prácticas — ¿debería visitar, vivir, o ser cauteloso con estos lugares?'
         : natalSummary + '. SPECIFIC ASTROCARTOGRAPHY LINE: ' + pName + ' ' + type + '. ' + lonInfo + 'Countries it crosses: ' + countriesStr + '. Give me a deep, detailed interpretation of this specific line: 1) What it means to have ' + pName + ' on the ' + type + ' line in astrocartography — its fundamental energy, 2) How living near or visiting places on this line affects you — life areas it activates (career, relationships, creativity, challenges), 3) Analysis of each major country/region it crosses and how ' + pName + ' ' + type + ' energy manifests there considering local culture, 4) Positive aspects and challenges of this line, 5) Practical recommendations — should you visit, live, or be cautious with these places?';
 
-    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
-    sendHoyInterpRequest();
+    var _title = pName + ' ' + type;
+    var _subtitle = L ? 'Línea de Cartografía Astral' : 'Astrocartography Line';
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">' + (targetLine.symbol || '') + '</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + _subtitle + '</div>'
+        + '<div style="font-size:0.75em;color:rgba(255,255,255,0.35);margin-top:4px;">' + (L ? 'Países: ' : 'Countries: ') + countriesStr + '</div>'
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _title;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -20012,32 +19992,10 @@ function interpretCalendarDay(year, month, day) {
     var L = currentLang === 'es';
     var date = new Date(year, month, day);
     var dateStr = date.toLocaleDateString(L?'es':'en', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    var dateKey = year + '-' + (month+1) + '-' + day;
-    currentInterpCacheKey = 'day_' + dateKey;
 
     // Close the day detail modal
     var dayModal = document.getElementById('personalDayModal');
     if (dayModal) dayModal.classList.remove('show');
-
-    // Open the interpretation chat modal (reuse hoyInterpModal)
-    var modal = document.getElementById('hoyInterpModal');
-    modal.classList.add('show');
-    document.getElementById('hoyInterpTitle').textContent = L ? 'Interpretación del Día' : 'Day Interpretation';
-    document.getElementById('hoyInterpDate').textContent = dateStr;
-
-    // Check cache
-    var cached = getInterpCache(currentInterpCacheKey);
-    if (cached) {
-        restoreInterpFromCache(cached);
-        return;
-    }
-
-    // Reset chat
-    hoyInterpHistory = [];
-    hoyInterpTyping = false;
-    updateDeleteBtnVisibility(false);
-    var container = document.getElementById('hoyInterpMessages');
-    container.innerHTML = '<div class="ai-msg loading">✨ ' + (L ? 'Analizando los cielos para ese día...' : 'Analyzing the skies for that day...') + '</div>';
 
     // Build context about that specific day
     var natal = getNatalData();
@@ -20055,8 +20013,20 @@ function interpretCalendarDay(year, month, day) {
         ? 'Dame una interpretación completa y personalizada del día ' + dateStr + ' para mi perfil natal. Los tránsitos activos ese día son: ' + (transitDesc || 'ninguno significativo') + '. Incluye: 1) Cómo me afectan personalmente estos tránsitos, 2) La energía general del día, 3) Consejos prácticos, 4) Cualquier advertencia importante.'
         : 'Give me a complete personalized interpretation of ' + dateStr + ' for my natal profile. Active transits that day are: ' + (transitDesc || 'none significant') + '. Include: 1) How these transits affect me personally, 2) General energy of the day, 3) Practical advice, 4) Any important warnings.';
 
-    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
-    sendHoyInterpRequest();
+    var _title = L ? 'Interpretación del Día' : 'Day Interpretation';
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">✨</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>'
+        + (transitDesc ? '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-top:4px;">' + (L ? 'Tránsitos: ' : 'Transits: ') + transitDesc + '</div>' : '')
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _title;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
 }
 
 // ===== INTERPRET SINGLE TRANSIT ASPECT =====
@@ -20065,38 +20035,28 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
     var tName = planetNames[transitPlanet] || transitPlanet;
     var nName = planetNames[natalPlanet] || natalPlanet;
     var aName = aspectNames[aspectType] || aspectType;
-    currentInterpCacheKey = 'asp_' + transitPlanet + '_' + aspectType + '_' + natalPlanet + '_' + dateStr.replace(/[^a-zA-Z0-9]/g,'');
 
     // Close the day detail modal
     var dayModal = document.getElementById('personalDayModal');
     if (dayModal) dayModal.classList.remove('show');
 
-    // Open the interpretation chat modal
-    var modal = document.getElementById('hoyInterpModal');
-    modal.classList.add('show');
-    document.getElementById('hoyInterpTitle').textContent = tName + ' ' + aName + ' ' + nName;
-    document.getElementById('hoyInterpDate').textContent = dateStr;
-
-    // Check cache
-    var cached = getInterpCache(currentInterpCacheKey);
-    if (cached) {
-        restoreInterpFromCache(cached);
-        return;
-    }
-
-    // Reset chat
-    hoyInterpHistory = [];
-    hoyInterpTyping = false;
-    updateDeleteBtnVisibility(false);
-    var container = document.getElementById('hoyInterpMessages');
-    container.innerHTML = '<div class="ai-msg loading">✨ ' + (L ? 'Interpretando este aspecto...' : 'Interpreting this aspect...') + '</div>';
-
     var prompt = L
         ? 'Interpreta en detalle el tránsito de ' + tName + ' haciendo ' + aName + ' a mi ' + nName + ' natal (' + dateStr + '). Explica: 1) Qué significa este aspecto en mi carta natal, 2) Cómo me puede afectar emocionalmente, profesionalmente y en relaciones, 3) Cuánto dura aproximadamente este tránsito, 4) Consejos para aprovechar o manejar esta energía, 5) Si hay algo que deba tener especial cuidado.'
         : 'Interpret in detail the transit of ' + tName + ' making a ' + aName + ' to my natal ' + nName + ' (' + dateStr + '). Explain: 1) What this aspect means in my natal chart, 2) How it may affect me emotionally, professionally and in relationships, 3) Approximate duration of this transit, 4) Advice to harness or manage this energy, 5) Anything I should be especially careful about.';
 
-    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
-    sendHoyInterpRequest();
+    var _title = tName + ' ' + aName + ' ' + nName;
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">✨</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>'
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _title;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
 }
 
 // ===== INTERPRET COSMIC CYCLE =====
@@ -20124,28 +20084,6 @@ function interpretCosmicCycle(cycleType) {
         nodalTransit: L ? 'Nodos Lunares' : 'Lunar Nodes',
         eclipse: L ? 'Eclipses en Ejes Natales' : 'Eclipses on Natal Axes'
     };
-
-    currentInterpCacheKey = 'cycle_' + cycleType + '_' + today.getFullYear();
-
-    // Open interpretation modal
-    var modal = document.getElementById('hoyInterpModal');
-    modal.classList.add('show');
-    document.getElementById('hoyInterpTitle').textContent = titles[cycleType] || cycleType;
-    document.getElementById('hoyInterpDate').textContent = natal.name || natal.cityName || '';
-
-    // Check cache
-    var cached = getInterpCache(currentInterpCacheKey);
-    if (cached) {
-        restoreInterpFromCache(cached);
-        return;
-    }
-
-    // Reset chat
-    hoyInterpHistory = [];
-    hoyInterpTyping = false;
-    updateDeleteBtnVisibility(false);
-    var container = document.getElementById('hoyInterpMessages');
-    container.innerHTML = '<div class="ai-msg loading">✨ ' + (L ? 'Analizando tu ciclo cósmico...' : 'Analyzing your cosmic cycle...') + '</div>';
 
     // Build context
     var natalSummary = 'Perfil: ' + (natal.name || natal.cityName) + ', nacido ' + natal.date + ' ' + natal.time + ' en ' + natal.cityName + '. ';
@@ -20182,8 +20120,19 @@ function interpretCosmicCycle(cycleType) {
             : natalSummary + 'This year\'s eclipses are: ' + eclipseList + '. Interpret: 1) How each eclipse specifically affects my natal chart, 2) What axes of my chart are activated, 3) What changes or revelations to expect, 4) How to navigate eclipse energy consciously.';
     }
 
-    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
-    sendHoyInterpRequest();
+    var _title = titles[cycleType] || cycleType;
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">🔄</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + (natal.name || natal.cityName || '') + '</div>'
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _title;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
 }
 
 // Aspect name translations
@@ -25676,7 +25625,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v451';
+const APP_VERSION = 'v452';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -27033,43 +26982,34 @@ function clearHoyInterp() {
 
 function interpretarHoyCompleto() {
     var isEs = currentLang === 'es';
-    var modal = document.getElementById('hoyInterpModal');
-    modal.classList.add('show');
     // Use the transit view date (selected via arrows) or today
     var viewDate = window._transitViewDate || new Date();
     var isToday = viewDate.toDateString() === new Date().toDateString();
-    var dateKey = viewDate.getFullYear() + '-' + (viewDate.getMonth()+1) + '-' + viewDate.getDate();
-    currentInterpCacheKey = 'day_' + dateKey;
     var dateTitle = isToday
         ? (isEs ? 'Interpretación de Hoy' : "Today's Interpretation")
         : (isEs ? 'Interpretación del Día' : 'Day Interpretation');
-    document.getElementById('hoyInterpTitle').textContent = dateTitle;
-    document.getElementById('hoyInterpDate').textContent = viewDate.toLocaleDateString(isEs?'es':'en', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-    // Check cache
-    var cached = getInterpCache(currentInterpCacheKey);
-    if (cached) {
-        restoreInterpFromCache(cached);
-        return;
-    }
-
-    // Reset
-    hoyInterpHistory = [];
-    hoyInterpTyping = false;
-    updateDeleteBtnVisibility(false);
-    var container = document.getElementById('hoyInterpMessages');
-    container.innerHTML = '<div class="ai-msg loading">✨ ' + (isEs ? 'Analizando los cielos para ti...' : 'Analyzing the skies for you...') + '</div>';
-    // Auto-send interpretation request using selected date
     var dateStr = viewDate.toLocaleDateString(isEs?'es':'en', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
     var prompt = isEs
         ? 'Dame una interpretación completa y detallada del día ' + dateStr + ' para mi perfil natal. Incluye: 1) Todos los tránsitos planetarios activos ese día y cómo me afectan personalmente, 2) La fase lunar y su influencia, 3) La energía general del día, 4) Consejos prácticos, 5) Cualquier advertencia importante. Hazlo personalizado según mi carta natal.'
         : 'Give me a complete and detailed interpretation of ' + dateStr + ' for my natal profile. Include: 1) All active planetary transits that day and how they affect me personally, 2) The lunar phase and its influence, 3) The general energy of the day, 4) Practical advice, 5) Any important warnings. Make it personalized based on my natal chart.';
-    hoyInterpHistory.push({role: 'user', parts: [{text: prompt}]});
-    sendHoyInterpRequest();
+
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2em;">✨</div>'
+        + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + dateTitle + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>'
+        + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = dateTitle;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', dateTitle); }, 100);
 }
 
 function closeHoyInterp() {
-    document.getElementById('hoyInterpModal').classList.remove('show');
+    // Legacy: close natalDetailModal (hoyInterpModal migrated)
+    document.getElementById('natalDetailModal').classList.remove('show');
 }
 
 function addHoyInterpMessage(role, html, scrollToBottom) {
