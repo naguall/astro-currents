@@ -12699,6 +12699,170 @@ window.showSign2026AspectByIndex = function(idx) {
     showAspect2026Detail(d.planet, d.type, d.symbol, d.with, d.date, d.meaning, d.lastTime);
 };
 
+// ===== MAJOR ASPECTS 2026 VIEW (inline) =====
+function _renderMajor2026View(es) {
+    var majorAspects = calculateMajorAspects2026();
+    var now = new Date();
+    function isPastDate(dStr) { try { var d = new Date(dStr); return !isNaN(d) && d < now; } catch(e){} return false; }
+
+    var categories = [
+        { key: 'stelliums', title: es ? 'Stelliums (3+ planetas en mismo signo)' : 'Stelliums (3+ planets in same sign)', symbol: '★', color: '#c9a840' },
+        { key: 'tSquares', title: 'T-Squares', symbol: '⊥', color: '#ff6b6b' },
+        { key: 'grandTrines', title: es ? 'Grandes Trígonos' : 'Grand Trines', symbol: '△', color: '#51cf66' },
+        { key: 'majorOppositions', title: es ? 'Oposiciones Mayores' : 'Major Oppositions', symbol: '☍', color: '#9b59b6' }
+    ];
+
+    var html = '';
+    categories.forEach(function(cat, cIdx) {
+        var items = majorAspects[cat.key];
+        if (!items || items.length === 0) return;
+
+        // Category card (like sign/planet cards)
+        html += '<div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid ' + cat.color + '33;border-radius:12px;border-top:2px solid ' + cat.color + '99;">';
+        // Header
+        html += '<div onclick="var el=document.getElementById(\'maj2026Det' + cIdx + '\');var ar=document.getElementById(\'maj2026Arrow' + cIdx + '\');if(el.style.display===\'none\'){el.style.display=\'block\';ar.textContent=\'▲\';}else{el.style.display=\'none\';ar.textContent=\'▼\';}" style="cursor:pointer;display:flex;align-items:center;gap:10px;">';
+        html += '<div style="width:44px;height:44px;border-radius:50%;background:' + cat.color + '22;border:2px solid ' + cat.color + '66;display:flex;align-items:center;justify-content:center;font-size:1.6em;flex-shrink:0;color:' + cat.color + ';">' + cat.symbol + '</div>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-family:\'Cinzel\',serif;color:' + cat.color + ';font-size:0.9em;font-weight:700;letter-spacing:1px;">' + cat.title.toUpperCase() + '</div>';
+        html += '<div style="font-size:0.68em;color:rgba(255,255,255,0.4);">' + items.length + ' ' + (es ? 'configuraciones en 2026' : 'configurations in 2026') + '</div>';
+        html += '</div>';
+        html += '<div style="color:rgba(255,255,255,0.3);font-size:1.2em;" id="maj2026Arrow' + cIdx + '">▼</div>';
+        html += '</div>';
+
+        // Expandable details
+        html += '<div id="maj2026Det' + cIdx + '" style="display:none;margin-top:8px;">';
+        html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+
+        items.forEach(function(item) {
+            var clickTxt, label, sublabel, dateLabel, itemPast;
+            if (cat.key === 'stelliums') {
+                clickTxt = ('Stellium ' + item.sign + ': ' + item.planets.join(', ') + ' (' + item.startDate + ' - ' + item.endDate + ')').replace(/'/g, "\\'");
+                label = item.sign;
+                sublabel = item.planets.join(', ');
+                dateLabel = item.startDate + ' - ' + item.endDate;
+                itemPast = isPastDate(item.endDate);
+            } else if (cat.key === 'tSquares') {
+                clickTxt = ('T-Cuadrada: ' + item.apex + ' vs ' + item.base.join(', ') + ' (' + item.dates + ')').replace(/'/g, "\\'");
+                label = item.apex;
+                sublabel = (es ? 'vs ' : 'vs ') + item.base.join(', ');
+                dateLabel = item.dates;
+                var dParts = item.dates.split('-'); itemPast = isPastDate(dParts[dParts.length-1].trim());
+            } else if (cat.key === 'grandTrines') {
+                clickTxt = ('Gran Trígono: ' + item.planets.join(' - ') + ' en ' + item.element + ' (' + item.dates + ')').replace(/'/g, "\\'");
+                label = item.planets.join(' △ ');
+                sublabel = (es ? 'Elemento: ' : 'Element: ') + item.element;
+                dateLabel = item.dates;
+                var gParts = item.dates.split('-'); itemPast = isPastDate(gParts[gParts.length-1].trim());
+            } else {
+                clickTxt = (item.planet1 + ' ☍ ' + item.planet2 + ' (' + item.date + ')').replace(/'/g, "\\'");
+                label = item.planet1 + ' ☍ ' + item.planet2;
+                sublabel = '';
+                dateLabel = item.date;
+                itemPast = isPastDate(item.date);
+            }
+
+            html += '<div onclick="showBannerAspectDetail(\'' + clickTxt + '\')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + cat.color + ';cursor:pointer;' + (itemPast ? 'opacity:0.55;' : '') + '">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+            html += '<div style="font-size:0.9em;flex:1;"><strong style="color:' + cat.color + ';">' + label + '</strong>';
+            if (sublabel) html += ' <span style="color:rgba(255,255,255,0.5);">' + sublabel + '</span>';
+            html += '</div>';
+            html += '<div style="text-align:right;font-size:0.78em;color:#f0e68c;white-space:nowrap;">' + dateLabel + '</div>';
+            html += '</div></div>';
+        });
+
+        html += '</div></div>'; // end details
+        html += '</div>'; // end card
+    });
+
+    if (!html) html = '<div style="text-align:center;padding:20px;color:#a8b2d1;font-style:italic;">' + (es ? 'Sin aspectos mayores calculados' : 'No major aspects calculated') + '</div>';
+    return html;
+}
+
+// ===== EVENTS 2026 VIEW (inline) =====
+function _renderEvents2026View(es) {
+    var events = getHistoricEventsData();
+    var now = new Date();
+    var monthMap = {'Ene':0,'Feb':1,'Mar':2,'Abr':3,'May':4,'Jun':5,'Jul':6,'Ago':7,'Sep':8,'Oct':9,'Nov':10,'Dic':11,'Jan':0,'Apr':3,'Aug':7,'Dec':11};
+
+    // Group by type
+    var groups = [
+        { type: 'major', title: es ? 'Aspectos Mayores' : 'Major Aspects', symbol: '⚡', color: '#ff8a80' },
+        { type: 'generational', title: es ? 'Cambios Generacionales' : 'Generational Shifts', symbol: '🌊', color: '#d4a5f5' },
+        { type: 'notable', title: es ? 'Aspectos Notables' : 'Notable Aspects', symbol: '⭐', color: '#80cbc4' }
+    ];
+
+    var html = '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:8px;line-height:1.4;">' + (es ? 'Alineaciones poco frecuentes entre planetas lentos que marcan épocas enteras.' : 'Rare alignments between slow planets that mark entire eras.') + '</div>';
+
+    groups.forEach(function(grp, gIdx) {
+        var items = events.filter(function(e) { return e.type === grp.type; });
+        if (items.length === 0) return;
+
+        // Group card (like planet/sign cards)
+        html += '<div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid ' + grp.color + '33;border-radius:12px;border-top:2px solid ' + grp.color + '99;">';
+        // Header
+        html += '<div onclick="var el=document.getElementById(\'evt2026Det' + gIdx + '\');var ar=document.getElementById(\'evt2026Arrow' + gIdx + '\');if(el.style.display===\'none\'){el.style.display=\'block\';ar.textContent=\'▲\';}else{el.style.display=\'none\';ar.textContent=\'▼\';}" style="cursor:pointer;display:flex;align-items:center;gap:10px;">';
+        html += '<div style="width:44px;height:44px;border-radius:50%;background:' + grp.color + '22;border:2px solid ' + grp.color + '66;display:flex;align-items:center;justify-content:center;font-size:1.6em;flex-shrink:0;">' + grp.symbol + '</div>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-family:\'Cinzel\',serif;color:' + grp.color + ';font-size:0.9em;font-weight:700;letter-spacing:1px;">' + grp.title.toUpperCase() + '</div>';
+        html += '<div style="font-size:0.68em;color:rgba(255,255,255,0.4);">' + items.length + ' ' + (es ? 'eventos en 2026' : 'events in 2026') + '</div>';
+        html += '</div>';
+        html += '<div style="color:rgba(255,255,255,0.3);font-size:1.2em;" id="evt2026Arrow' + gIdx + '">▼</div>';
+        html += '</div>';
+
+        // Expandable details
+        html += '<div id="evt2026Det' + gIdx + '" style="display:none;margin-top:8px;">';
+        html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+
+        items.forEach(function(ev) {
+            var isSC = ev.symbol === '→';
+            var titleLine = isSC ? tp(ev.planet1) + ' → ' + ts(ev.planet2) : tp(ev.planet1) + ' ' + ev.symbol + ' ' + tp(ev.planet2);
+            var detailLine = '';
+            if (!isSC && ev.degrees) detailLine += ev.degrees;
+            if (ev.signs) detailLine += (detailLine ? ' — ' : '') + ev.signs;
+
+            var evPast = false;
+            try { var dp = ev.date.split(' '); evPast = new Date(parseInt(dp[2]),monthMap[dp[1]]||0,parseInt(dp[0])) < now; } catch(e){}
+
+            var evClickText = (ev.planet1 + ' ' + ev.symbol + ' ' + ev.planet2 + ' ' + ev.date + ' ' + (ev.meaning||'')).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+            html += '<div onclick="showBannerAspectDetail(\'' + evClickText + '\')" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;border-left:3px solid ' + grp.color + ';cursor:pointer;' + (evPast ? 'opacity:0.55;' : '') + '">';
+            // Title row
+            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+            html += '<div style="font-size:0.9em;flex:1;">';
+            html += '<strong style="color:' + grp.color + ';">' + titleLine + '</strong>';
+            if (detailLine) html += ' <span style="color:rgba(255,255,255,0.4);font-size:0.85em;">' + detailLine + '</span>';
+            html += '</div>';
+            html += '<div style="text-align:right;font-size:0.78em;color:#f0e68c;white-space:nowrap;">' + ev.date + '</div>';
+            html += '</div>';
+            // Meaning
+            if (ev.meaning) html += '<p style="color:rgba(255,255,255,0.55);font-size:0.78em;margin:4px 0 0 0;line-height:1.4;">' + ev.meaning + '</p>';
+            // Cycle info
+            html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-top:3px;">';
+            if (ev.cycle) html += '⏱️ ' + ev.cycle;
+            if (ev.lastTime) html += ' • 🔄 ' + ev.lastTime;
+            html += '</div>';
+            // History
+            if (ev.history && ev.history.length) {
+                var hid = 'evHist_' + gIdx + '_' + Math.random().toString(36).substr(2,4);
+                html += '<div style="margin-top:6px;">';
+                html += '<div onclick="event.stopPropagation();var el=document.getElementById(\'' + hid + '\');if(el.style.display===\'none\'){el.style.display=\'block\';}else{el.style.display=\'none\';}" style="font-size:0.72em;color:' + grp.color + ';cursor:pointer;font-weight:600;">📜 ' + (es ? 'Historia' : 'History') + ' (' + ev.history.length + ')</div>';
+                html += '<div id="' + hid + '" style="display:none;margin-top:4px;">';
+                ev.history.forEach(function(h) {
+                    html += '<div style="font-size:0.75em;padding:4px 8px;margin-bottom:3px;background:rgba(255,255,255,0.03);border-radius:4px;border-left:2px solid ' + grp.color + '40;">';
+                    html += '<span style="color:' + grp.color + ';font-weight:700;">' + h.year + ':</span> <span style="color:#b0bec5;">' + h.text + '</span></div>';
+                });
+                html += '</div></div>';
+            }
+            html += '</div>';
+        });
+
+        html += '</div></div>'; // end details
+        html += '</div>'; // end card
+    });
+
+    return html;
+}
+
 function renderAspects2026Panel() {
     const es = currentLang === 'es';
     // Reset global aspect data array on each render
@@ -12745,13 +12909,29 @@ function renderAspects2026Panel() {
     html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;">';
     html += '<button onclick="window._asp2026Tab=\'planets\';renderAspects2026Panel()" style="' + tabBtnStyle('planets', '102,126,234') + '">🪐 ' + (es ? 'Planetas' : 'Planets') + '</button>';
     html += '<button onclick="window._asp2026Tab=\'signs\';renderAspects2026Panel()" style="' + tabBtnStyle('signs', '78,205,196') + '">♈ ' + (es ? 'Signos' : 'Signs') + '</button>';
-    html += '<button onclick="showMajorAspectsModal()" style="' + tabBtnStyle('major', '155,89,182') + '">⭐ ' + (es ? 'Mayores' : 'Major') + '</button>';
-    html += '<button onclick="showHistoricAspectsModal()" style="' + tabBtnStyle('events', '201,168,64') + '">📅 ' + (es ? 'Eventos' : 'Events') + '</button>';
+    html += '<button onclick="window._asp2026Tab=\'major\';renderAspects2026Panel()" style="' + tabBtnStyle('major', '155,89,182') + '">⭐ ' + (es ? 'Mayores' : 'Major') + '</button>';
+    html += '<button onclick="window._asp2026Tab=\'events\';renderAspects2026Panel()" style="' + tabBtnStyle('events', '201,168,64') + '">📅 ' + (es ? 'Eventos' : 'Events') + '</button>';
     html += '</div>';
 
     // If Signs tab, render signs view instead of planets
     if (activeTab === 'signs') {
         html += _renderSigns2026View(es);
+        html += '</div>';
+        panel.innerHTML = html;
+        return;
+    }
+
+    // If Major tab, render major aspects inline
+    if (activeTab === 'major') {
+        html += _renderMajor2026View(es);
+        html += '</div>';
+        panel.innerHTML = html;
+        return;
+    }
+
+    // If Events tab, render events inline
+    if (activeTab === 'events') {
+        html += _renderEvents2026View(es);
         html += '</div>';
         panel.innerHTML = html;
         return;
@@ -25629,7 +25809,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v453';
+const APP_VERSION = 'v454';
 var _pendingSW = null;
 
 // What's New removed per user request
