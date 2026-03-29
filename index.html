@@ -1050,6 +1050,8 @@
                 </div>
                 <!-- Dreams diary tab -->
                 <div id="diarioPanelDreams" style="display:none;">
+                    <!-- Dream selector (populated by JS when multiple dreams) -->
+                    <div id="dreamSelectorContainer" style="margin-bottom:8px;"></div>
                     <div style="position: relative;">
                         <textarea
                             class="journal-textarea"
@@ -1073,10 +1075,15 @@
                         <span style="font-size:0.78em;color:rgba(255,255,255,0.4);">🧠</span>
                         <select id="dreamPersonaDropdown" onchange="setDreamPersona(this.value)" style="flex:1;padding:8px 10px;background:rgba(138,43,226,0.1);border:1px solid rgba(138,43,226,0.3);border-radius:8px;color:#ce93d8;font-size:0.8em;cursor:pointer;outline:none;"></select>
                     </div>
-                    <!-- AI Dream Interpretation -->
-                    <button id="dreamInterpBtn" onclick="interpretDream()" style="width:100%;padding:12px;margin-top:8px;background:linear-gradient(135deg,rgba(138,43,226,0.3),rgba(75,0,130,0.2));border:1px solid rgba(138,43,226,0.5);border-radius:10px;color:#ce93d8;font-size:0.9em;font-weight:700;cursor:pointer;">
-                        ✨ <span data-i18n="dreamInterpret">Interpretar Sueño</span>
-                    </button>
+                    <!-- AI Dream Interpretation + New Dream -->
+                    <div style="display:flex;gap:8px;margin-top:8px;">
+                        <button id="dreamInterpBtn" onclick="interpretDream()" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(138,43,226,0.3),rgba(75,0,130,0.2));border:1px solid rgba(138,43,226,0.5);border-radius:10px;color:#ce93d8;font-size:0.9em;font-weight:700;cursor:pointer;">
+                            ✨ <span data-i18n="dreamInterpret">Interpretar Sueño</span>
+                        </button>
+                        <button id="newDreamBtn" onclick="addNewDreamFromModal()" style="padding:12px 16px;background:rgba(93,173,226,0.15);border:1px solid rgba(93,173,226,0.4);border-radius:10px;color:#5dade2;font-size:0.9em;font-weight:700;cursor:pointer;white-space:nowrap;">
+                            + 🌙
+                        </button>
+                    </div>
                     <div id="dreamInterpContainer" style="margin-top:12px;"></div>
                     <!-- Dream Alarm moved to Preferences -->
                 </div>
@@ -5223,6 +5230,14 @@ function formatShortDate(date) {
     return L ? `${day}/${month}` : `${month}/${day}`;
 }
 
+// Convert YYYY-MM-DD dateKey to DD-MM-YYYY for display
+function formatDateKeyDisplay(dateKey) {
+    if (!dateKey || typeof dateKey !== 'string') return dateKey;
+    var parts = dateKey.split('-');
+    if (parts.length === 3) return parts[2] + '-' + parts[1] + '-' + parts[0];
+    return dateKey;
+}
+
 // Alternating month colors for gregorian dates in calendars
 function getMonthColor(monthIndex) {
     const colors = [
@@ -6014,7 +6029,7 @@ function openSavedReadingsModal(tab) {
             var dreams = _migrateDreamEntry(val);
             dreams.forEach(function(d, idx) {
                 if (d.text && d.text.trim()) {
-                    dreamEntries.push({ date: key, dreamId: d.id, text: d.text, interpretation: d.interpretation || '', dreamIndex: idx + 1, totalDreams: dreams.length });
+                    dreamEntries.push({ date: key, dreamId: d.id, text: d.text, interpretation: d.interpretation || '', dreamIndex: idx + 1, totalDreams: dreams.length, ts: d.ts || 0 });
                 }
             });
         });
@@ -6041,7 +6056,7 @@ function openSavedReadingsModal(tab) {
                     var preview = entry.text.substring(0, 120).replace(/\n/g, ' ') + (entry.text.length > 120 ? '...' : '');
                     html += '<div style="background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.2);border-radius:10px;padding:14px;margin-bottom:10px;">';
                     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-                    html += '<span style="color:#9b59b6;font-weight:700;font-size:0.9em;">📓 ' + entry.date + '</span>';
+                    html += '<span style="color:#9b59b6;font-weight:700;font-size:0.9em;">📓 ' + formatDateKeyDisplay(entry.date) + '</span>';
                     html += '<div style="display:flex;gap:4px;">';
                     html += '<button onclick="shareDiaryEntry(\'' + safeDate + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Compartir':'Share') + '">📤</button>';
                     html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteDiaryEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
@@ -6074,7 +6089,7 @@ function openSavedReadingsModal(tab) {
                     if (entry.date !== _lastDreamDate) {
                         if (_lastDreamDate !== '') {
                             html += '<div style="text-align:center;margin-bottom:14px;">';
-                            html += '<button onclick="addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\');openDreamEditor(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\',addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\'))" style="padding:4px 12px;background:rgba(93,173,226,0.1);border:1px dashed rgba(93,173,226,0.3);border-radius:6px;color:rgba(93,173,226,0.5);font-size:0.75em;cursor:pointer;">+ ' + (L ? 'Agregar sueño en ' + _lastDreamDate : 'Add dream on ' + _lastDreamDate) + '</button>';
+                            html += '<button onclick="addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\');openDreamEditor(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\',addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\'))" style="padding:4px 12px;background:rgba(93,173,226,0.1);border:1px dashed rgba(93,173,226,0.3);border-radius:6px;color:rgba(93,173,226,0.5);font-size:0.75em;cursor:pointer;">+ ' + (L ? 'Agregar sueño en ' + formatDateKeyDisplay(_lastDreamDate) : 'Add dream on ' + formatDateKeyDisplay(_lastDreamDate)) + '</button>';
                             html += '</div>';
                         }
                         _lastDreamDate = entry.date;
@@ -6083,13 +6098,18 @@ function openSavedReadingsModal(tab) {
                     var dreamLabel = entry.totalDreams > 1 ? (L ? 'Sueño ' + entry.dreamIndex : 'Dream ' + entry.dreamIndex) : '';
                     html += '<div style="background:rgba(93,173,226,0.08);border:1px solid rgba(93,173,226,0.2);border-radius:10px;padding:14px;margin-bottom:10px;">';
                     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-                    html += '<div><span style="color:#5dade2;font-weight:700;font-size:0.9em;">🌙 ' + entry.date + '</span>';
+                    html += '<div><span style="color:#5dade2;font-weight:700;font-size:0.9em;">🌙 ' + formatDateKeyDisplay(entry.date) + '</span>';
                     if (dreamLabel) html += ' <span style="color:rgba(93,173,226,0.6);font-size:0.75em;font-weight:600;">— ' + dreamLabel + '</span>';
                     html += '</div>';
                     html += '<div style="display:flex;gap:4px;">';
                     html += '<button onclick="openDreamEditor(\'' + safeDate + '\',\'' + safeDreamId + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Editar':'Edit') + '">✏️</button>';
                     html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar este sueño?':'Delete this dream?') + '\')){deleteDreamById(\'' + safeDate + '\',\'' + safeDreamId + '\');openSavedReadingsModal(\'diario-suenos\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
                     html += '</div></div>';
+                    // Show timestamp
+                    if (entry.ts) {
+                        var _dTs = new Date(entry.ts);
+                        html += '<div style="font-size:0.68em;color:rgba(255,255,255,0.3);margin-bottom:4px;">🕐 ' + _dTs.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }) + '</div>';
+                    }
                     if (entry.interpretation) html += '<div style="font-size:0.68em;color:rgba(206,147,216,0.5);margin-bottom:4px;">✨ ' + (L ? 'Con interpretación' : 'Has interpretation') + '</div>';
                     html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;margin-bottom:8px;">' + preview + '</div>';
                     html += '<button onclick="viewDreamEntry(\'' + safeDate + '\',\'' + safeDreamId + '\')" style="padding:5px 14px;background:rgba(93,173,226,0.12);border:1px solid rgba(93,173,226,0.25);border-radius:6px;color:#5dade2;font-size:0.8em;cursor:pointer;">' + (L ? 'Leer' : 'Read') + '</button>';
@@ -6098,7 +6118,7 @@ function openSavedReadingsModal(tab) {
                 // Add button for last date
                 if (_lastDreamDate) {
                     html += '<div style="text-align:center;margin-bottom:14px;">';
-                    html += '<button onclick="var nid=addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\');openDreamEditor(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\',nid)" style="padding:4px 12px;background:rgba(93,173,226,0.1);border:1px dashed rgba(93,173,226,0.3);border-radius:6px;color:rgba(93,173,226,0.5);font-size:0.75em;cursor:pointer;">+ ' + (L ? 'Agregar sueño en ' + _lastDreamDate : 'Add dream on ' + _lastDreamDate) + '</button>';
+                    html += '<button onclick="var nid=addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\');openDreamEditor(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\',nid)" style="padding:4px 12px;background:rgba(93,173,226,0.1);border:1px dashed rgba(93,173,226,0.3);border-radius:6px;color:rgba(93,173,226,0.5);font-size:0.75em;cursor:pointer;">+ ' + (L ? 'Agregar sueño en ' + formatDateKeyDisplay(_lastDreamDate) : 'Add dream on ' + formatDateKeyDisplay(_lastDreamDate)) + '</button>';
                     html += '</div>';
                 }
             }
@@ -6180,9 +6200,14 @@ function viewDreamEntry(dateKey, dreamId) {
     var html = '<div style="margin-bottom:15px;">';
     html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
     html += '</div>';
-    html += '<h3 style="color:#5dade2;margin-bottom:10px;">🌙 ' + dateKey;
+    html += '<h3 style="color:#5dade2;margin-bottom:10px;">🌙 ' + formatDateKeyDisplay(dateKey);
     if (dreams.length > 1) html += ' <span style="font-size:0.7em;opacity:0.6;">— ' + (L ? 'Sueño ' + (idx+1) + ' de ' + dreams.length : 'Dream ' + (idx+1) + ' of ' + dreams.length) + '</span>';
     html += '</h3>';
+    // Timestamp
+    if (dream.ts) {
+        var _vDts = new Date(dream.ts);
+        html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:8px;">🕐 ' + _vDts.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }) + '</div>';
+    }
 
     // Dream text
     html += '<div id="viewDreamText" style="line-height:1.8;font-size:0.95em;color:rgba(255,255,255,0.9);background:rgba(93,173,226,0.06);border:1px solid rgba(93,173,226,0.15);border-radius:10px;padding:16px;white-space:pre-wrap;word-wrap:break-word;">' + dream.text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
@@ -6223,7 +6248,7 @@ function openDreamEditor(dateKey, dreamId) {
     var html = '<div style="margin-bottom:15px;">';
     html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
     html += '</div>';
-    html += '<h3 style="color:#5dade2;margin-bottom:10px;">🌙 ' + (L ? 'Editar sueño — ' : 'Edit dream — ') + dateKey + '</h3>';
+    html += '<h3 style="color:#5dade2;margin-bottom:10px;">🌙 ' + (L ? 'Editar sueño — ' : 'Edit dream — ') + formatDateKeyDisplay(dateKey) + '</h3>';
     html += '<textarea id="dreamEditArea" style="width:100%;min-height:200px;padding:15px;background:rgba(0,0,0,0.3);border:1px solid rgba(93,173,226,0.3);border-radius:8px;color:white;font-size:1em;resize:vertical;line-height:1.7;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>';
     html += '<div style="display:flex;gap:10px;margin-top:12px;justify-content:center;">';
     html += '<button onclick="saveDreamEntry(\'' + dateKey.replace(/'/g,"\\'") + '\',\'' + dreamId.replace(/'/g,"\\'") + '\',document.getElementById(\'dreamEditArea\').value);openSavedReadingsModal(\'diario-suenos\');" style="padding:8px 24px;background:rgba(93,173,226,0.2);border:1px solid rgba(93,173,226,0.4);border-radius:8px;color:#5dade2;font-size:0.9em;cursor:pointer;font-weight:700;">💾 ' + (L ? 'Guardar' : 'Save') + '</button>';
@@ -6494,7 +6519,7 @@ function viewDiaryEntry(dateKey) {
     var html = '<div style="margin-bottom:15px;">';
     html += '<button onclick="openSavedReadingsModal(\'diario\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
     html += '</div>';
-    html += '<h3 style="color:#9b59b6;margin-bottom:10px;">📝 ' + dateKey + '</h3>';
+    html += '<h3 style="color:#9b59b6;margin-bottom:10px;">📝 ' + formatDateKeyDisplay(dateKey) + '</h3>';
     // Show diary metadata if available
     var pMeta = getDiaryMeta(dateKey, 'personal');
     if (pMeta) html += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:8px;">' + formatDiaryMeta(pMeta) + '</div>';
@@ -6526,7 +6551,7 @@ function editDiaryEntry(dateKey) {
     var html = '<div style="margin-bottom:15px;">';
     html += '<button onclick="openSavedReadingsModal(\'diario\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
     html += '</div>';
-    html += '<h3 style="color:#9b59b6;margin-bottom:10px;">✏️ ' + (L ? 'Editar' : 'Edit') + ' — ' + dateKey + '</h3>';
+    html += '<h3 style="color:#9b59b6;margin-bottom:10px;">✏️ ' + (L ? 'Editar' : 'Edit') + ' — ' + formatDateKeyDisplay(dateKey) + '</h3>';
     html += '<textarea id="diaryEditArea" style="width:100%;min-height:250px;background:rgba(155,89,182,0.05);border:1px solid rgba(155,89,182,0.3);border-radius:10px;padding:16px;color:rgba(255,255,255,0.9);font-size:0.92em;line-height:1.7;resize:vertical;font-family:inherit;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>';
     html += '<div style="display:flex;gap:10px;margin-top:12px;justify-content:center;">';
     html += '<button onclick="saveDiaryText(\'' + dateKey.replace(/'/g,"\\'") + '\', document.getElementById(\'diaryEditArea\').value); openSavedReadingsModal(\'diario\');" style="padding:8px 24px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.4);border-radius:8px;color:#c9a840;font-size:0.9em;cursor:pointer;font-weight:700;">💾 ' + (L ? 'Guardar' : 'Save') + '</button>';
@@ -6573,18 +6598,23 @@ function exportAllDiaryEntries() {
 
     diaryEntries.forEach(function(e, i) {
         text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
-        text += '📅 ' + e.date + '\n';
+        text += '📅 ' + formatDateKeyDisplay(e.date) + '\n';
         text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
 
-        // Diary text
-        text += '📝 ' + (L ? 'REFLEXIÓN' : 'REFLECTION') + '\n';
+        // Diary text with timestamp
+        var _pMeta = getDiaryMeta(e.date, 'personal');
+        text += '📝 ' + (L ? 'REFLEXIÓN' : 'REFLECTION');
+        if (_pMeta && _pMeta.timeLocal) text += ' (🕐 ' + _pMeta.timeLocal + ')';
+        text += '\n';
         text += e.text + '\n\n';
 
         // Dream texts if exist for this date (multi-dream aware)
         var _dateDreams = dreamsData[e.date] ? _migrateDreamEntry(dreamsData[e.date]) : [];
         _dateDreams.forEach(function(dr, di) {
             if (dr.text && dr.text.trim()) {
-                text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + (_dateDreams.length > 1 ? ' ' + (di+1) : '') + '\n';
+                text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + (_dateDreams.length > 1 ? ' ' + (di+1) : '') ;
+                if (dr.ts) { var _eDt = new Date(dr.ts); text += ' (🕐 ' + _eDt.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }) + ')'; }
+                text += '\n';
                 text += dr.text + '\n\n';
                 if (dr.interpretation && dr.interpretation.trim()) {
                     text += '✨ ' + (L ? 'INTERPRETACIÓN' : 'INTERPRETATION') + '\n';
@@ -6614,12 +6644,14 @@ function exportAllDiaryEntries() {
     if (dreamOnlyDates.length > 0) {
         dreamOnlyDates.forEach(function(dk) {
             text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
-            text += '📅 ' + dk + '\n';
+            text += '📅 ' + formatDateKeyDisplay(dk) + '\n';
             text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
             var dkDreams = _migrateDreamEntry(dreamsData[dk]);
             dkDreams.forEach(function(dr, di) {
                 if (dr.text && dr.text.trim()) {
-                    text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + (dkDreams.length > 1 ? ' ' + (di+1) : '') + '\n';
+                    text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + (dkDreams.length > 1 ? ' ' + (di+1) : '');
+                    if (dr.ts) { var _eDt2 = new Date(dr.ts); text += ' (🕐 ' + _eDt2.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' }) + ')'; }
+                    text += '\n';
                     text += dr.text + '\n\n';
                     if (dr.interpretation && dr.interpretation.trim()) {
                         text += '✨ ' + (L ? 'INTERPRETACIÓN' : 'INTERPRETATION') + '\n';
@@ -6751,7 +6783,7 @@ function exportAllReadings() {
     var blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a'); a.href = url;
-    a.download = 'moon-sync-readings-' + new Date().toISOString().split('T')[0] + '.txt';
+    var _rNow = new Date(); a.download = 'moon-sync-readings-' + String(_rNow.getDate()).padStart(2,'0') + '-' + String(_rNow.getMonth()+1).padStart(2,'0') + '-' + _rNow.getFullYear() + '.txt';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
@@ -7777,15 +7809,21 @@ function openDiarioModal(date, lunarDay) {
         _loadDreamIntoTextarea(dreamId);
     };
 
-    // Insert dream selector container before textarea
-    var dreamPanel = document.getElementById('diarioPanelDreams');
-    var existingSelector = document.getElementById('dreamSelectorContainer');
-    if (!existingSelector) {
-        var selectorDiv = document.createElement('div');
-        selectorDiv.id = 'dreamSelectorContainer';
-        var textareaParent = document.getElementById('dreamText').parentElement;
-        dreamPanel.insertBefore(selectorDiv, textareaParent);
-    }
+    // Function for the "+ 🌙" button in the modal
+    window.addNewDreamFromModal = function() {
+        // Save current dream first
+        var ta = document.getElementById('dreamText');
+        if (ta && window._currentDreamId) {
+            var curDream = getDreamById(dateKey, window._currentDreamId);
+            saveDreamEntry(dateKey, window._currentDreamId, ta.value, curDream ? curDream.interpretation : '');
+        }
+        var nid = addNewDream(dateKey);
+        window._currentDreamId = nid;
+        _renderDreamSelector();
+        _loadDreamIntoTextarea(nid);
+        if (ta) { ta.value = ''; ta.focus(); }
+    };
+
     _renderDreamSelector();
 
     const dreamArea = document.getElementById('dreamText');
@@ -7908,6 +7946,7 @@ function saveDreamEntry(dateKey, dreamId, text, interpretation) {
     if (existing) {
         existing.text = text;
         if (typeof interpretation !== 'undefined') existing.interpretation = interpretation;
+        existing.ts = Date.now(); // Update timestamp on every save
     } else {
         dreams.push({ id: dreamId, text: text, interpretation: interpretation || '', ts: Date.now() });
     }
@@ -25381,7 +25420,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v435';
+const APP_VERSION = 'v436';
 var _pendingSW = null;
 
 function showUpdateBanner() {
