@@ -23299,6 +23299,20 @@ function openPreferencesModal() {
     voiceContent += '<input type="range" id="ttsRateSlider" min="0.5" max="2.0" step="0.1" value="' + savedRate + '" oninput="localStorage.setItem(\'ttsRate\',this.value);document.getElementById(\'ttsRateLabel\').textContent=parseFloat(this.value).toFixed(1)+\'x\';" style="width:100%;accent-color:#667eea;">';
     voiceContent += '</div>';
 
+    // Voice debug info (helps diagnose issues on different devices)
+    var diagHtml = '';
+    var allVoicesRaw = voices;
+    var esVoicesRaw = allVoicesRaw.filter(function(v) { return v.lang.startsWith('es'); });
+    diagHtml += 'Total: ' + allVoicesRaw.length + ' voces | Español: ' + esVoicesRaw.length + '<br>';
+    esVoicesRaw.forEach(function(v) {
+        diagHtml += '• ' + v.name + ' (' + v.lang + ') ' + (v.localService ? 'local' : 'cloud') + '<br>';
+    });
+    if (esVoicesRaw.length === 0) diagHtml += (currentLang==='es'?'(vacío — recarga la página o espera)':'(empty — reload page or wait)');
+    voiceContent += '<details style="margin-top:8px;">';
+    voiceContent += '<summary style="cursor:pointer;font-size:0.7em;color:rgba(255,255,255,0.25);">🔧 ' + (currentLang==='es'?'Diagnóstico de voces':'Voice diagnostics') + '</summary>';
+    voiceContent += '<div style="font-size:0.65em;color:rgba(255,255,255,0.35);margin-top:6px;padding:8px;background:rgba(0,0,0,0.3);border-radius:6px;max-height:150px;overflow-y:auto;font-family:monospace;">' + diagHtml + '</div>';
+    voiceContent += '</details>';
+
     var currentVoiceName = currentLang === 'es' ? (savedVoiceEs || (currentLang==='es'?'Auto':'Auto')) : (savedVoiceEn || 'Auto');
     if (currentVoiceName.length > 20) currentVoiceName = currentVoiceName.substring(0, 18) + '...';
     sectionsHtml += _s('🔊', (currentLang==='es'?'Voz':'Voice') + ' <span style="font-size:0.75em;opacity:0.6;font-weight:400;">(' + currentVoiceName + ')</span>', '#7ec8ff', voiceContent);
