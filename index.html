@@ -6545,8 +6545,8 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             return;
         }
 
-        // Use active persona's system prompt
-        var systemPrompt = buildSystemPrompt();
+        // Use light context for aspect/planet interpretations (no tides/earthquakes/solar)
+        var systemPrompt = buildSystemPrompt('light');
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -6554,10 +6554,13 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
             generationConfig: { temperature: 0.8, maxOutputTokens: 8192 }
         };
 
-        var apiUrl;
         var personalKey = getGeminiKey();
+        var useStreaming = !!personalKey; // Streaming only with personal key (proxy may not support it)
+        var apiUrl;
         if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
+            apiUrl = useStreaming
+                ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey
+                : 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
         } else {
             apiUrl = AI_PROXY_URL;
         }
@@ -6578,10 +6581,51 @@ async function fetchAIInterpretation(specificPrompt, targetDivId, readingTitle, 
 
         if (!response.ok) throw new Error('API error: ' + response.status);
 
-        var result = await response.json();
-        text = '';
-        if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-            text = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+        // Streaming response — show text as it arrives
+        if (useStreaming && response.body) {
+            var _streamDiv = document.createElement('div');
+            _streamDiv.style.cssText = 'font-size:0.88em;line-height:1.7;color:rgba(255,255,255,0.85);';
+            div.innerHTML = '';
+            div.appendChild(_streamDiv);
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+            var buffer = '';
+            text = '';
+            while (true) {
+                var chunk = await reader.read();
+                if (chunk.done) break;
+                buffer += decoder.decode(chunk.value, { stream: true });
+                var lines = buffer.split('\n');
+                buffer = lines.pop(); // keep incomplete line
+                for (var li = 0; li < lines.length; li++) {
+                    var line = lines[li].trim();
+                    if (!line.startsWith('data: ')) continue;
+                    var jsonStr = line.substring(6);
+                    if (jsonStr === '[DONE]') continue;
+                    try {
+                        var parsed = JSON.parse(jsonStr);
+                        if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content && parsed.candidates[0].content.parts) {
+                            var newText = parsed.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+                            text += newText;
+                            _streamDiv.innerHTML = '<p>' + text
+                                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                                .replace(/\n\n/g, '</p><p>')
+                                .replace(/\n/g, '<br>') + '</p>';
+                            // Auto-scroll the container
+                            var scrollParent = div.closest('[style*="overflow"]') || div.parentElement;
+                            if (scrollParent) scrollParent.scrollTop = scrollParent.scrollHeight;
+                        }
+                    } catch(parseErr) { /* skip malformed chunk */ }
+                }
+            }
+        } else {
+            // Non-streaming fallback (proxy or no streaming support)
+            var result = await response.json();
+            text = '';
+            if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+                text = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+            }
         }
     } catch(err) {
         div.innerHTML = '<p style="color:#ff6b6b;font-size:0.85em;text-align:center;">' + (L ? 'Error al obtener la interpretación: ' : 'Error getting interpretation: ') + err.message + '</p>';
@@ -6680,7 +6724,7 @@ async function expandAIReading(readingKey, btn) {
     btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(102,126,234,0.3);border-top-color:#667eea;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:4px;"></span>' + (L ? 'Expandiendo...' : 'Expanding...');
 
     try {
-        var systemPrompt = buildSystemPrompt();
+        var systemPrompt = buildSystemPrompt('light');
 
         var requestBody = {
             system_instruction: { parts: [{ text: systemPrompt }] },
@@ -6852,8 +6896,8 @@ async function sendInterpChatMessage(chatId, readingKey) {
     saveInterpChat(chatId, chat);
 
     try {
-        // Use active persona + add context of original interpretation
-        var systemPrompt = buildSystemPrompt();
+        // Use active persona + add context of original interpretation (light context for speed)
+        var systemPrompt = buildSystemPrompt('light');
         var initialCtx = data ? data.text : (chat.initialResponse || '');
         if (initialCtx) {
             systemPrompt += '\n\n' + (L ? 'INTERPRETACIÓN INICIAL QUE DISTE (contexto para seguimiento):\n' : 'INITIAL INTERPRETATION YOU GAVE (context for follow-up):\n') + '"' + initialCtx + '"';
@@ -6873,8 +6917,11 @@ async function sendInterpChatMessage(chatId, readingKey) {
 
         var apiUrl;
         var personalKey = getGeminiKey();
+        var _useStream = !!personalKey;
         if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
+            apiUrl = _useStream
+                ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey
+                : 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
         } else {
             apiUrl = AI_PROXY_URL;
         }
@@ -6887,17 +6934,49 @@ async function sendInterpChatMessage(chatId, readingKey) {
 
         if (!response.ok) throw new Error('API error: ' + response.status);
 
-        var result = await response.json();
         var aiText = '';
-        if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-            aiText = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+        var _respId = 'interpFollowUp_' + chatId + '_' + Date.now();
+
+        if (_useStream && response.body) {
+            // Create bubble immediately for streaming
+            msgsDiv.innerHTML += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);"><div id="' + _respId + '"></div></div></div>';
+            var _streamTarget = document.getElementById(_respId);
+            var _sReader = response.body.getReader();
+            var _sDec = new TextDecoder();
+            var _sBuf = '';
+            while (true) {
+                var _sChunk = await _sReader.read();
+                if (_sChunk.done) break;
+                _sBuf += _sDec.decode(_sChunk.value, { stream: true });
+                var _sLines = _sBuf.split('\n');
+                _sBuf = _sLines.pop();
+                for (var _si = 0; _si < _sLines.length; _si++) {
+                    var _sLine = _sLines[_si].trim();
+                    if (!_sLine.startsWith('data: ')) continue;
+                    var _sJson = _sLine.substring(6);
+                    if (_sJson === '[DONE]') continue;
+                    try {
+                        var _sParsed = JSON.parse(_sJson);
+                        if (_sParsed.candidates && _sParsed.candidates[0] && _sParsed.candidates[0].content && _sParsed.candidates[0].content.parts) {
+                            aiText += _sParsed.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+                            if (_streamTarget) _streamTarget.innerHTML = aiText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+                            msgsDiv.scrollTop = msgsDiv.scrollHeight;
+                        }
+                    } catch(_sErr) {}
+                }
+            }
+        } else {
+            var result = await response.json();
+            if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+                aiText = result.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('');
+            }
+            if (aiText) {
+                var formatted = aiText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+                msgsDiv.innerHTML += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);"><div id="' + _respId + '">' + formatted + '</div></div></div>';
+            }
         }
 
         if (aiText) {
-            var _respId = 'interpFollowUp_' + chatId + '_' + Date.now();
-            var formatted = aiText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
-            msgsDiv.innerHTML += '<div style="margin-bottom:8px;text-align:left;"><div style="display:inline-block;max-width:85%;padding:8px 12px;border-radius:12px;font-size:0.85em;line-height:1.5;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);"><div id="' + _respId + '">' + formatted + '</div></div></div>';
-
             // Save AI response
             chat.messages.push({ role: 'model', text: aiText, timestamp: new Date().toISOString() });
             saveInterpChat(chatId, chat);
@@ -14773,8 +14852,8 @@ window.interpretReturnChartInline = function(type) {
 
 function sendReturnInterpRequest(history, container, cacheKey) {
     var L = currentLang === 'es';
-    // Use the active AI persona's system prompt
-    var systemPrompt = buildSystemPrompt();
+    // Use light context for speed (planetary hours don't need tides/earthquakes)
+    var systemPrompt = buildSystemPrompt('light');
 
     var personalKey = getGeminiKey();
     var apiUrl = personalKey
@@ -26142,6 +26221,13 @@ function gatherAstroContext() {
 }
 
 // ══════════════════════════════════════════════════
+// GATHER LIGHT CONTEXT — Only natal chart + transits (for aspect/planet interpretations)
+// ══════════════════════════════════════════════════
+function gatherLightContext() {
+    return gatherAstroContext(); // natal chart + transits only, no tides/earthquakes/earth/solar
+}
+
+// ══════════════════════════════════════════════════
 // GATHER FULL APP CONTEXT — All data for AI (tides, earthquakes, earth, solar system)
 // ══════════════════════════════════════════════════
 function gatherFullAppContext() {
@@ -26802,9 +26888,9 @@ function resetAllAIChats() {
     if (interpContainer) interpContainer.innerHTML = '';
 }
 
-function buildSystemPrompt() {
+function buildSystemPrompt(contextLevel) {
     const isEs = currentLang === 'es';
-    const fullCtx = gatherFullAppContext();
+    const fullCtx = contextLevel === 'light' ? gatherLightContext() : gatherFullAppContext();
     var persona = getActivePersona();
     var base = persona.buildPrompt(isEs, fullCtx);
 
