@@ -1161,18 +1161,7 @@
         </div>
     </div>
 
-    <!-- Modal de Astronomía (Mareas, Distancia, Declinación) -->
-    <div id="astroModal" class="modal" onclick="if(event.target===this)closeAstroModal()"
-        <div class="modal-content" style="max-width: 700px;">
-            <div class="modal-header">
-                <h2 id="astroModalTitle">🌊 Datos Astronómicos</h2>
-                <span class="close" onclick="closeAstroModal()">&times;</span>
-            </div>
-            <div id="astroModalBody" style="padding: 20px;">
-                <!-- Filled by JS -->
-            </div>
-        </div>
-    </div>
+    <!-- astroModal migrated to natalDetailModal -->
 
     <!-- Modal de Lecturas Guardadas -->
     <div id="savedReadingsModal" class="modal" onclick="if(event.target===this)closeSavedReadingsModal()">
@@ -5782,7 +5771,7 @@ function openAstroModal(date, lunarDay) {
     const tideCurve = getTideCurveForLocation(date, ASTRO_USER_LAT, ASTRO_USER_LON);
     const tideExtremes = getTideExtremes(tideCurve);
     
-    document.getElementById('astroModalTitle').textContent = `🌊 ${t('astronomy')} — ${t('day')} ${lunarDay}`;
+    // Title set when modal opens below
 
     // Distance color
     const distColor = astro.isPerigee ? '#FF6B6B' : astro.isApogee ? '#7E57C2' : '#fff';
@@ -5877,12 +5866,14 @@ function openAstroModal(date, lunarDay) {
         </div>
     `;
     
-    document.getElementById('astroModalBody').innerHTML = html;
-    document.getElementById('astroModal').classList.add('show');
+    var _astroModal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = `🌊 ${t('astronomy')} — ${t('day')} ${lunarDay}`;
+    document.getElementById('natalDetailBody').innerHTML = html;
+    _astroModal.classList.add('show');
 }
 
 function closeAstroModal() {
-    document.getElementById('astroModal').classList.remove('show');
+    document.getElementById('natalDetailModal').classList.remove('show');
 }
 
 function closeNatalDetailModal() {
@@ -14428,8 +14419,8 @@ window.openSynastryView = function(profileId) {
     var majorAsp = synAspects.filter(function(a){return a.major;});
     var minorAsp = synAspects.filter(function(a){return !a.major;});
 
-    var html = '<div class="modal-header"><h2>' + (L?'Sinastria':'Synastry') + ': ' + name1 + ' + ' + name2 + '</h2><span class="close" onclick="document.getElementById(\'synastryModal\').classList.remove(\'show\')">&times;</span></div>';
-    html += '<div style="padding:10px 0;">';
+    var _synTitle = (L?'Sinastria':'Synastry') + ': ' + name1 + ' + ' + name2;
+    var html = '<div style="padding:10px 0;">';
 
     // Score bar
     var scoreColor = score >= 70 ? '#2ecc71' : score >= 45 ? '#f1c40f' : '#e74c3c';
@@ -14495,18 +14486,10 @@ window.openSynastryView = function(profileId) {
 
     html += '</div>';
 
-    // Create or reuse modal
-    var modal = document.getElementById('synastryModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'synastryModal';
-        modal.className = 'modal';
-        modal.style.zIndex = '1250';
-        modal.onclick = function(e) { if(e.target===modal) modal.classList.remove('show'); };
-        modal.innerHTML = '<div class="modal-content" style="max-width:550px;" id="synastryModalContent"></div>';
-        document.body.appendChild(modal);
-    }
-    document.getElementById('synastryModalContent').innerHTML = html;
+    // Use standard natalDetailModal
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _synTitle;
+    document.getElementById('natalDetailBody').innerHTML = html;
     modal.classList.add('show');
 
     // Draw biwheel after modal is visible
@@ -15482,8 +15465,9 @@ window.openReturnChart = function(type) {
 
     var pNms = {'sun':L?'Sol':'Sun','moon':L?'Luna':'Moon','mercury':L?'Mercurio':'Mercury','venus':'Venus','mars':L?'Marte':'Mars','jupiter':L?'Júpiter':'Jupiter','saturn':L?'Saturno':'Saturn','uranus':L?'Urano':'Uranus','neptune':L?'Neptuno':'Neptune','pluto':L?'Plutón':'Pluto','chiron':L?'Quirón':'Chiron','northnode':L?'Nodo Norte':'North Node','lilith':'Lilith','partOfFortune':L?'Parte de la Fortuna':'Part of Fortune','vertex':L?'Vértice':'Vertex'};
 
-    var html = '<div class="modal-header"><h2 style="color:' + color + ';">' + title + '</h2><span class="close" onclick="document.getElementById(\'returnChartModal\').classList.remove(\'show\')">&times;</span></div>';
-    html += '<div style="padding:10px 0;">';
+    var _returnTitle = title;
+    var _returnColor = color;
+    var html = '<div style="padding:10px 0;">';
 
     // Date info
     html += '<div style="text-align:center;margin-bottom:12px;">';
@@ -15574,18 +15558,12 @@ window.openReturnChart = function(type) {
     window._lastReturnType = type;
     window._lastReturnDate = returnDate;
 
-    // Create/reuse modal
-    var modal = document.getElementById('returnChartModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'returnChartModal';
-        modal.className = 'modal';
-        modal.style.zIndex = '1260';
-        modal.onclick = function(e) { if(e.target===modal) modal.classList.remove('show'); };
-        modal.innerHTML = '<div class="modal-content" style="max-width:550px;" id="returnChartModalContent"></div>';
-        document.body.appendChild(modal);
-    }
-    document.getElementById('returnChartModalContent').innerHTML = html;
+    // Use standard natalDetailModal
+    var modal = document.getElementById('natalDetailModal');
+    var _rtTitleEl = document.getElementById('natalDetailTitle');
+    _rtTitleEl.textContent = _returnTitle;
+    _rtTitleEl.style.color = _returnColor;
+    document.getElementById('natalDetailBody').innerHTML = html;
     modal.classList.add('show');
 
     // Draw wheel after modal visible — store chart temporarily for drawNatalWheel
@@ -15757,36 +15735,22 @@ window.interpretReturnChartInline = function(type) {
     var modalTitle = (L ? 'Interpretacion ' : 'Interpretation ') + returnLabel + ' — ' + dateStr;
     var color = type === 'solar' ? '#ffd54f' : '#b39ddb';
 
-    var modal = document.getElementById('returnInterpModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'returnInterpModal';
-        modal.className = 'modal';
-        modal.style.zIndex = '1300';
-        modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
-        modal.innerHTML = '<div class="modal-content" style="max-width:600px;max-height:90vh;display:flex;flex-direction:column;" id="returnInterpModalContent"></div>';
-        document.body.appendChild(modal);
-    }
+    // Use standard natalDetailModal with fetchAIInterpretation
+    var modal = document.getElementById('natalDetailModal');
+    var titleEl = document.getElementById('natalDetailTitle');
+    var bodyEl = document.getElementById('natalDetailBody');
+    titleEl.textContent = modalTitle;
+    titleEl.style.color = color;
 
-    var mContent = document.getElementById('returnInterpModalContent');
-    mContent.innerHTML = '<div class="modal-header" style="flex-shrink:0;"><h2 style="color:' + color + ';font-size:0.95em;">' + modalTitle + '</h2><span class="close" onclick="document.getElementById(\'returnInterpModal\').classList.remove(\'show\')">&times;</span></div>'
-        + '<div id="returnInterpModalBody" style="flex:1;overflow-y:auto;padding:10px 0;"><div style="text-align:center;padding:30px;"><div style="display:inline-block;width:28px;height:28px;border:3px solid rgba(201,168,64,0.3);border-top-color:#c9a840;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="margin-top:10px;font-size:0.82em;color:rgba(255,255,255,0.4);">✨ ' + (L ? 'Interpretando...' : 'Interpreting...') + '</div></div></div>';
+    var bodyHtml = '<div style="border-bottom:2px solid ' + color + ';padding-bottom:12px;margin-bottom:15px;">';
+    bodyHtml += '<div style="font-size:0.82em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>';
+    bodyHtml += '</div>';
+    bodyHtml += '<div style="margin-top:12px;"><h4 style="color:#c9a840;margin-bottom:8px;">✦ ' + (L ? 'Interpretación' : 'Interpretation') + '</h4><div id="aiInterpDiv"></div></div>';
+    bodyEl.innerHTML = bodyHtml;
     modal.classList.add('show');
 
-    var container = document.getElementById('returnInterpModalBody');
-
-    // Check cache
-    var cached = getInterpCache(cacheKey);
-    if (cached && cached.html) {
-        container.innerHTML = cached.html;
-        container.scrollTop = 0;
-        return;
-    }
-
-    // Send to AI
-    var history = [{role: 'user', parts: [{text: prompt}]}];
-
-    sendReturnInterpRequest(history, container, cacheKey);
+    var readingTitle = modalTitle;
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle, null, cacheKey); }, 100);
 };
 
 function sendReturnInterpRequest(history, container, cacheKey) {
@@ -15851,7 +15815,7 @@ function sendReturnInterpRequest(history, container, cacheKey) {
         chatHtml += '<div style="display:flex;gap:6px;justify-content:center;">';
         chatHtml += '<button onclick="saveInterpChatAsReading(\'' + chatId + '\')" style="flex:1;padding:5px 8px;background:rgba(201,168,64,0.1);border:1px solid rgba(201,168,64,0.25);border-radius:6px;color:#c9a840;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Guardar' : 'Save') + '</button>';
         chatHtml += '<button onclick="var d=window[\'' + readingKey + '\'];if(d)shareReading(d);" style="flex:1;padding:5px 8px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);border-radius:6px;color:#25d366;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Compartir' : 'Share') + '</button>';
-        chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=document.getElementById(\'returnInterpModal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
+        chatHtml += '<button onclick="deleteInterpChat(\'' + chatId + '\');var m=document.getElementById(\'natalDetailModal\');if(m)m.classList.remove(\'show\');" style="flex:1;padding:5px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:6px;color:#ff6b6b;font-size:0.75em;cursor:pointer;font-weight:600;">' + (L ? 'Borrar' : 'Delete') + '</button>';
         chatHtml += '</div></div></div>';
         container.innerHTML = chatHtml;
         container.scrollTop = 0;
@@ -25712,7 +25676,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v450';
+const APP_VERSION = 'v451';
 var _pendingSW = null;
 
 // What's New removed per user request
