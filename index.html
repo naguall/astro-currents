@@ -1078,26 +1078,7 @@
                         ✨ <span data-i18n="dreamInterpret">Interpretar Sueño</span>
                     </button>
                     <div id="dreamInterpContainer" style="margin-top:12px;"></div>
-                    <!-- Dream Alarm (Ensueños) -->
-                    <div style="margin-top:16px;padding:14px;background:linear-gradient(135deg,rgba(138,43,226,0.1),rgba(75,0,130,0.08));border:1px solid rgba(138,43,226,0.25);border-radius:12px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span style="font-size:1.1em;">🌙</span>
-                                <span style="color:#ce93d8;font-weight:700;font-size:0.88em;" data-i18n="dreamAlarmTitle">Alarma de Ensueños</span>
-                            </div>
-                            <label class="dream-alarm-switch">
-                                <input type="checkbox" id="dreamAlarmToggle" onchange="toggleDreamAlarm()">
-                                <span class="dream-alarm-slider"></span>
-                            </label>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                            <span style="color:rgba(255,255,255,0.5);font-size:0.78em;" data-i18n="dreamAlarmTimeLabel">Hora:</span>
-                            <input type="time" id="dreamAlarmTimeInput" value="03:00" onchange="setDreamAlarmTime(this.value)" style="padding:6px 10px;background:rgba(0,0,0,0.3);border:1px solid rgba(138,43,226,0.3);border-radius:8px;color:#ce93d8;font-size:0.85em;cursor:pointer;outline:none;">
-                            <button onclick="openDreamRecorder()" style="padding:6px 12px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.78em;cursor:pointer;white-space:nowrap;" data-i18n="dreamAlarmTest">🎤 Grabar ahora</button>
-                        </div>
-                        <div id="dreamAlarmStatus" style="font-size:0.72em;color:rgba(255,255,255,0.3);"></div>
-                        <div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;" data-i18n="dreamAlarmDesc">La alarma suena 5 seg, abre el diario y activa el micrófono. Se detiene tras 2 min sin voz.</div>
-                    </div>
+                    <!-- Dream Alarm moved to Preferences -->
                 </div>
                 <button onclick="closeDiarioModal()" style="width: 100%; padding: 12px; margin-top: 15px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: white; cursor: pointer;">Cerrar</button>
             </div>
@@ -6024,14 +6005,20 @@ function openSavedReadingsModal(tab) {
         }
     } else {
         // DIARIOS TAB — with Personal / Sueños sub-tabs
-        // Gather dream entries
+        // Gather dream entries (multi-dream aware)
         var dreamEntries = [];
         var dreamsData = {};
         try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
         Object.keys(dreamsData).forEach(function(key) {
-            if (dreamsData[key] && dreamsData[key].trim()) dreamEntries.push({ date: key, text: dreamsData[key] });
+            var val = dreamsData[key];
+            var dreams = _migrateDreamEntry(val);
+            dreams.forEach(function(d, idx) {
+                if (d.text && d.text.trim()) {
+                    dreamEntries.push({ date: key, dreamId: d.id, text: d.text, interpretation: d.interpretation || '', dreamIndex: idx + 1, totalDreams: dreams.length });
+                }
+            });
         });
-        dreamEntries.sort(function(a, b) { return b.date.localeCompare(a.date); });
+        dreamEntries.sort(function(a, b) { return b.date.localeCompare(a.date) || a.dreamIndex - b.dreamIndex; });
 
         // Sub-tabs: Personal / Sueños
         html += '<div style="display:flex;gap:0;margin-bottom:12px;">';
@@ -6078,20 +6065,42 @@ function openSavedReadingsModal(tab) {
                 html += '<div style="margin-bottom:12px;display:flex;justify-content:flex-end;">';
                 html += '<button onclick="exportAllDiaryEntries()" style="padding:6px 14px;background:rgba(93,173,226,0.15);border:1px solid rgba(93,173,226,0.3);border-radius:6px;color:#5dade2;font-size:0.8em;cursor:pointer;">' + (L ? '📥 Exportar Diario Completo' : '📥 Export Complete Diary') + '</button>';
                 html += '</div>';
+                // Group by date for "add new dream" button
+                var _lastDreamDate = '';
                 dreamEntries.forEach(function(entry) {
                     var safeDate = entry.date.replace(/'/g, "\\'");
+                    var safeDreamId = entry.dreamId.replace(/'/g, "\\'");
+                    // Date header with "add dream" button when date changes
+                    if (entry.date !== _lastDreamDate) {
+                        if (_lastDreamDate !== '') {
+                            html += '<div style="text-align:center;margin-bottom:14px;">';
+                            html += '<button onclick="addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\');openDreamEditor(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\',addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\'))" style="padding:4px 12px;background:rgba(93,173,226,0.1);border:1px dashed rgba(93,173,226,0.3);border-radius:6px;color:rgba(93,173,226,0.5);font-size:0.75em;cursor:pointer;">+ ' + (L ? 'Agregar sueño en ' + _lastDreamDate : 'Add dream on ' + _lastDreamDate) + '</button>';
+                            html += '</div>';
+                        }
+                        _lastDreamDate = entry.date;
+                    }
                     var preview = entry.text.substring(0, 120).replace(/\n/g, ' ') + (entry.text.length > 120 ? '...' : '');
+                    var dreamLabel = entry.totalDreams > 1 ? (L ? 'Sueño ' + entry.dreamIndex : 'Dream ' + entry.dreamIndex) : '';
                     html += '<div style="background:rgba(93,173,226,0.08);border:1px solid rgba(93,173,226,0.2);border-radius:10px;padding:14px;margin-bottom:10px;">';
                     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-                    html += '<span style="color:#5dade2;font-weight:700;font-size:0.9em;">🌙 ' + entry.date + '</span>';
+                    html += '<div><span style="color:#5dade2;font-weight:700;font-size:0.9em;">🌙 ' + entry.date + '</span>';
+                    if (dreamLabel) html += ' <span style="color:rgba(93,173,226,0.6);font-size:0.75em;font-weight:600;">— ' + dreamLabel + '</span>';
+                    html += '</div>';
                     html += '<div style="display:flex;gap:4px;">';
-                    html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar?':'Delete?') + '\')){deleteDreamEntry(\'' + safeDate + '\');openSavedReadingsModal(\'diario-suenos\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
+                    html += '<button onclick="openDreamEditor(\'' + safeDate + '\',\'' + safeDreamId + '\')" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Editar':'Edit') + '">✏️</button>';
+                    html += '<button onclick="if(confirm(\'' + (L?'¿Eliminar este sueño?':'Delete this dream?') + '\')){deleteDreamById(\'' + safeDate + '\',\'' + safeDreamId + '\');openSavedReadingsModal(\'diario-suenos\');}" style="background:transparent;border:none;cursor:pointer;font-size:1em;padding:2px 4px;" title="' + (L?'Eliminar':'Delete') + '">🗑️</button>';
                     html += '</div></div>';
-                    var dMeta = getDiaryMeta(entry.date, 'dreams');
-                    if (dMeta) html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-bottom:6px;">' + formatDiaryMeta(dMeta) + '</div>';
-                    html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;">' + preview + '</div>';
+                    if (entry.interpretation) html += '<div style="font-size:0.68em;color:rgba(206,147,216,0.5);margin-bottom:4px;">✨ ' + (L ? 'Con interpretación' : 'Has interpretation') + '</div>';
+                    html += '<div style="color:rgba(255,255,255,0.55);font-size:0.83em;line-height:1.5;margin-bottom:8px;">' + preview + '</div>';
+                    html += '<button onclick="viewDreamEntry(\'' + safeDate + '\',\'' + safeDreamId + '\')" style="padding:5px 14px;background:rgba(93,173,226,0.12);border:1px solid rgba(93,173,226,0.25);border-radius:6px;color:#5dade2;font-size:0.8em;cursor:pointer;">' + (L ? 'Leer' : 'Read') + '</button>';
                     html += '</div>';
                 });
+                // Add button for last date
+                if (_lastDreamDate) {
+                    html += '<div style="text-align:center;margin-bottom:14px;">';
+                    html += '<button onclick="var nid=addNewDream(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\');openDreamEditor(\'' + _lastDreamDate.replace(/'/g,"\\'") + '\',nid)" style="padding:4px 12px;background:rgba(93,173,226,0.1);border:1px dashed rgba(93,173,226,0.3);border-radius:6px;color:rgba(93,173,226,0.5);font-size:0.75em;cursor:pointer;">+ ' + (L ? 'Agregar sueño en ' + _lastDreamDate : 'Add dream on ' + _lastDreamDate) + '</button>';
+                    html += '</div>';
+                }
             }
         }
     }
@@ -6156,6 +6165,119 @@ function deleteDreamEntry(dateKey) {
     try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
     delete dreamsData[dateKey];
     localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(dreamsData));
+}
+// Delete all dreams for a date (alias)
+function deleteAllDreamsForDate(dateKey) { deleteDreamEntry(dateKey); }
+
+// View a single dream entry with interpretation + aspects
+function viewDreamEntry(dateKey, dreamId) {
+    var L = currentLang === 'es';
+    var dream = getDreamById(dateKey, dreamId);
+    if (!dream) { openSavedReadingsModal('diario-suenos'); return; }
+    var dreams = getDreamsForDate(dateKey);
+    var idx = dreams.findIndex(function(d) { return d.id === dreamId; });
+    var bodyEl = document.getElementById('savedReadingsBody');
+    var html = '<div style="margin-bottom:15px;">';
+    html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
+    html += '</div>';
+    html += '<h3 style="color:#5dade2;margin-bottom:10px;">🌙 ' + dateKey;
+    if (dreams.length > 1) html += ' <span style="font-size:0.7em;opacity:0.6;">— ' + (L ? 'Sueño ' + (idx+1) + ' de ' + dreams.length : 'Dream ' + (idx+1) + ' of ' + dreams.length) + '</span>';
+    html += '</h3>';
+
+    // Dream text
+    html += '<div id="viewDreamText" style="line-height:1.8;font-size:0.95em;color:rgba(255,255,255,0.9);background:rgba(93,173,226,0.06);border:1px solid rgba(93,173,226,0.15);border-radius:10px;padding:16px;white-space:pre-wrap;word-wrap:break-word;">' + dream.text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+
+    // Interpretation (if saved)
+    if (dream.interpretation && dream.interpretation.trim()) {
+        html += '<div style="margin-top:14px;background:rgba(138,43,226,0.08);border:1px solid rgba(138,43,226,0.2);border-radius:10px;padding:14px;">';
+        html += '<div style="color:#ce93d8;font-weight:700;font-size:0.85em;margin-bottom:8px;">✨ ' + (L ? 'Interpretación' : 'Interpretation') + '</div>';
+        html += '<div style="color:rgba(255,255,255,0.8);font-size:0.88em;line-height:1.7;white-space:pre-wrap;">' + dream.interpretation.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>') + '</div>';
+        html += '</div>';
+    }
+
+    // Astronomical aspects at the end
+    var astroHtml = buildAstroContextHTML(dateKey);
+    if (astroHtml) {
+        html += '<div style="margin-top:14px;background:rgba(201,168,64,0.06);border:1px solid rgba(201,168,64,0.15);border-radius:10px;padding:14px;">';
+        html += '<div style="color:rgba(201,168,64,0.8);font-weight:700;font-size:0.85em;margin-bottom:8px;">🌌 ' + (L ? 'Aspectos Astronómicos' : 'Astronomical Aspects') + '</div>';
+        html += astroHtml;
+        html += '</div>';
+    }
+
+    // Actions
+    html += '<div style="display:flex;gap:10px;margin-top:16px;justify-content:center;flex-wrap:wrap;">';
+    html += '<button onclick="openDreamEditor(\'' + dateKey.replace(/'/g,"\\'") + '\',\'' + dreamId.replace(/'/g,"\\'") + '\')" style="padding:8px 20px;background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.3);border-radius:8px;color:#4ecdc4;font-size:0.9em;cursor:pointer;">✏️ ' + (L ? 'Editar' : 'Edit') + '</button>';
+    if (!dream.interpretation || !dream.interpretation.trim()) {
+        html += '<button onclick="interpretSingleDream(\'' + dateKey.replace(/'/g,"\\'") + '\',\'' + dreamId.replace(/'/g,"\\'") + '\')" style="padding:8px 20px;background:rgba(138,43,226,0.15);border:1px solid rgba(138,43,226,0.3);border-radius:8px;color:#ce93d8;font-size:0.9em;cursor:pointer;">✨ ' + (L ? 'Interpretar' : 'Interpret') + '</button>';
+    }
+    html += '</div>';
+    bodyEl.innerHTML = html;
+}
+
+// Editor for a single dream
+function openDreamEditor(dateKey, dreamId) {
+    var L = currentLang === 'es';
+    var dream = getDreamById(dateKey, dreamId);
+    var text = dream ? dream.text : '';
+    var bodyEl = document.getElementById('savedReadingsBody');
+    var html = '<div style="margin-bottom:15px;">';
+    html += '<button onclick="openSavedReadingsModal(\'diario-suenos\')" style="padding:6px 14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:rgba(255,255,255,0.7);font-size:0.85em;cursor:pointer;">← ' + (L ? 'Volver' : 'Back') + '</button>';
+    html += '</div>';
+    html += '<h3 style="color:#5dade2;margin-bottom:10px;">🌙 ' + (L ? 'Editar sueño — ' : 'Edit dream — ') + dateKey + '</h3>';
+    html += '<textarea id="dreamEditArea" style="width:100%;min-height:200px;padding:15px;background:rgba(0,0,0,0.3);border:1px solid rgba(93,173,226,0.3);border-radius:8px;color:white;font-size:1em;resize:vertical;line-height:1.7;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>';
+    html += '<div style="display:flex;gap:10px;margin-top:12px;justify-content:center;">';
+    html += '<button onclick="saveDreamEntry(\'' + dateKey.replace(/'/g,"\\'") + '\',\'' + dreamId.replace(/'/g,"\\'") + '\',document.getElementById(\'dreamEditArea\').value);openSavedReadingsModal(\'diario-suenos\');" style="padding:8px 24px;background:rgba(93,173,226,0.2);border:1px solid rgba(93,173,226,0.4);border-radius:8px;color:#5dade2;font-size:0.9em;cursor:pointer;font-weight:700;">💾 ' + (L ? 'Guardar' : 'Save') + '</button>';
+    html += '</div>';
+    bodyEl.innerHTML = html;
+    // Focus textarea
+    setTimeout(function() { var ta = document.getElementById('dreamEditArea'); if (ta) ta.focus(); }, 100);
+}
+
+// Interpret a single dream and save interpretation to the dream entry
+function interpretSingleDream(dateKey, dreamId) {
+    var L = currentLang === 'es';
+    var dream = getDreamById(dateKey, dreamId);
+    if (!dream || !dream.text.trim()) { alert(L ? 'Sin texto de sueño' : 'No dream text'); return; }
+
+    var dreamPersona = getDreamPersona();
+    var fullCtx = gatherFullAppContext();
+    var systemPrompt = dreamPersona.buildPrompt(L, fullCtx);
+    systemPrompt += L
+        ? '\n\n═══ INTERPRETACIÓN DE SUEÑOS ═══\nInterpreta desde múltiples capas: simbólica, astrológica, psicológica (Jung). Al final, incluye un bloque con los aspectos astronómicos relevantes del día.'
+        : '\n\n═══ DREAM INTERPRETATION ═══\nInterpret from multiple layers: symbolic, astrological, psychological (Jung). At the end, include a block with the relevant astronomical aspects of the day.';
+
+    var prompt = L ? 'Interpreta el siguiente sueño:\n\n' + dream.text : 'Interpret the following dream:\n\n' + dream.text;
+
+    // Show loading in view
+    var bodyEl = document.getElementById('savedReadingsBody');
+    bodyEl.innerHTML = '<div style="text-align:center;padding:40px;"><div style="display:inline-block;width:32px;height:32px;border:3px solid rgba(138,43,226,0.3);border-top-color:#ce93d8;border-radius:50%;animation:spin 0.8s linear infinite;"></div><div style="margin-top:12px;color:rgba(255,255,255,0.4);font-size:0.9em;">' + (L ? 'Interpretando sueño...' : 'Interpreting dream...') + '</div></div>';
+
+    // Call AI
+    var readingTitle = (L ? 'Sueño — ' : 'Dream — ') + dateKey;
+    var _origPersona = _activePersonaId;
+    _activePersonaId = dreamPersona.id;
+
+    // Use a temporary div to capture the interpretation
+    var tmpDiv = document.createElement('div');
+    tmpDiv.id = '_tmpDreamInterp';
+    tmpDiv.style.display = 'none';
+    document.body.appendChild(tmpDiv);
+
+    fetchAIInterpretation(prompt, '_tmpDreamInterp', readingTitle).then(function() {
+        // Save interpretation text to dream entry
+        var interpText = tmpDiv.textContent || tmpDiv.innerText || '';
+        saveDreamEntry(dateKey, dreamId, dream.text, interpText);
+        document.body.removeChild(tmpDiv);
+        _activePersonaId = _origPersona;
+        // Show the dream with interpretation
+        viewDreamEntry(dateKey, dreamId);
+    }).catch(function() {
+        _activePersonaId = _origPersona;
+        if (tmpDiv.parentNode) document.body.removeChild(tmpDiv);
+        viewDreamEntry(dateKey, dreamId);
+    });
+
+    _activePersonaId = _origPersona;
 }
 
 // ── Diary Metadata: timestamp + GPS for each entry ──
@@ -6458,11 +6580,18 @@ function exportAllDiaryEntries() {
         text += '📝 ' + (L ? 'REFLEXIÓN' : 'REFLECTION') + '\n';
         text += e.text + '\n\n';
 
-        // Dream text if exists for this date
-        if (dreamsData[e.date] && dreamsData[e.date].trim()) {
-            text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + '\n';
-            text += dreamsData[e.date] + '\n\n';
-        }
+        // Dream texts if exist for this date (multi-dream aware)
+        var _dateDreams = dreamsData[e.date] ? _migrateDreamEntry(dreamsData[e.date]) : [];
+        _dateDreams.forEach(function(dr, di) {
+            if (dr.text && dr.text.trim()) {
+                text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + (_dateDreams.length > 1 ? ' ' + (di+1) : '') + '\n';
+                text += dr.text + '\n\n';
+                if (dr.interpretation && dr.interpretation.trim()) {
+                    text += '✨ ' + (L ? 'INTERPRETACIÓN' : 'INTERPRETATION') + '\n';
+                    text += dr.interpretation + '\n\n';
+                }
+            }
+        });
 
         // Astronomical aspects for this date
         try {
@@ -6478,7 +6607,8 @@ function exportAllDiaryEntries() {
 
     // Also add dream-only entries that don't have a diary entry
     var dreamOnlyDates = Object.keys(dreamsData).filter(function(dk) {
-        return dreamsData[dk] && dreamsData[dk].trim() && !diaryEntries.find(function(e) { return e.date === dk; });
+        var dreams = _migrateDreamEntry(dreamsData[dk]);
+        return dreams.length > 0 && dreams.some(function(d){return d.text && d.text.trim();}) && !diaryEntries.find(function(e) { return e.date === dk; });
     }).sort(function(a,b) { return b.localeCompare(a); });
 
     if (dreamOnlyDates.length > 0) {
@@ -6486,8 +6616,17 @@ function exportAllDiaryEntries() {
             text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
             text += '📅 ' + dk + '\n';
             text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
-            text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + '\n';
-            text += dreamsData[dk] + '\n\n';
+            var dkDreams = _migrateDreamEntry(dreamsData[dk]);
+            dkDreams.forEach(function(dr, di) {
+                if (dr.text && dr.text.trim()) {
+                    text += '🌙 ' + (L ? 'SUEÑO' : 'DREAM') + (dkDreams.length > 1 ? ' ' + (di+1) : '') + '\n';
+                    text += dr.text + '\n\n';
+                    if (dr.interpretation && dr.interpretation.trim()) {
+                        text += '✨ ' + (L ? 'INTERPRETACIÓN' : 'INTERPRETATION') + '\n';
+                        text += dr.interpretation + '\n\n';
+                    }
+                }
+            });
             try {
                 var astroText = _buildAstroContextText(dk, L);
                 if (astroText) {
@@ -7564,8 +7703,8 @@ function openDiarioModal(date, lunarDay) {
             localStorage.setItem(`diary_${dateKey}`, textarea.value);
             saveDiaryText(dateKey, textarea.value);
             if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
-            document.getElementById('diarioSaveStatus').textContent = t('saved');
-            setTimeout(() => { document.getElementById('diarioSaveStatus').textContent = ''; }, 2000);
+            document.getElementById('diarioSaveStatus').textContent = '✓';
+            setTimeout(() => { document.getElementById('diarioSaveStatus').textContent = ''; }, 800);
         }, 1000);
         const words = textarea.value.trim().split(/\s+/).filter(w => w.length > 0).length;
         document.getElementById('diarioWordCount').textContent = `${words} ${L ? 'palabras' : 'words'}`;
@@ -7573,27 +7712,108 @@ function openDiarioModal(date, lunarDay) {
     const words = savedDiary.trim().split(/\s+/).filter(w => w.length > 0).length;
     document.getElementById('diarioWordCount').textContent = savedDiary ? `${words} ${L ? 'palabras' : 'words'}` : '';
 
-    // ── Dream diary ──
-    const savedDream = getDreamText(dateKey);
+    // ── Dream diary (multi-dream) ──
+    var existingDreams = getDreamsForDate(dateKey);
+    // Track which dream is currently being edited
+    window._currentDreamId = null;
+    window._currentDreamDateKey = dateKey;
+
+    // If no dreams yet, create the first one
+    if (existingDreams.length === 0) {
+        var firstId = addNewDream(dateKey);
+        existingDreams = getDreamsForDate(dateKey);
+        window._currentDreamId = firstId;
+    } else {
+        window._currentDreamId = existingDreams[existingDreams.length - 1].id; // Default to last dream
+    }
+
+    // Build dream selector if multiple dreams
+    function _renderDreamSelector() {
+        var dreams = getDreamsForDate(dateKey);
+        var selHtml = '';
+        if (dreams.length > 1) {
+            selHtml += '<div id="dreamSelectorBar" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">';
+            dreams.forEach(function(d, i) {
+                var isActive = d.id === window._currentDreamId;
+                var preview = d.text ? d.text.substring(0, 25).replace(/\n/g,' ') : (L ? 'Nuevo' : 'New');
+                if (preview.length >= 25) preview += '...';
+                selHtml += '<button onclick="switchDreamInModal(\'' + d.id + '\')" style="padding:4px 10px;border-radius:14px;font-size:0.72em;cursor:pointer;border:1px solid ' + (isActive ? 'rgba(93,173,226,0.6)' : 'rgba(255,255,255,0.15)') + ';background:' + (isActive ? 'rgba(93,173,226,0.2)' : 'transparent') + ';color:' + (isActive ? '#5dade2' : 'rgba(255,255,255,0.4)') + ';font-weight:' + (isActive ? '700' : '400') + ';">🌙 ' + (i+1) + (d.interpretation ? ' ✨' : '') + '</button>';
+            });
+            selHtml += '<button onclick="var nid=addNewDream(\'' + dateKey.replace(/'/g,"\\'") + '\');window._currentDreamId=nid;_renderDreamSelector();_loadDreamIntoTextarea(nid);" style="padding:4px 10px;border-radius:14px;font-size:0.72em;cursor:pointer;border:1px dashed rgba(93,173,226,0.3);background:transparent;color:rgba(93,173,226,0.4);">+ ' + (L ? 'Nuevo' : 'New') + '</button>';
+            selHtml += '</div>';
+        }
+        var container = document.getElementById('dreamSelectorContainer');
+        if (container) container.innerHTML = selHtml;
+    }
+
+    // Load a specific dream into the textarea
+    window._loadDreamIntoTextarea = function(dreamId) {
+        var dream = getDreamById(dateKey, dreamId);
+        var ta = document.getElementById('dreamText');
+        if (ta) ta.value = dream ? dream.text : '';
+        var dw = ta && ta.value.trim() ? ta.value.trim().split(/\s+/).filter(function(w){return w.length>0;}).length : 0;
+        var wc = document.getElementById('dreamWordCount');
+        if (wc) wc.textContent = dw ? dw + ' ' + (L?'palabras':'words') : '';
+        // Show interpretation if exists
+        var interpContainer = document.getElementById('dreamInterpContainer');
+        if (interpContainer) {
+            if (dream && dream.interpretation && dream.interpretation.trim()) {
+                interpContainer.innerHTML = '<div style="background:rgba(138,43,226,0.08);border:1px solid rgba(138,43,226,0.2);border-radius:10px;padding:12px;margin-top:8px;"><div style="color:#ce93d8;font-weight:700;font-size:0.82em;margin-bottom:6px;">✨ ' + (L?'Interpretación guardada':'Saved interpretation') + '</div><div style="color:rgba(255,255,255,0.75);font-size:0.85em;line-height:1.6;white-space:pre-wrap;">' + dream.interpretation.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>') + '</div></div>';
+            } else {
+                interpContainer.innerHTML = '';
+            }
+        }
+    };
+
+    window.switchDreamInModal = function(dreamId) {
+        // Save current dream first
+        var ta = document.getElementById('dreamText');
+        if (ta && window._currentDreamId) {
+            var curDream = getDreamById(dateKey, window._currentDreamId);
+            saveDreamEntry(dateKey, window._currentDreamId, ta.value, curDream ? curDream.interpretation : '');
+        }
+        window._currentDreamId = dreamId;
+        _renderDreamSelector();
+        _loadDreamIntoTextarea(dreamId);
+    };
+
+    // Insert dream selector container before textarea
+    var dreamPanel = document.getElementById('diarioPanelDreams');
+    var existingSelector = document.getElementById('dreamSelectorContainer');
+    if (!existingSelector) {
+        var selectorDiv = document.createElement('div');
+        selectorDiv.id = 'dreamSelectorContainer';
+        var textareaParent = document.getElementById('dreamText').parentElement;
+        dreamPanel.insertBefore(selectorDiv, textareaParent);
+    }
+    _renderDreamSelector();
+
     const dreamArea = document.getElementById('dreamText');
-    dreamArea.value = savedDream;
+    var currentDream = getDreamById(dateKey, window._currentDreamId);
+    dreamArea.value = currentDream ? currentDream.text : '';
     dreamArea.placeholder = L ? 'Describe tu sueño con todos los detalles que recuerdes: imágenes, emociones, personas, lugares, colores, sensaciones...' : 'Describe your dream with all the details you remember: images, emotions, people, places, colors, sensations...';
 
-    // Auto-save dream diary
+    // Auto-save dream diary (to current dream entry)
     let dreamSaveTimeout;
     dreamArea.oninput = function() {
         clearTimeout(dreamSaveTimeout);
         dreamSaveTimeout = setTimeout(() => {
-            saveDreamText(dateKey, dreamArea.value);
+            var curDream = getDreamById(dateKey, window._currentDreamId);
+            saveDreamEntry(dateKey, window._currentDreamId, dreamArea.value, curDream ? curDream.interpretation : '');
             if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
-            document.getElementById('dreamSaveStatus').textContent = L ? '✓ Guardado' : '✓ Saved';
-            setTimeout(() => { document.getElementById('dreamSaveStatus').textContent = ''; }, 2000);
+            document.getElementById('dreamSaveStatus').textContent = '✓';
+            setTimeout(() => { document.getElementById('dreamSaveStatus').textContent = ''; }, 800);
+            // Update selector badges
+            _renderDreamSelector();
         }, 1000);
         const dw = dreamArea.value.trim().split(/\s+/).filter(w => w.length > 0).length;
         document.getElementById('dreamWordCount').textContent = `${dw} ${L ? 'palabras' : 'words'}`;
     };
-    const dw = savedDream.trim().split(/\s+/).filter(w => w.length > 0).length;
-    document.getElementById('dreamWordCount').textContent = savedDream ? `${dw} ${L ? 'palabras' : 'words'}` : '';
+    const dw = dreamArea.value.trim().split(/\s+/).filter(w => w.length > 0).length;
+    document.getElementById('dreamWordCount').textContent = dreamArea.value ? `${dw} ${L ? 'palabras' : 'words'}` : '';
+
+    // Show saved interpretation if exists
+    _loadDreamIntoTextarea(window._currentDreamId);
 
     // Clear previous dream interpretation
     document.getElementById('dreamInterpContainer').innerHTML = '';
@@ -7648,22 +7868,91 @@ function switchDiarioTab(tab) {
 }
 
 // ── Dream Diary Storage ──
-function getDreamText(dateKey) {
-    var profileId = getActiveProfileId() || 'default';
-    var dreamsData = {};
-    try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
-    if (dreamsData[dateKey]) return dreamsData[dateKey];
-    return '';
+// ── Multi-dream storage ──
+// Format: dreamJournal_[profileId] = { "2026-03-25": [ {id, text, interpretation, ts}, ... ] }
+// Backward compat: if value is a string, migrate to array on read
+
+function _getDreamsRaw(profileId) {
+    var data = {};
+    try { data = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
+    return data;
 }
 
-function saveDreamText(dateKey, text) {
+function _migrateDreamEntry(val) {
+    // Old format: string → convert to array with one entry
+    if (typeof val === 'string') {
+        if (!val.trim()) return [];
+        return [{ id: 'd_' + Date.now(), text: val, interpretation: '', ts: Date.now() }];
+    }
+    if (Array.isArray(val)) return val;
+    return [];
+}
+
+function getDreamsForDate(dateKey) {
     var profileId = getActiveProfileId() || 'default';
-    var dreamsData = {};
-    try { dreamsData = JSON.parse(localStorage.getItem('dreamJournal_' + profileId) || '{}'); } catch(e) {}
-    dreamsData[dateKey] = text;
-    localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(dreamsData));
-    // Save metadata (timestamp + GPS)
+    var data = _getDreamsRaw(profileId);
+    if (!data[dateKey]) return [];
+    return _migrateDreamEntry(data[dateKey]);
+}
+
+function getDreamById(dateKey, dreamId) {
+    var dreams = getDreamsForDate(dateKey);
+    return dreams.find(function(d) { return d.id === dreamId; }) || null;
+}
+
+function saveDreamEntry(dateKey, dreamId, text, interpretation) {
+    var profileId = getActiveProfileId() || 'default';
+    var data = _getDreamsRaw(profileId);
+    var dreams = data[dateKey] ? _migrateDreamEntry(data[dateKey]) : [];
+    var existing = dreams.find(function(d) { return d.id === dreamId; });
+    if (existing) {
+        existing.text = text;
+        if (typeof interpretation !== 'undefined') existing.interpretation = interpretation;
+    } else {
+        dreams.push({ id: dreamId, text: text, interpretation: interpretation || '', ts: Date.now() });
+    }
+    // Remove empty dreams
+    dreams = dreams.filter(function(d) { return d.text && d.text.trim(); });
+    data[dateKey] = dreams;
+    if (dreams.length === 0) delete data[dateKey];
+    localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(data));
     if (text && text.trim()) saveDiaryMeta(dateKey, 'dreams');
+}
+
+function deleteDreamById(dateKey, dreamId) {
+    var profileId = getActiveProfileId() || 'default';
+    var data = _getDreamsRaw(profileId);
+    var dreams = data[dateKey] ? _migrateDreamEntry(data[dateKey]) : [];
+    data[dateKey] = dreams.filter(function(d) { return d.id !== dreamId; });
+    if (data[dateKey].length === 0) delete data[dateKey];
+    localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(data));
+}
+
+function addNewDream(dateKey) {
+    var newId = 'd_' + Date.now();
+    var profileId = getActiveProfileId() || 'default';
+    var data = _getDreamsRaw(profileId);
+    var dreams = data[dateKey] ? _migrateDreamEntry(data[dateKey]) : [];
+    dreams.push({ id: newId, text: '', interpretation: '', ts: Date.now() });
+    data[dateKey] = dreams;
+    localStorage.setItem('dreamJournal_' + profileId, JSON.stringify(data));
+    return newId;
+}
+
+// Backward compat wrapper — returns combined text of all dreams for a date
+function getDreamText(dateKey) {
+    var dreams = getDreamsForDate(dateKey);
+    return dreams.map(function(d) { return d.text; }).join('\n\n---\n\n');
+}
+
+// Backward compat wrapper — saves to first dream or creates one
+function saveDreamText(dateKey, text) {
+    var dreams = getDreamsForDate(dateKey);
+    if (dreams.length === 0) {
+        saveDreamEntry(dateKey, 'd_' + Date.now(), text, '');
+    } else {
+        saveDreamEntry(dateKey, dreams[0].id, text, dreams[0].interpretation);
+    }
 }
 
 // ── Dream AI Interpretation ──
@@ -7739,11 +8028,52 @@ function interpretDream() {
     var readingTitle = L ? 'Sueño — ' + (window._currentDiarioDateKey || '') : 'Dream — ' + (window._currentDiarioDateKey || '');
     container.innerHTML = '<div id="dreamAiInterpDiv"></div>';
 
+    // Track which dream this interpretation belongs to
+    var _interpDreamId = window._currentDreamId;
+    var _interpDateKey = window._currentDreamDateKey || window._currentDiarioDateKey || '';
+
     // Use fetchAIInterpretation but override the system prompt via a temporary persona swap
     var originalPersonaId = _activePersonaId;
     _activePersonaId = dreamPersona.id;
     fetchAIInterpretation(prompt, 'dreamAiInterpDiv', readingTitle);
     _activePersonaId = originalPersonaId;
+
+    // Add "Save interpretation" button after AI finishes (observe DOM changes)
+    if (_interpDreamId && _interpDateKey) {
+        var _interpObserver = new MutationObserver(function(mutations) {
+            var interpDiv = document.getElementById('dreamAiInterpDiv');
+            if (!interpDiv) return;
+            // Check if interpretation is loaded (has substantial content and no spinner)
+            var hasSpinner = interpDiv.querySelector('[style*="animation"]') || interpDiv.querySelector('.spin');
+            var textLen = (interpDiv.textContent || '').trim().length;
+            if (textLen > 50 && !hasSpinner) {
+                // Check if save button already exists
+                if (!document.getElementById('saveDreamInterpBtn')) {
+                    var saveBtn = document.createElement('button');
+                    saveBtn.id = 'saveDreamInterpBtn';
+                    saveBtn.innerHTML = '💾 ' + (L ? 'Guardar interpretación en este sueño' : 'Save interpretation to this dream');
+                    saveBtn.style.cssText = 'display:block;margin:12px auto 0;padding:10px 20px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.85em;cursor:pointer;font-weight:700;';
+                    saveBtn.onclick = function() {
+                        var interpText = interpDiv.textContent || interpDiv.innerText || '';
+                        var dream = getDreamById(_interpDateKey, _interpDreamId);
+                        if (dream) {
+                            saveDreamEntry(_interpDateKey, _interpDreamId, dream.text, interpText);
+                            saveBtn.textContent = L ? '✅ Interpretación guardada' : '✅ Interpretation saved';
+                            saveBtn.style.background = 'rgba(78,205,196,0.2)';
+                            saveBtn.style.borderColor = 'rgba(78,205,196,0.4)';
+                            saveBtn.style.color = '#4ecdc4';
+                            saveBtn.disabled = true;
+                        }
+                    };
+                    interpDiv.parentNode.insertBefore(saveBtn, interpDiv.nextSibling);
+                }
+                _interpObserver.disconnect();
+            }
+        });
+        _interpObserver.observe(container, { childList: true, subtree: true, characterData: true });
+        // Disconnect after 2 minutes max
+        setTimeout(function() { _interpObserver.disconnect(); }, 120000);
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -8204,12 +8534,10 @@ function stopDreamVoiceRecording(autoSave) {
 }
 
 function updateDreamAlarmUI() {
-    var toggle = document.getElementById('dreamAlarmToggle');
     var timeInput = document.getElementById('dreamAlarmTimeInput');
     var statusEl = document.getElementById('dreamAlarmStatus');
     var L = currentLang === 'es';
 
-    if (toggle) toggle.checked = _dreamAlarmEnabled;
     if (timeInput) timeInput.value = _dreamAlarmTime;
 
     if (statusEl) {
@@ -23254,6 +23582,23 @@ function openPreferencesModal() {
     });
     notifContent += '</div>';
     sectionsHtml += _s(notifEnabled?'🔔':'🔕', currentLang==='es'?'Notificaciones':'Notifications', '#7ec8ff', notifContent);
+
+    // ── Alarma de Ensueños ──
+    var _daEnabled = localStorage.getItem('dreamAlarmEnabled') === 'true';
+    var _daTime = localStorage.getItem('dreamAlarmTime') || '03:00';
+    var dreamAlarmContent = '';
+    dreamAlarmContent += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-bottom:10px;">';
+    dreamAlarmContent += '<span style="font-size:1.3em;">🌙</span>';
+    dreamAlarmContent += '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;color:' + (_daEnabled?'#ce93d8':'rgba(255,255,255,0.5)') + ';">' + (_daEnabled?(currentLang==='es'?'Activada':'Enabled'):(currentLang==='es'?'Desactivada':'Disabled')) + '</div></div>';
+    dreamAlarmContent += '<label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;"><input type="checkbox" ' + (_daEnabled?'checked':'') + ' onchange="toggleDreamAlarm();openPreferencesModal();" style="opacity:0;width:0;height:0;"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:' + (_daEnabled?'rgba(138,43,226,0.5)':'rgba(255,255,255,0.15)') + ';border-radius:26px;transition:0.3s;"><span style="position:absolute;height:20px;width:20px;left:' + (_daEnabled?'24px':'3px') + ';bottom:3px;background:white;border-radius:50%;transition:0.3s;display:block;"></span></span></label>';
+    dreamAlarmContent += '</div>';
+    dreamAlarmContent += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+    dreamAlarmContent += '<span style="color:rgba(255,255,255,0.5);font-size:0.78em;">' + (currentLang==='es'?'Hora:':'Time:') + '</span>';
+    dreamAlarmContent += '<input type="time" id="dreamAlarmTimeInput" value="' + _daTime + '" onchange="setDreamAlarmTime(this.value)" style="padding:6px 10px;background:rgba(0,0,0,0.3);border:1px solid rgba(138,43,226,0.3);border-radius:8px;color:#ce93d8;font-size:0.85em;cursor:pointer;outline:none;">';
+    dreamAlarmContent += '</div>';
+    dreamAlarmContent += '<div id="dreamAlarmStatus" style="font-size:0.72em;color:rgba(255,255,255,0.3);"></div>';
+    dreamAlarmContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;">' + (currentLang==='es'?'Suena 1 minuto, abre el diario de sueños y activa el micrófono. Se detiene al hablar o tocar la pantalla.':'Rings for 1 minute, opens dream journal and activates microphone. Stops when you speak or tap the screen.') + '</div>';
+    sectionsHtml += _s('🌙', currentLang==='es'?'Alarma de Ensueños':'Dream Alarm', '#ce93d8', dreamAlarmContent);
 
     // ── Mis Mensajes ──
     var msgCount = (function(){ var msgs=JSON.parse(localStorage.getItem('myCustomMessages')||'{}'); var count=0; for(var k in msgs){if(msgs.hasOwnProperty(k))count+=Array.isArray(msgs[k])?msgs[k].length:1;} return count; })();
