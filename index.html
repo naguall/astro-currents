@@ -881,7 +881,7 @@
                 </div>
             </div>
             <div style="padding:8px 16px 12px;border-top:1px solid rgba(255,255,255,0.06);">
-                <button onclick="closeDayOptionsModal()" style="width:100%;padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:rgba(255,255,255,0.5);font-size:0.82em;cursor:pointer;">Cerrar</button>
+                <button onclick="closeDayOptionsModal()" style="width:100%;padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:rgba(255,255,255,0.5);font-size:0.82em;cursor:pointer;"><span data-i18n="closeBtn">Cerrar</span></button>
             </div>
         </div>
     </div>
@@ -900,7 +900,7 @@
                 </div>
 
                 <div class="button-group">
-                    <button class="btn btn-secondary" onclick="closeAspectsModal()">Cerrar</button>
+                    <button class="btn btn-secondary" onclick="closeAspectsModal()"><span data-i18n="closeBtn">Cerrar</span></button>
                 </div>
             </div>
         </div>
@@ -1073,8 +1073,8 @@
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
                         <div id="dreamMetaInfo" style="font-size:0.72em;color:rgba(255,255,255,0.35);"></div>
                         <div style="display:flex;gap:6px;">
-                            <button id="dreamNewBtn" onclick="addNewDreamFromModal()" style="padding:3px 10px;border-radius:14px;font-size:0.72em;cursor:pointer;border:1px dashed rgba(78,205,196,0.4);background:rgba(78,205,196,0.08);color:#4ecdc4;font-weight:600;">+ Nuevo</button>
-                            <button id="dreamDeleteBtn" onclick="deleteDreamFromModal()" style="padding:3px 10px;border-radius:14px;font-size:0.72em;cursor:pointer;border:1px solid rgba(231,76,60,0.3);background:rgba(231,76,60,0.08);color:rgba(231,76,60,0.7);">🗑️ Borrar</button>
+                            <button id="dreamNewBtn" onclick="addNewDreamFromModal()" style="padding:3px 10px;border-radius:14px;font-size:0.72em;cursor:pointer;border:1px dashed rgba(78,205,196,0.4);background:rgba(78,205,196,0.08);color:#4ecdc4;font-weight:600;">+ <span data-i18n="dreamNew">Nuevo</span></button>
+                            <button id="dreamDeleteBtn" onclick="deleteDreamFromModal()" style="padding:3px 10px;border-radius:14px;font-size:0.72em;cursor:pointer;border:1px solid rgba(231,76,60,0.3);background:rgba(231,76,60,0.08);color:rgba(231,76,60,0.7);">🗑️ <span data-i18n="dreamDelete">Borrar</span></button>
                         </div>
                     </div>
                     <!-- Dream Persona Selector -->
@@ -1091,7 +1091,7 @@
                     <div id="dreamInterpContainer" style="margin-top:12px;"></div>
                     <!-- Dream Alarm moved to Preferences -->
                 </div>
-                <button onclick="closeDiarioModal()" style="width: 100%; padding: 12px; margin-top: 15px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: white; cursor: pointer;">Cerrar</button>
+                <button onclick="closeDiarioModal()" style="width: 100%; padding: 12px; margin-top: 15px; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: white; cursor: pointer;"><span data-i18n="closeBtn">Cerrar</span></button>
             </div>
         </div>
     </div>
@@ -4024,6 +4024,20 @@ function updateModalTranslations() {
     // Update Diary Modal
     const diarioModalTitle = document.getElementById('diarioModalTitle');
     if (diarioModalTitle) diarioModalTitle.textContent = t('diaryTitle');
+
+    // Update diary/dream i18n labels
+    var diaryI18n = {
+        'diaryPersonal': L ? 'Diario Personal' : 'Personal Diary',
+        'diaryDreams': L ? 'Diario de Sueños' : 'Dream Journal',
+        'dreamInterpret': L ? 'Interpretar Sueño' : 'Interpret Dream',
+        'dreamNew': L ? 'Nuevo' : 'New',
+        'dreamDelete': L ? 'Borrar' : 'Delete',
+        'closeBtn': L ? 'Cerrar' : 'Close'
+    };
+    Object.keys(diaryI18n).forEach(function(key) {
+        var els = document.querySelectorAll('[data-i18n="' + key + '"]');
+        els.forEach(function(el) { el.textContent = diaryI18n[key]; });
+    });
 }
 
 // ==============================================
@@ -25441,7 +25455,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v442';
+const APP_VERSION = 'v443';
 var _pendingSW = null;
 
 // What's New removed per user request
