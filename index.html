@@ -20108,9 +20108,11 @@ function showPersonalDayDetail(year, month, day) {
             <div style="margin-bottom:12px;">
                 <div style="font-size:0.75em;font-weight:700;color:#7ec8ff;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${L ? 'Posiciones Planetarias' : 'Planetary Positions'}</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:0.78em;">
-                    ${Object.entries(transitPositions).map(([p, data]) => `
-                        <div style="padding:3px 6px;"><span style="opacity:0.5;">${planetSymbols[p]}</span> ${data.formatted}</div>
-                    `).join('')}
+                    ${Object.entries(transitPositions).map(([p, data]) => {
+                        const pNameL = planetNames[p] || p;
+                        const safeDate = dateStr.replace(/'/g, "\\'");
+                        return `<div onclick="interpretTransitPosition('${p}','${data.formatted.replace(/'/g,"\\'")}','${safeDate}')" style="padding:4px 6px;cursor:pointer;border-radius:6px;transition:background 0.2s;" onmouseover="this.style.background='rgba(126,200,255,0.1)'" onmouseout="this.style.background=''"><span style="opacity:0.5;">${planetSymbols[p]}</span> ${data.formatted} <span style="font-size:0.7em;color:rgba(201,168,64,0.4);">✨</span></div>`;
+                    }).join('')}
                 </div>
             </div>
 
@@ -20234,6 +20236,50 @@ function interpretTransitAspect(transitPlanet, aspectType, natalPlanet, dateStr)
         + '<div style="font-weight:700;color:#ffd54f;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
         + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>'
         + '</div><hr style="border-color:rgba(201,168,64,0.2);margin-bottom:12px;">'
+        + '<div id="aiInterpDiv"></div>';
+
+    var modal = document.getElementById('natalDetailModal');
+    document.getElementById('natalDetailTitle').textContent = _title;
+    document.getElementById('natalDetailBody').innerHTML = bodyHtml;
+    modal.classList.add('show');
+    setTimeout(function() { fetchAIInterpretation(prompt, 'aiInterpDiv', _title); }, 100);
+}
+
+// ===== INTERPRET TRANSIT POSITION (planet in sign on a day) =====
+function interpretTransitPosition(planet, posFormatted, dateStr) {
+    var L = currentLang === 'es';
+    var pName = planetNames[planet] || planet;
+    var pSymbol = planetSymbols[planet] || '';
+
+    // Close the day detail modal
+    var dayModal = document.getElementById('personalDayModal');
+    if (dayModal) dayModal.classList.remove('show');
+
+    var natal = getNatalData();
+    var natalInfo = '';
+    if (natal) {
+        try {
+            var profileChart = localStorage.getItem('natalChart_' + natal.id);
+            var nc = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
+            if (nc && nc.planets && nc.planets[planet]) {
+                natalInfo = L
+                    ? '. Mi ' + pName + ' natal está en ' + (nc.planets[planet].formatted || '?') + '.'
+                    : '. My natal ' + pName + ' is in ' + (nc.planets[planet].formatted || '?') + '.';
+            }
+        } catch(e) {}
+    }
+
+    var prompt = L
+        ? 'El ' + dateStr + ', ' + pName + ' está en tránsito en ' + posFormatted + natalInfo + ' Interpreta en detalle: 1) Qué significa ' + pName + ' transitando en esa posición — la energía fundamental, 2) Cómo me afecta personalmente considerando mi carta natal, 3) Qué áreas de vida se activan (emociones, carrera, relaciones, creatividad), 4) Consejos prácticos para aprovechar o navegar esta energía, 5) Cuánto tiempo permanece ' + pName + ' en este signo.'
+        : 'On ' + dateStr + ', ' + pName + ' is transiting in ' + posFormatted + natalInfo + ' Interpret in detail: 1) What ' + pName + ' transiting in that position means — the fundamental energy, 2) How it affects me personally considering my natal chart, 3) What life areas it activates (emotions, career, relationships, creativity), 4) Practical advice to harness or navigate this energy, 5) How long ' + pName + ' stays in this sign.';
+
+    var _title = pName + ' ' + (L ? 'en' : 'in') + ' ' + posFormatted;
+    var bodyHtml = '<div style="text-align:center;margin-bottom:12px;">'
+        + '<div style="font-size:2.5em;">' + pSymbol + '</div>'
+        + '<div style="font-weight:700;color:#7ec8ff;font-size:1.1em;margin-top:4px;">' + _title + '</div>'
+        + '<div style="font-size:0.8em;color:rgba(255,255,255,0.5);">' + dateStr + '</div>'
+        + (natalInfo ? '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-top:4px;">' + (L ? 'Natal' : 'Natal') + ': ' + natalInfo.replace(/^\. /, '') + '</div>' : '')
+        + '</div><hr style="border-color:rgba(126,200,255,0.2);margin-bottom:12px;">'
         + '<div id="aiInterpDiv"></div>';
 
     var modal = document.getElementById('natalDetailModal');
@@ -25809,7 +25855,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v454';
+const APP_VERSION = 'v455';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -27319,6 +27365,7 @@ window.shareHoyInterp = shareHoyInterp;
 window.saveHoyInterp = saveHoyInterp;
 window.interpretCalendarDay = interpretCalendarDay;
 window.interpretTransitAspect = interpretTransitAspect;
+window.interpretTransitPosition = interpretTransitPosition;
 window.interpretCosmicCycle = interpretCosmicCycle;
 window.interpretAstroCartography = interpretAstroCartography;
 window.interpretAstroLocation = interpretAstroLocation;
