@@ -7846,6 +7846,9 @@ function openDiarioModal(date, lunarDay) {
         var confirmMsg = L ? '¿Eliminar este sueño?' : 'Delete this dream?';
         if (!confirm(confirmMsg)) return;
         deleteDreamById(dateKey, window._currentDreamId);
+        // Clear interpretation from chat
+        var interpContainer = document.getElementById('dreamInterpContainer');
+        if (interpContainer) interpContainer.innerHTML = '';
         // Switch to another dream or clear
         var remaining = getDreamsForDate(dateKey);
         if (remaining.length > 0) {
@@ -8065,6 +8068,17 @@ function interpretDream() {
         return;
     }
     var container = document.getElementById('dreamInterpContainer');
+
+    // Always clear previous interpretation (saved or in-progress) — user wants a fresh one
+    container.innerHTML = '';
+    // Also clear saved interpretation from the dream entry so it generates fresh
+    if (window._currentDreamId && (window._currentDreamDateKey || window._currentDiarioDateKey)) {
+        var _clearDateKey = window._currentDreamDateKey || window._currentDiarioDateKey;
+        var _clearDream = getDreamById(_clearDateKey, window._currentDreamId);
+        if (_clearDream && _clearDream.interpretation) {
+            saveDreamEntry(_clearDateKey, window._currentDreamId, _clearDream.text, '');
+        }
+    }
 
     // Use dream-specific persona
     var dreamPersona = getDreamPersona();
@@ -25455,7 +25469,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v443';
+const APP_VERSION = 'v444';
 var _pendingSW = null;
 
 // What's New removed per user request
