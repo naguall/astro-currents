@@ -22770,8 +22770,10 @@ function renderCalendar() {
         });
     });
     
-    container.innerHTML = '';
-    
+    // Build all week elements in a DocumentFragment first, then swap in one operation
+    // This prevents the Samsung One UI flicker caused by clearing innerHTML and rebuilding
+    var _fragment = document.createDocumentFragment();
+
     weeks.forEach((week, index) => {
         const weekDiv = document.createElement('div');
         weekDiv.className = 'lunar-week' + (index === currentWeekIndex ? ' active' : '');
@@ -22888,8 +22890,12 @@ function renderCalendar() {
             })()}</div>
         `;
         
-        container.appendChild(weekDiv);
+        _fragment.appendChild(weekDiv);
     });
+
+    // Swap: clear and append fragment in one go (single repaint — no Samsung flicker)
+    container.innerHTML = '';
+    container.appendChild(_fragment);
 
     // Sync all week scrolls — when one scrolls, all follow
 }
@@ -26069,7 +26075,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v461';
+const APP_VERSION = 'v462';
 var _pendingSW = null;
 
 // What's New removed per user request
