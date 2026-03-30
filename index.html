@@ -16266,7 +16266,6 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
             <button onclick="addNewProfile()" class="profile-action-btn" title="${L?'Agregar perfil':'Add profile'}">＋</button>
             <button onclick="renderPersonalSetupForm()" class="profile-action-btn" title="${L?'Editar datos':'Edit data'}">✏️</button>
             <button onclick="shareNatalProfile()" class="profile-action-btn" title="${L?'Compartir':'Share'}">📤</button>
-            ${profiles.length >= 2 ? `<button onclick="openSynastryPicker()" class="profile-action-btn" title="${L?'Sinastría':'Synastry'}" style="color:#64B5F6;">💞</button>` : ''}
         </div>
         ${chartInfo}
     </div>`;
@@ -26006,7 +26005,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v458';
+const APP_VERSION = 'v459';
 var _pendingSW = null;
 
 // What's New removed per user request
