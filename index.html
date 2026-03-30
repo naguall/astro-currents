@@ -1003,8 +1003,29 @@
     <!-- Moon Compass Modal -->
     <div id="moonCompassModal" class="modal" onclick="if(event.target===this)closeMoonCompass()" style="z-index:1250;">
         <div class="modal-content" style="max-width:420px;background:radial-gradient(ellipse at center,#0d0d2b 0%,#050515 100%);border:1px solid rgba(155,89,182,0.3);padding:0;overflow:hidden;">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(155,89,182,0.15);">
-                <h2 style="margin:0;font-size:1.1em;color:#e0b0ff;">🧭 <span id="compassTitle">Brújula Lunar</span></h2>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(155,89,182,0.15);flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:200px;">
+                    <span style="font-size:1.1em;" id="compassModeIcon">🌙</span>
+                    <select id="compassModeSelect" onchange="changeCompassMode(this.value)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(155,89,182,0.3);border-radius:8px;color:#e0b0ff;padding:4px 8px;font-size:0.9em;cursor:pointer;outline:none;max-width:180px;flex:1;">
+                        <optgroup label="☽ Luminarias">
+                            <option value="moon">🌙 Luna</option>
+                            <option value="sun">☀️ Sol</option>
+                        </optgroup>
+                        <optgroup label="☿ Planetas">
+                            <option value="mercury">☿ Mercurio</option>
+                            <option value="venus">♀️ Venus</option>
+                            <option value="mars">♂️ Marte</option>
+                            <option value="jupiter">♃ Júpiter</option>
+                            <option value="saturn">♄ Saturno</option>
+                            <option value="uranus">⛢ Urano</option>
+                            <option value="neptune">♆ Neptuno</option>
+                            <option value="pluto">♇ Plutón</option>
+                        </optgroup>
+                        <optgroup label="✦ Constelaciones" id="constellationGroup">
+                            <!-- populated dynamically -->
+                        </optgroup>
+                    </select>
+                </div>
                 <span class="close" onclick="closeMoonCompass()" style="position:static;font-size:1.5em;">&times;</span>
             </div>
             <div id="moonCompassBody" style="padding:16px;text-align:center;">
@@ -8891,6 +8912,73 @@ var _compassPermissionGranted = false;
 var _compassMapMode = '2d'; // '2d' or '3d'
 var _compassHasAbsolute = false; // true if we have absolute heading (reliable north)
 var _compassCalibrationNeeded = false;
+var _compassMode = 'moon'; // 'moon', 'sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', or 'const_<id>'
+
+// Constellation database with RA (hours), Dec (degrees), star indices, and connection lines
+var _constellationData = [
+    // Zodiac constellations
+    {id:'aries', name:'Aries', nameEs:'Aries', centerRa:2.66, centerDec:20, stars:[
+        {ra:2.11, dec:23.4}, {ra:2.83, dec:27.3}, {ra:3.39, dec:19.8}
+    ], lines:[[0,1],[1,2]]},
+    {id:'taurus', name:'Taurus', nameEs:'Tauro', centerRa:4.6, centerDec:15, stars:[
+        {ra:4.60, dec:16.5}, {ra:5.44, dec:21.1}, {ra:5.27, dec:28.1}, {ra:4.96, dec:26.0}
+    ], lines:[[0,1],[1,2],[2,3],[3,0]]},
+    {id:'gemini', name:'Gemini', nameEs:'Géminis', centerRa:6.9, centerDec:20, stars:[
+        {ra:7.58, dec:31.9}, {ra:7.33, dec:27.8}, {ra:6.38, dec:22.5}, {ra:6.14, dec:12.9}
+    ], lines:[[0,1],[1,2],[2,3]]},
+    {id:'cancer', name:'Cancer', nameEs:'Cáncer', centerRa:8.8, centerDec:12, stars:[
+        {ra:8.75, dec:11.9}, {ra:9.18, dec:18.2}, {ra:8.58, dec:9.1}, {ra:9.22, dec:11.8}
+    ], lines:[[0,1],[1,2],[2,3],[3,0]]},
+    {id:'leo', name:'Leo', nameEs:'Leo', centerRa:10.5, centerDec:15, stars:[
+        {ra:10.14, dec:11.97}, {ra:11.82, dec:14.57}, {ra:10.27, dec:19.18}, {ra:9.30, dec:23.77}
+    ], lines:[[0,1],[1,2],[2,3]]},
+    {id:'virgo', name:'Virgo', nameEs:'Virgo', centerRa:12.5, centerDec:-5, stars:[
+        {ra:13.42, dec:-11.16}, {ra:12.50, dec:1.45}, {ra:11.75, dec:-6.74}, {ra:12.33, dec:10.96}
+    ], lines:[[0,1],[1,2],[2,3]]},
+    {id:'libra', name:'Libra', nameEs:'Libra', centerRa:14.8, centerDec:-15, stars:[
+        {ra:14.61, dec:-16.04}, {ra:15.03, dec:-9.38}, {ra:14.50, dec:-8.74}, {ra:14.85, dec:-15.99}
+    ], lines:[[0,1],[1,2],[2,3],[3,0]]},
+    {id:'scorpius', name:'Scorpius', nameEs:'Escorpio', centerRa:16.5, centerDec:-25, stars:[
+        {ra:16.29, dec:-26.43}, {ra:16.49, dec:-26.26}, {ra:16.87, dec:-28.23}, {ra:17.56, dec:-37.11}, {ra:17.79, dec:-34.29}
+    ], lines:[[0,1],[1,2],[2,3],[3,4]]},
+    {id:'sagittarius', name:'Sagittarius', nameEs:'Sagitario', centerRa:19, centerDec:-28, stars:[
+        {ra:19.03, dec:-27.04}, {ra:19.41, dec:-27.94}, {ra:18.92, dec:-29.78}, {ra:18.88, dec:-26.30}
+    ], lines:[[0,1],[1,2],[2,3],[3,0]]},
+    {id:'capricornus', name:'Capricornus', nameEs:'Capricornio', centerRa:20.5, centerDec:-18, stars:[
+        {ra:20.81, dec:-14.78}, {ra:20.29, dec:-19.25}, {ra:21.12, dec:-17.23}, {ra:20.75, dec:-25.27}
+    ], lines:[[0,1],[1,2],[2,3]]},
+    {id:'aquarius', name:'Aquarius', nameEs:'Acuario', centerRa:22.5, centerDec:-12, stars:[
+        {ra:22.06, dec:-0.32}, {ra:22.53, dec:-13.59}, {ra:23.16, dec:-21.17}, {ra:22.91, dec:-7.78}
+    ], lines:[[0,1],[1,2],[2,3]]},
+    {id:'pisces', name:'Pisces', nameEs:'Piscis', centerRa:1.3, centerDec:10, stars:[
+        {ra:0.67, dec:5.5}, {ra:1.14, dec:7.6}, {ra:2.02, dec:3.1}, {ra:1.59, dec:15.3}
+    ], lines:[[0,1],[1,2],[2,3]]},
+    // Additional notable constellations
+    {id:'orion', name:'Orion', nameEs:'Orión', centerRa:5.53, centerDec:0, stars:[
+        {ra:5.92, dec:7.41}, {ra:5.24, dec:-8.2}, {ra:5.42, dec:6.35}, {ra:5.8, dec:-9.67}, {ra:5.53, dec:-0.3}, {ra:5.6, dec:-1.2}, {ra:5.68, dec:-1.94}
+    ], lines:[[0,1],[1,4],[2,4],[3,4],[4,5],[5,6],[0,2],[1,3]]},
+    {id:'ursa_major', name:'Ursa Major', nameEs:'Osa Mayor', centerRa:11.9, centerDec:55, stars:[
+        {ra:11.06, dec:61.75}, {ra:11.03, dec:56.38}, {ra:11.9, dec:53.69}, {ra:12.25, dec:57.03}, {ra:12.9, dec:55.96}, {ra:13.4, dec:54.93}, {ra:13.79, dec:49.31}
+    ], lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]]},
+    {id:'ursa_minor', name:'Ursa Minor', nameEs:'Osa Menor', centerRa:14.85, centerDec:75, stars:[
+        {ra:15.35, dec:74.38}, {ra:14.85, dec:74.16}, {ra:15.30, dec:71.83}, {ra:16.29, dec:75.75}, {ra:14.07, dec:72.53}
+    ], lines:[[0,1],[1,2],[0,3],[3,4]]},
+    {id:'cassiopeia', name:'Cassiopeia', nameEs:'Casiopea', centerRa:1.3, centerDec:60, stars:[
+        {ra:0.675, dec:56.54}, {ra:0.153, dec:59.15}, {ra:0.945, dec:60.72}, {ra:1.43, dec:60.24}, {ra:1.91, dec:63.67}
+    ], lines:[[0,1],[1,2],[2,3],[3,4]]},
+    {id:'cygnus', name:'Cygnus', nameEs:'Cisne', centerRa:20.8, centerDec:42, stars:[
+        {ra:20.69, dec:40.26}, {ra:20.37, dec:27.96}, {ra:21.07, dec:38.78}, {ra:22.12, dec:30.54}, {ra:19.98, dec:50.56}
+    ], lines:[[0,1],[0,2],[0,3],[0,4],[2,3]]},
+    {id:'canis_major', name:'Canis Major', nameEs:'Can Mayor', centerRa:7, centerDec:-20, stars:[
+        {ra:6.75, dec:-16.72}, {ra:7.24, dec:-26.39}, {ra:7.40, dec:-29.30}, {ra:7.14, dec:-15.64}
+    ], lines:[[0,1],[1,2],[2,3],[3,0]]},
+    {id:'lyra', name:'Lyra', nameEs:'Lira', centerRa:18.6, centerDec:40, stars:[
+        {ra:18.62, dec:38.78}, {ra:18.34, dec:37.63}, {ra:18.75, dec:33.36}, {ra:18.98, dec:42.44}
+    ], lines:[[0,1],[1,2],[2,3],[3,0]]},
+    {id:'crux', name:'Crux (Southern Cross)', nameEs:'Cruz (Cruz del Sur)', centerRa:12.3, centerDec:-60, stars:[
+        {ra:12.80, dec:-60.40}, {ra:12.26, dec:-59.69}, {ra:11.92, dec:-63.10}, {ra:12.54, dec:-57.07}
+    ], lines:[[0,1],[0,2],[0,3],[1,2]]}
+];
 
 function getMoonHorizonCoords(date, lat, lon) {
     // Use astronomy-engine to get Moon's azimuth & altitude from observer
@@ -8915,10 +9003,62 @@ function getSunHorizonCoords(date, lat, lon) {
     } catch(e) { return null; }
 }
 
+function getBodyHorizonCoords(bodyName, date, lat, lon) {
+    // Generic function to get horizon coords for any body (planets, sun, moon)
+    if (typeof Astronomy === 'undefined') return null;
+    try {
+        var observer = new Astronomy.Observer(lat, lon, 0);
+        var t = Astronomy.MakeTime(date);
+        var bodyMap = {
+            'moon': Astronomy.Body.Moon,
+            'sun': Astronomy.Body.Sun,
+            'mercury': Astronomy.Body.Mercury,
+            'venus': Astronomy.Body.Venus,
+            'mars': Astronomy.Body.Mars,
+            'jupiter': Astronomy.Body.Jupiter,
+            'saturn': Astronomy.Body.Saturn,
+            'uranus': Astronomy.Body.Uranus,
+            'neptune': Astronomy.Body.Neptune,
+            'pluto': Astronomy.Body.Pluto
+        };
+        var body = bodyMap[bodyName.toLowerCase()];
+        if (!body) return null;
+        var equ = Astronomy.Equator(body, t, observer, true, true);
+        var hor = Astronomy.Horizon(t, observer, equ.ra, equ.dec, 'normal');
+        return { azimuth: hor.azimuth, altitude: hor.altitude, ra: equ.ra, dec: equ.dec };
+    } catch(e) { return null; }
+}
+
+function getConstellationHorizonCoords(constellation, date, lat, lon) {
+    // Get horizon coords for constellation center point
+    if (typeof Astronomy === 'undefined' || !constellation) return null;
+    try {
+        var observer = new Astronomy.Observer(lat, lon, 0);
+        var t = Astronomy.MakeTime(date);
+        // Convert RA from hours to degrees: ra_hours * 15
+        var raRad = (constellation.centerRa * 15) * Math.PI / 180;
+        var decRad = constellation.centerDec * Math.PI / 180;
+        var hor = Astronomy.Horizon(t, observer, constellation.centerRa, constellation.centerDec, 'normal');
+        return { azimuth: hor.azimuth, altitude: hor.altitude, ra: constellation.centerRa, dec: constellation.centerDec };
+    } catch(e) { return null; }
+}
+
 function openMoonCompass() {
     var L = currentLang === 'es';
     var modal = document.getElementById('moonCompassModal');
-    document.getElementById('compassTitle').textContent = L ? 'Brújula Lunar' : 'Moon Compass';
+    // Populate constellation dropdown
+    var select = document.getElementById('compassModeSelect');
+    var constGroup = document.getElementById('constellationGroup');
+    if (select && constGroup) {
+        constGroup.innerHTML = '';
+        _constellationData.forEach(function(c) {
+            var opt = document.createElement('option');
+            opt.value = 'const_' + c.id;
+            opt.textContent = '✦ ' + (L ? c.nameEs : c.name);
+            constGroup.appendChild(opt);
+        });
+        select.value = _compassMode;
+    }
 
     var bodyEl = document.getElementById('moonCompassBody');
     bodyEl.innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.5);">' + (L ? 'Iniciando sensores...' : 'Starting sensors...') + '</div>';
@@ -8941,6 +9081,23 @@ function openMoonCompass() {
         _startCompass();
     }
 }
+
+function changeCompassMode(mode) {
+    _compassMode = mode;
+    // Update icon
+    var iconEl = document.getElementById('compassModeIcon');
+    var icons = {
+        'moon':'🌙', 'sun':'☀️', 'mercury':'☿', 'venus':'♀️', 'mars':'♂️',
+        'jupiter':'♃', 'saturn':'♄', 'uranus':'⛢', 'neptune':'♆', 'pluto':'♇'
+    };
+    if (icons[mode]) {
+        iconEl.textContent = icons[mode];
+    } else {
+        iconEl.textContent = '✦'; // constellation
+    }
+    _renderCompass();
+}
+window.changeCompassMode = changeCompassMode;
 
 function _startCompass() {
     // Smooth angle helper (handles 0/360 wraparound)
@@ -9056,30 +9213,85 @@ function _renderCompass() {
     var lat = ASTRO_USER_LAT || 9.93;
     var lon = ASTRO_USER_LON || -84;
     var now = new Date();
+    var heading = _compassHeadingSmooth; // use smoothed heading
 
-    var moon = getMoonHorizonCoords(now, lat, lon);
-    var sun = getSunHorizonCoords(now, lat, lon);
-    if (!moon) {
-        bodyEl.innerHTML = '<div style="padding:30px;color:#ff6b6b;">' + (L ? 'Error calculando posición lunar' : 'Error calculating moon position') + '</div>';
+    // Determine target body and get coordinates
+    var targetBody = null;
+    var targetAz = 0, targetAlt = 0;
+    var targetName = 'Moon';
+    var targetIcon = '🌙';
+    var targetColor = '#ffd54f';
+    var isMoonMode = _compassMode === 'moon';
+    var isSunMode = _compassMode === 'sun';
+    var isConstellation = _compassMode.indexOf('const_') === 0;
+
+    if (isMoonMode) {
+        targetBody = getMoonHorizonCoords(now, lat, lon);
+        targetName = L ? 'Luna' : 'Moon';
+        targetIcon = '🌙';
+        targetColor = '#ffd54f';
+    } else if (isSunMode) {
+        targetBody = getSunHorizonCoords(now, lat, lon);
+        targetName = L ? 'Sol' : 'Sun';
+        targetIcon = '☀️';
+        targetColor = '#ff9800';
+    } else if (isConstellation) {
+        var constId = _compassMode.substring(6);
+        var constellation = _constellationData.find(function(c) { return c.id === constId; });
+        if (constellation) {
+            targetBody = getConstellationHorizonCoords(constellation, now, lat, lon);
+            targetName = L ? constellation.nameEs : constellation.name;
+            targetIcon = '✦';
+            targetColor = '#c0e0ff';
+        }
+    } else {
+        // Planet mode
+        targetBody = getBodyHorizonCoords(_compassMode, now, lat, lon);
+        var planetNames = {
+            'mercury': L ? 'Mercurio' : 'Mercury',
+            'venus': L ? 'Venus' : 'Venus',
+            'mars': L ? 'Marte' : 'Mars',
+            'jupiter': L ? 'Júpiter' : 'Jupiter',
+            'saturn': L ? 'Saturno' : 'Saturn',
+            'uranus': L ? 'Urano' : 'Uranus',
+            'neptune': L ? 'Neptuno' : 'Neptune',
+            'pluto': L ? 'Plutón' : 'Pluto'
+        };
+        targetName = planetNames[_compassMode] || _compassMode;
+        var iconMap = {
+            'mercury': '☿', 'venus': '♀️', 'mars': '♂️', 'jupiter': '♃',
+            'saturn': '♄', 'uranus': '⛢', 'neptune': '♆', 'pluto': '♇'
+        };
+        targetIcon = iconMap[_compassMode] || '●';
+        var colorMap = {
+            'mercury': '#b0bec5', 'venus': '#e8b4ff', 'mars': '#ef5350', 'jupiter': '#ffb74d',
+            'saturn': '#a1887f', 'uranus': '#4dd0e1', 'neptune': '#5c6bc0', 'pluto': '#78909c'
+        };
+        targetColor = colorMap[_compassMode] || '#fff';
+    }
+
+    if (!targetBody) {
+        bodyEl.innerHTML = '<div style="padding:30px;color:#ff6b6b;">' + (L ? 'Error calculando posición' : 'Error calculating position') + '</div>';
         return;
     }
 
-    var moonAz = moon.azimuth;
-    var moonAlt = moon.altitude;
-    var heading = _compassHeadingSmooth; // use smoothed heading
-    var relAngle = ((moonAz - heading) % 360 + 360) % 360;
-    var moonBelowHorizon = moonAlt < 0;
+    var targetAz = targetBody.azimuth;
+    var targetAlt = targetBody.altitude;
+    var relAngle = ((targetAz - heading) % 360 + 360) % 360;
+    var targetBelowHorizon = targetAlt < 0;
 
-    var moonPhaseIllum = '';
-    try {
-        var t = Astronomy.MakeTime(now);
-        var illum = Astronomy.Illumination(Astronomy.Body.Moon, t);
-        moonPhaseIllum = (illum.phase_fraction * 100).toFixed(1) + '%';
-    } catch(e) {}
+    var targetPhaseIllum = '';
+    if (isMoonMode) {
+        try {
+            var t = Astronomy.MakeTime(now);
+            var illum = Astronomy.Illumination(Astronomy.Body.Moon, t);
+            targetPhaseIllum = (illum.phase_fraction * 100).toFixed(1) + '%';
+        } catch(e) {}
+    }
 
     var cardinals = L ? ['N','NE','E','SE','S','SO','O','NO'] : ['N','NE','E','SE','S','SW','W','NW'];
-    var cardIdx = Math.round(moonAz / 45) % 8;
-    var moonCardinal = cardinals[cardIdx];
+    var cardIdx = Math.round(targetAz / 45) % 8;
+    var targetCardinal = cardinals[cardIdx];
 
     // ===== COMPASS SVG =====
     var size = 280;
@@ -9118,110 +9330,135 @@ function _renderCompass() {
     var arrowLen = outerR - 30;
     var ax = cx + arrowLen * Math.cos(arrowRad);
     var ay = cy + arrowLen * Math.sin(arrowRad);
-    svg += '<line x1="' + cx + '" y1="' + cy + '" x2="' + ax + '" y2="' + ay + '" stroke="' + (moonBelowHorizon ? 'rgba(176,190,197,0.4)' : '#f5f5dc') + '" stroke-width="3" filter="url(#compassGlow)"/>';
+    svg += '<line x1="' + cx + '" y1="' + cy + '" x2="' + ax + '" y2="' + ay + '" stroke="' + (targetBelowHorizon ? 'rgba(176,190,197,0.4)' : '#f5f5dc') + '" stroke-width="3" filter="url(#compassGlow)"/>';
     var ahSize = 12;
     var ah1 = arrowRad - 0.35;
     var ah2 = arrowRad + 0.35;
-    svg += '<polygon points="' + ax + ',' + ay + ' ' + (ax - ahSize * Math.cos(ah1)) + ',' + (ay - ahSize * Math.sin(ah1)) + ' ' + (ax - ahSize * Math.cos(ah2)) + ',' + (ay - ahSize * Math.sin(ah2)) + '" fill="' + (moonBelowHorizon ? 'rgba(176,190,197,0.5)' : '#ffd54f') + '" filter="url(#compassGlow)"/>';
-    svg += '<text x="' + (cx + (arrowLen + 15) * Math.cos(arrowRad)) + '" y="' + (cy + (arrowLen + 15) * Math.sin(arrowRad)) + '" font-size="20" text-anchor="middle" dominant-baseline="central">🌙</text>';
+    svg += '<polygon points="' + ax + ',' + ay + ' ' + (ax - ahSize * Math.cos(ah1)) + ',' + (ay - ahSize * Math.sin(ah1)) + ' ' + (ax - ahSize * Math.cos(ah2)) + ',' + (ay - ahSize * Math.sin(ah2)) + '" fill="' + (targetBelowHorizon ? 'rgba(176,190,197,0.5)' : targetColor) + '" filter="url(#compassGlow)"/>';
+    svg += '<text x="' + (cx + (arrowLen + 15) * Math.cos(arrowRad)) + '" y="' + (cy + (arrowLen + 15) * Math.sin(arrowRad)) + '" font-size="20" text-anchor="middle" dominant-baseline="central">' + targetIcon + '</text>';
 
-    if (sun) {
-        var sunRelAngle = ((sun.azimuth - heading) % 360 + 360) % 360;
-        var sunRad = (sunRelAngle - 90) * Math.PI / 180;
-        var sunR = outerR - 35;
-        svg += '<text x="' + (cx + sunR * Math.cos(sunRad)) + '" y="' + (cy + sunR * Math.sin(sunRad)) + '" font-size="14" text-anchor="middle" dominant-baseline="central" opacity="' + (sun.altitude < 0 ? '0.25' : '0.8') + '">☀️</text>';
+    // Show Sun reference if in moon/planet mode (not constellation)
+    if (!isConstellation) {
+        var sun = getSunHorizonCoords(now, lat, lon);
+        if (sun) {
+            var sunRelAngle = ((sun.azimuth - heading) % 360 + 360) % 360;
+            var sunRad = (sunRelAngle - 90) * Math.PI / 180;
+            var sunR = outerR - 35;
+            svg += '<text x="' + (cx + sunR * Math.cos(sunRad)) + '" y="' + (cy + sunR * Math.sin(sunRad)) + '" font-size="14" text-anchor="middle" dominant-baseline="central" opacity="' + (sun.altitude < 0 ? '0.25' : '0.8') + '">☀️</text>';
+        }
+    }
+
+    // Show constellation stars on compass dial when in constellation mode
+    if (isConstellation) {
+        var cId = _compassMode.substring(6);
+        var cData = _constellationData.find(function(c) { return c.id === cId; });
+        if (cData && cData.stars) {
+            try {
+                var cObs = new Astronomy.Observer(lat, lon, 0);
+                var cTime = Astronomy.MakeTime(now);
+                var cStarPos = [];
+                for (var cs = 0; cs < cData.stars.length; cs++) {
+                    var cHor = Astronomy.Horizon(cTime, cObs, cData.stars[cs].ra, cData.stars[cs].dec, 'normal');
+                    var cRelAng = ((cHor.azimuth - heading) % 360 + 360) % 360;
+                    var cStarRad = (cRelAng - 90) * Math.PI / 180;
+                    var cStarR = outerR - 38;
+                    var csx = cx + cStarR * Math.cos(cStarRad);
+                    var csy = cy + cStarR * Math.sin(cStarRad);
+                    cStarPos.push({ x: csx, y: csy, visible: cHor.altitude >= 0 });
+                }
+                // Draw lines between connected stars on compass
+                if (cData.lines) {
+                    for (var cl = 0; cl < cData.lines.length; cl++) {
+                        var clf = cData.lines[cl][0], clt = cData.lines[cl][1];
+                        if (clf < cStarPos.length && clt < cStarPos.length) {
+                            var clOp = (cStarPos[clf].visible && cStarPos[clt].visible) ? '0.3' : '0.08';
+                            svg += '<line x1="' + cStarPos[clf].x.toFixed(1) + '" y1="' + cStarPos[clf].y.toFixed(1) + '" x2="' + cStarPos[clt].x.toFixed(1) + '" y2="' + cStarPos[clt].y.toFixed(1) + '" stroke="rgba(192,224,255,' + clOp + ')" stroke-width="1"/>';
+                        }
+                    }
+                }
+                // Draw stars on compass
+                for (var cs2 = 0; cs2 < cStarPos.length; cs2++) {
+                    var cStarOp = cStarPos[cs2].visible ? '0.8' : '0.15';
+                    var cStarSz = cStarPos[cs2].visible ? 3 : 1.5;
+                    svg += '<circle cx="' + cStarPos[cs2].x.toFixed(1) + '" cy="' + cStarPos[cs2].y.toFixed(1) + '" r="' + cStarSz + '" fill="rgba(192,224,255,' + cStarOp + ')"/>';
+                }
+            } catch(e) {}
+        }
     }
 
     svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + innerR + '" fill="rgba(10,10,30,0.9)" stroke="rgba(155,89,182,0.3)" stroke-width="1"/>';
-    svg += '<text x="' + cx + '" y="' + (cy - 8) + '" fill="#ffd54f" font-size="11" text-anchor="middle" font-weight="700">' + moonAz.toFixed(1) + '°</text>';
-    svg += '<text x="' + cx + '" y="' + (cy + 8) + '" fill="rgba(255,255,255,0.5)" font-size="10" text-anchor="middle">' + moonCardinal + '</text>';
-    svg += '<text x="' + cx + '" y="' + (cy + 21) + '" fill="rgba(255,255,255,0.3)" font-size="9" text-anchor="middle">' + (moonAlt >= 0 ? '▲' : '▼') + moonAlt.toFixed(1) + '°</text>';
-    // Label: arrow points to moon
-    svg += '<text x="' + cx + '" y="' + (cy + outerR + 16) + '" fill="rgba(255,213,79,0.35)" font-size="8" text-anchor="middle" font-style="italic">' + (L ? 'La flecha apunta hacia la Luna' : 'Arrow points toward the Moon') + '</text>';
+    svg += '<text x="' + cx + '" y="' + (cy - 8) + '" fill="' + targetColor + '" font-size="11" text-anchor="middle" font-weight="700">' + targetAz.toFixed(1) + '°</text>';
+    svg += '<text x="' + cx + '" y="' + (cy + 8) + '" fill="rgba(255,255,255,0.5)" font-size="10" text-anchor="middle">' + targetCardinal + '</text>';
+    svg += '<text x="' + cx + '" y="' + (cy + 21) + '" fill="rgba(255,255,255,0.3)" font-size="9" text-anchor="middle">' + (targetAlt >= 0 ? '▲' : '▼') + targetAlt.toFixed(1) + '°</text>';
+    svg += '<text x="' + cx + '" y="' + (cy + outerR + 16) + '" fill="rgba(200,180,255,0.35)" font-size="8" text-anchor="middle" font-style="italic">' + (L ? 'La flecha apunta hacia ' + targetName : 'Arrow points toward ' + targetName) + '</text>';
     svg += '</svg>';
 
     // ===== INTERACTIVE ALTITUDE BAR (responds to phone tilt) =====
     var info = '<div style="margin-top:10px;font-size:0.85em;color:rgba(255,255,255,0.7);text-align:center;">';
 
     // ── ALTITUDE BAR ──
-    // 0° = phone flat on table = CENTER of bar
-    // Tilt forward (beta increases) → moves RIGHT (toward horizon/below)
-    // Tilt backward (beta decreases/negative) → moves LEFT
-    //
-    // beta sensor: 0=flat, 90=vertical, negative=tilted backward
-    // phoneTilt = beta directly (0° when flat = center)
     var smoothBeta = _compassDeviceBetaSmooth;
-    var phoneTilt = Math.max(-90, Math.min(90, smoothBeta)); // clamp to ±90°
+    var phoneTilt = Math.max(-90, Math.min(90, smoothBeta));
+    var targetAltClamped = Math.max(-90, Math.min(90, targetAlt));
 
-    // Moon altitude shown directly on bar (same -90..+90 scale)
-    var moonAltClamped = Math.max(-90, Math.min(90, moonAlt));
-
-    // Bar: -90° (left) ← 0° CENTER (flat) → +90° (right)
     var altBarWidth = 260;
     var phonePct = Math.max(0, Math.min(100, (phoneTilt + 90) / 180 * 100));
-    var moonPct = Math.max(0, Math.min(100, (moonAltClamped + 90) / 180 * 100));
-    // Aligned: phone elevation (90-beta) ≈ moonAlt
-    var phoneElevation = 90 - phoneTilt; // what altitude you're pointing at
-    var altAligned = Math.abs(phoneElevation - moonAlt) < 5;
+    var targetPct = Math.max(0, Math.min(100, (targetAltClamped + 90) / 180 * 100));
+    var phoneElevation = 90 - phoneTilt;
+    var altAligned = Math.abs(phoneElevation - targetAlt) < 5;
 
     info += '<div style="margin-bottom:8px;">';
     info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);margin-bottom:3px;letter-spacing:1px;">' + (L ? 'INCLINACIÓN (0° = plano al centro)' : 'TILT (0° = flat at center)') + '</div>';
-    // Bar: left(-90°) → center(0° flat) → right(+90° vertical)
     info += '<div style="position:relative;width:' + altBarWidth + 'px;height:20px;background:linear-gradient(to right,rgba(100,100,200,0.1) 0%,rgba(255,255,255,0.06) 50%,rgba(255,200,50,0.12) 100%);border-radius:10px;margin:0 auto;border:1px solid rgba(255,255,255,0.1);">';
-    // Center line = 0° (flat)
     info += '<div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(255,255,255,0.35);border-radius:1px;"></div>';
-    // Scale labels
     info += '<div style="position:absolute;left:3px;top:3px;font-size:0.5em;color:rgba(100,100,200,0.5);font-weight:600;">-90°</div>';
     info += '<div style="position:absolute;left:50%;top:3px;transform:translateX(-50%);font-size:0.5em;color:rgba(255,255,255,0.45);font-weight:700;">0°</div>';
     info += '<div style="position:absolute;right:3px;top:3px;font-size:0.5em;color:rgba(255,200,50,0.5);font-weight:600;">+90°</div>';
-    // Phone tilt indicator (purple bar)
     info += '<div style="position:absolute;left:' + phonePct + '%;top:-2px;width:5px;height:24px;background:rgba(224,176,255,' + (altAligned ? '1' : '0.6') + ');border-radius:2px;transform:translateX(-50%);transition:left 0.08s ease-out;box-shadow:' + (altAligned ? '0 0 10px rgba(224,176,255,0.9)' : 'none') + ';z-index:1;"></div>';
-    // Moon tilt dot (yellow)
-    info += '<div style="position:absolute;left:' + moonPct + '%;top:4px;width:12px;height:12px;background:' + (moonBelowHorizon ? '#616161' : '#ffd54f') + ';border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px ' + (moonBelowHorizon ? 'transparent' : 'rgba(255,213,79,0.6)') + ';z-index:2;"></div>';
+    info += '<div style="position:absolute;left:' + targetPct + '%;top:4px;width:12px;height:12px;background:' + (targetBelowHorizon ? '#616161' : targetColor) + ';border-radius:50%;transform:translateX(-50%);box-shadow:0 0 8px ' + (targetBelowHorizon ? 'transparent' : 'rgba(200,180,255,0.6)') + ';z-index:2;"></div>';
     info += '</div>';
-    // Labels below
     info += '<div style="display:flex;justify-content:space-between;width:' + altBarWidth + 'px;margin:3px auto 0;font-size:0.65em;color:rgba(255,255,255,0.25);">';
     info += '<span style="color:rgba(224,176,255,0.5);">📱 tilt ' + phoneTilt.toFixed(0) + '°</span>';
     info += '<span style="color:rgba(255,255,255,0.3);">0° = ' + (L ? 'plano' : 'flat') + '</span>';
-    info += '<span style="color:rgba(255,213,79,0.5);">🌙 alt ' + moonAlt.toFixed(0) + '°</span>';
+    info += '<span style="color:' + targetColor + ';opacity:0.7;">' + targetIcon + ' alt ' + targetAlt.toFixed(0) + '°</span>';
     info += '</div>';
-    if (altAligned && !moonBelowHorizon) {
-        info += '<div style="font-size:0.7em;color:#4ecdc4;text-align:center;margin-top:2px;">✓ ' + (L ? 'Apuntando a la Luna' : 'Pointing at the Moon') + '</div>';
+    if (altAligned && !targetBelowHorizon) {
+        info += '<div style="font-size:0.7em;color:#4ecdc4;text-align:center;margin-top:2px;">✓ ' + (L ? 'Apuntando a ' : 'Pointing at ') + targetName + '</div>';
     }
     info += '</div>';
 
-    // ===== MOONRISE / MOONSET =====
-    var riseSet = _getMoonRiseSet(now, lat, lon);
-    info += '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">';
-    info += '<div style="background:rgba(255,213,79,0.06);border:1px solid rgba(255,213,79,0.15);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-    info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌅 ' + (L ? 'Sale' : 'Rise') + '</div>';
-    info += '<div style="font-weight:700;color:#ffd54f;font-size:0.95em;">' + (riseSet.rise ? riseSet.rise.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—') + '</div></div>';
-    info += '<div style="background:rgba(126,200,255,0.06);border:1px solid rgba(126,200,255,0.15);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-    info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌇 ' + (L ? 'Pone' : 'Set') + '</div>';
-    info += '<div style="font-weight:700;color:#7ec8ff;font-size:0.95em;">' + (riseSet.set ? riseSet.set.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—') + '</div></div>';
-    info += '</div>';
-
-    // ===== LUNAR DAY & WEEK =====
-    var _compassLunarDay = (typeof getLunarDayForDate === 'function') ? getLunarDayForDate(now) : 0;
-    var _compassLunarWeek = _compassLunarDay > 0 ? Math.ceil(_compassLunarDay / 7) : 0;
-    if (_compassLunarDay > 0) {
-        // Lunar phase name based on week
-        var _lunarPhaseName = '';
-        if (_compassLunarWeek === 1) _lunarPhaseName = L ? 'Luna Nueva → Cuarto Creciente' : 'New Moon → First Quarter';
-        else if (_compassLunarWeek === 2) _lunarPhaseName = L ? 'Cuarto Creciente → Luna Llena' : 'First Quarter → Full Moon';
-        else if (_compassLunarWeek === 3) _lunarPhaseName = L ? 'Luna Llena → Cuarto Menguante' : 'Full Moon → Last Quarter';
-        else _lunarPhaseName = L ? 'Cuarto Menguante → Luna Nueva' : 'Last Quarter → New Moon';
-
+    // ===== MOONRISE / MOONSET (only for Moon mode) =====
+    if (isMoonMode) {
+        var riseSet = _getMoonRiseSet(now, lat, lon);
         info += '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">';
-        info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">📅 ' + (L ? 'Día Lunar' : 'Lunar Day') + '</div>';
-        info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarDay + ' / 29</div></div>';
-        info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🔄 ' + (L ? 'Semana' : 'Week') + '</div>';
-        info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarWeek + ' / 4</div></div>';
+        info += '<div style="background:rgba(255,213,79,0.06);border:1px solid rgba(255,213,79,0.15);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
+        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌅 ' + (L ? 'Sale' : 'Rise') + '</div>';
+        info += '<div style="font-weight:700;color:#ffd54f;font-size:0.95em;">' + (riseSet.rise ? riseSet.rise.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—') + '</div></div>';
+        info += '<div style="background:rgba(126,200,255,0.06);border:1px solid rgba(126,200,255,0.15);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
+        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌇 ' + (L ? 'Pone' : 'Set') + '</div>';
+        info += '<div style="font-weight:700;color:#7ec8ff;font-size:0.95em;">' + (riseSet.set ? riseSet.set.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—') + '</div></div>';
         info += '</div>';
-        // Phase name below
-        info += '<div style="text-align:center;margin-top:4px;font-size:0.72em;color:rgba(224,176,255,0.55);font-style:italic;">' + _lunarPhaseName + '</div>';
+
+        // ===== LUNAR DAY & WEEK =====
+        var _compassLunarDay = (typeof getLunarDayForDate === 'function') ? getLunarDayForDate(now) : 0;
+        var _compassLunarWeek = _compassLunarDay > 0 ? Math.ceil(_compassLunarDay / 7) : 0;
+        if (_compassLunarDay > 0) {
+            var _lunarPhaseName = '';
+            if (_compassLunarWeek === 1) _lunarPhaseName = L ? 'Luna Nueva → Cuarto Creciente' : 'New Moon → First Quarter';
+            else if (_compassLunarWeek === 2) _lunarPhaseName = L ? 'Cuarto Creciente → Luna Llena' : 'First Quarter → Full Moon';
+            else if (_compassLunarWeek === 3) _lunarPhaseName = L ? 'Luna Llena → Cuarto Menguante' : 'Full Moon → Last Quarter';
+            else _lunarPhaseName = L ? 'Cuarto Menguante → Luna Nueva' : 'Last Quarter → New Moon';
+
+            info += '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">';
+            info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
+            info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">📅 ' + (L ? 'Día Lunar' : 'Lunar Day') + '</div>';
+            info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarDay + ' / 29</div></div>';
+            info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
+            info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🔄 ' + (L ? 'Semana' : 'Week') + '</div>';
+            info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarWeek + ' / 4</div></div>';
+            info += '</div>';
+            info += '<div style="text-align:center;margin-top:4px;font-size:0.72em;color:rgba(224,176,255,0.55);font-style:italic;">' + _lunarPhaseName + '</div>';
+        }
     }
 
     // ===== DATA GRID =====
@@ -9229,9 +9466,9 @@ function _renderCompass() {
     var compassQColor = _compassHasAbsolute ? '#4ecdc4' : '#ff6b6b';
     info += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:8px;text-align:center;">';
     var cells = [
-        { label: L?'Azimut':'Azimuth', val: moonAz.toFixed(1) + '° ' + moonCardinal, color: '#ffd54f' },
-        { label: L?'Altitud':'Altitude', val: (moonAlt >= 0 ? '+' : '') + moonAlt.toFixed(1) + '°', color: moonBelowHorizon ? '#616161' : '#b0bec5' },
-        { label: L?'Fase':'Phase', val: moonPhaseIllum, color: '#e0b0ff' },
+        { label: L?'Azimut':'Azimuth', val: targetAz.toFixed(1) + '° ' + targetCardinal, color: targetColor },
+        { label: L?'Altitud':'Altitude', val: (targetAlt >= 0 ? '+' : '') + targetAlt.toFixed(1) + '°', color: targetBelowHorizon ? '#616161' : '#b0bec5' },
+        { label: isMoonMode ? (L?'Fase':'Phase') : (L?'Cuerpo':'Body'), val: isMoonMode ? targetPhaseIllum : targetName, color: '#e0b0ff' },
         { label: L?'Brújula':'Compass', val: heading.toFixed(0) + '°', color: compassQColor }
     ];
     cells.forEach(function(c) {
@@ -9241,8 +9478,8 @@ function _renderCompass() {
     });
     info += '</div>';
 
-    // ===== SUB-LUNAR POINT MAP =====
-    var subLunar = _getSubLunarPoint(now);
+    // ===== SUB-LUNAR POINT MAP (only for Moon mode) =====
+    var subLunar = isMoonMode ? _getSubLunarPoint(now) : null;
     if (subLunar) {
         // 2D/3D toggle
         info += '<div style="margin-top:10px;">';
@@ -9402,14 +9639,118 @@ function _renderCompass() {
         info += '</div>';
     }
 
+    // ===== CONSTELLATION STAR PATTERN (only for constellation mode) =====
+    if (isConstellation) {
+        var constId2 = _compassMode.substring(6);
+        var constellation2 = _constellationData.find(function(c) { return c.id === constId2; });
+        if (constellation2 && constellation2.stars && constellation2.stars.length > 0) {
+            var observer2 = new Astronomy.Observer(lat, lon, 0);
+            var t2 = Astronomy.MakeTime(now);
+            // Calculate horizon coords for each star
+            var starHorizons = [];
+            var visibleCount = 0;
+            for (var si = 0; si < constellation2.stars.length; si++) {
+                try {
+                    var sHor = Astronomy.Horizon(t2, observer2, constellation2.stars[si].ra, constellation2.stars[si].dec, 'normal');
+                    starHorizons.push({ az: sHor.azimuth, alt: sHor.altitude, visible: sHor.altitude >= 0 });
+                    if (sHor.altitude >= 0) visibleCount++;
+                } catch(e) {
+                    starHorizons.push({ az: 0, alt: -90, visible: false });
+                }
+            }
+
+            // ── Star Pattern Diagram (schematic view based on RA/Dec) ──
+            info += '<div style="margin-top:10px;">';
+            info += '<div style="font-size:0.72em;color:rgba(192,224,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">' + (L ? 'PATRÓN DE ' + targetName.toUpperCase() : targetName.toUpperCase() + ' PATTERN') + '</div>';
+
+            var pW = 260, pH = 180;
+            var patSvg = '<svg width="' + pW + '" height="' + pH + '" viewBox="0 0 ' + pW + ' ' + pH + '" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;border-radius:10px;border:1px solid rgba(192,224,255,0.15);background:radial-gradient(ellipse at center,#0d0d28 0%,#050510 100%);">';
+
+            // Background stars (decorative)
+            for (var bs = 0; bs < 30; bs++) {
+                var bx = Math.random() * pW;
+                var by = Math.random() * pH;
+                var bsz = Math.random() * 1.2 + 0.3;
+                patSvg += '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="' + bsz.toFixed(1) + '" fill="rgba(255,255,255,' + (Math.random() * 0.15 + 0.03).toFixed(2) + ')"/>';
+            }
+
+            // Calculate star positions in SVG using RA/Dec (schematic projection)
+            var minRa = 999, maxRa = -999, minDec = 999, maxDec = -999;
+            for (var si2 = 0; si2 < constellation2.stars.length; si2++) {
+                var sRa = constellation2.stars[si2].ra;
+                var sDec = constellation2.stars[si2].dec;
+                if (sRa < minRa) minRa = sRa;
+                if (sRa > maxRa) maxRa = sRa;
+                if (sDec < minDec) minDec = sDec;
+                if (sDec > maxDec) maxDec = sDec;
+            }
+            var raRange = maxRa - minRa || 1;
+            var decRange = maxDec - minDec || 1;
+            var padPx = 35;
+            var starPts = [];
+            for (var si3 = 0; si3 < constellation2.stars.length; si3++) {
+                // RA increases to the left in sky charts, so invert X
+                var sx = padPx + (1 - (constellation2.stars[si3].ra - minRa) / raRange) * (pW - 2 * padPx);
+                var sy = padPx + (1 - (constellation2.stars[si3].dec - minDec) / decRange) * (pH - 2 * padPx);
+                starPts.push({ x: sx, y: sy, visible: starHorizons[si3].visible, alt: starHorizons[si3].alt });
+            }
+
+            // Draw connecting lines first (behind stars)
+            if (constellation2.lines) {
+                for (var li = 0; li < constellation2.lines.length; li++) {
+                    var lFrom = constellation2.lines[li][0];
+                    var lTo = constellation2.lines[li][1];
+                    if (lFrom < starPts.length && lTo < starPts.length) {
+                        var lineOpacity = (starPts[lFrom].visible && starPts[lTo].visible) ? '0.5' : '0.15';
+                        patSvg += '<line x1="' + starPts[lFrom].x.toFixed(1) + '" y1="' + starPts[lFrom].y.toFixed(1) + '" x2="' + starPts[lTo].x.toFixed(1) + '" y2="' + starPts[lTo].y.toFixed(1) + '" stroke="rgba(192,224,255,' + lineOpacity + ')" stroke-width="1.5"/>';
+                    }
+                }
+            }
+
+            // Draw stars
+            for (var si4 = 0; si4 < starPts.length; si4++) {
+                var starOp = starPts[si4].visible ? '1' : '0.25';
+                var starSz = starPts[si4].visible ? 4 : 2.5;
+                var starColor2 = starPts[si4].visible ? '#e8f0ff' : '#556';
+                patSvg += '<circle cx="' + starPts[si4].x.toFixed(1) + '" cy="' + starPts[si4].y.toFixed(1) + '" r="' + starSz + '" fill="' + starColor2 + '" opacity="' + starOp + '">';
+                if (starPts[si4].visible) {
+                    patSvg += '<animate attributeName="opacity" values="0.7;1;0.7" dur="' + (2 + Math.random() * 2).toFixed(1) + 's" repeatCount="indefinite"/>';
+                }
+                patSvg += '</circle>';
+                // Glow for visible stars
+                if (starPts[si4].visible) {
+                    patSvg += '<circle cx="' + starPts[si4].x.toFixed(1) + '" cy="' + starPts[si4].y.toFixed(1) + '" r="8" fill="none" stroke="rgba(192,224,255,0.15)" stroke-width="1"/>';
+                }
+            }
+
+            // Constellation name label
+            patSvg += '<text x="' + (pW / 2) + '" y="' + (pH - 8) + '" fill="rgba(192,224,255,0.4)" font-size="9" text-anchor="middle" font-style="italic">' + targetName + '</text>';
+            patSvg += '</svg>';
+            info += patSvg;
+
+            // Visibility info
+            info += '<div style="display:flex;justify-content:center;gap:12px;margin-top:6px;font-size:0.7em;">';
+            info += '<span style="color:rgba(192,224,255,0.6);">✦ ' + visibleCount + '/' + constellation2.stars.length + ' ' + (L ? 'estrellas visibles' : 'stars visible') + '</span>';
+            if (visibleCount === 0) {
+                info += '<span style="color:rgba(255,107,107,0.6);">' + (L ? 'Bajo el horizonte' : 'Below horizon') + '</span>';
+            } else if (visibleCount === constellation2.stars.length) {
+                info += '<span style="color:rgba(78,205,196,0.7);">' + (L ? 'Totalmente visible' : 'Fully visible') + '</span>';
+            } else {
+                info += '<span style="color:rgba(255,213,79,0.6);">' + (L ? 'Parcialmente visible' : 'Partially visible') + '</span>';
+            }
+            info += '</div>';
+            info += '</div>';
+        }
+    }
+
     // Status message
-    if (moonBelowHorizon) {
+    if (targetBelowHorizon) {
         info += '<div style="margin-top:8px;padding:6px 10px;background:rgba(97,97,97,0.1);border:1px solid rgba(97,97,97,0.2);border-radius:8px;font-size:0.78em;color:#9e9e9e;">';
-        info += (L ? '🌙 Luna bajo el horizonte (' + moonAlt.toFixed(1) + '°)' : '🌙 Moon below horizon (' + moonAlt.toFixed(1) + '°)');
+        info += targetIcon + ' ' + targetName + (L ? ' bajo el horizonte (' : ' below horizon (') + targetAlt.toFixed(1) + '°)';
         info += '</div>';
     } else {
-        info += '<div style="margin-top:8px;padding:6px 10px;background:rgba(255,213,79,0.06);border:1px solid rgba(255,213,79,0.15);border-radius:8px;font-size:0.78em;color:#ffd54f;">';
-        info += (L ? '🌙 Apunta tu teléfono hacia la flecha' : '🌙 Point your phone toward the arrow');
+        info += '<div style="margin-top:8px;padding:6px 10px;background:rgba(200,180,255,0.06);border:1px solid rgba(200,180,255,0.15);border-radius:8px;font-size:0.78em;color:' + targetColor + ';">';
+        info += targetIcon + ' ' + (L ? 'Apunta tu teléfono hacia la flecha' : 'Point your phone toward the arrow');
         info += '</div>';
     }
     // Compass quality / calibration warning
@@ -26220,7 +26561,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v470';
+const APP_VERSION = 'v471';
 var _pendingSW = null;
 
 // What's New removed per user request
