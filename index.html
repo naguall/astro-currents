@@ -16583,7 +16583,7 @@ function saveNatalForm() {
     // Calculate natal chart
     const birthUTC = getBirthUTCTime(date, time, data.lat, data.lon, countryCode);
     const chart = calculateNatalChart(birthUTC);
-    chart._engineVer = 'v469';
+    chart._engineVer = 'v470';
     localStorage.setItem('natalChart', JSON.stringify(chart));
     // Also save per-profile chart cache
     localStorage.setItem('natalChart_' + activeId, JSON.stringify(chart));
@@ -19116,8 +19116,8 @@ function renderPersonalCalendar() {
         natalChart = profileChart ? JSON.parse(profileChart) : JSON.parse(localStorage.getItem('natalChart'));
     } catch(e) { natalChart = null; }
     // Force recalculation if chart was computed by an older engine version
-    // Bumped to v469 after fixing Placidus H2/H3 cusp formulas + country code case + lon parameter
-    const NATAL_ENGINE_VER = 'v469';
+    // Bumped to v470 after fixing Placidus H2/H3 cusp formulas + country code case + lon parameter
+    const NATAL_ENGINE_VER = 'v470';
     if (!natalChart || natalChart._engineVer !== NATAL_ENGINE_VER) {
         natalChart = calculateNatalChart(birthUTC);
         natalChart._engineVer = NATAL_ENGINE_VER;
@@ -25785,63 +25785,95 @@ function selectCity(lat, lon, name) {
 
 function requestGPS() {
     const btn = document.getElementById('gpsBtn');
-    btn.textContent = currentLang==='es'?'Obteniendo ubicación...':'Getting location...';
+    var L = currentLang === 'es';
+    btn.textContent = L ? 'Obteniendo ubicación...' : 'Getting location...';
+
+    // Safety timeout: reset button if it's still loading after 20 seconds
+    var _gpsTimeout = setTimeout(function() {
+        if (btn && (btn.textContent.indexOf('Obteniendo') >= 0 || btn.textContent.indexOf('Getting') >= 0)) {
+            btn.textContent = L ? '⚠️ Tiempo agotado' : '⚠️ Timed out';
+            setTimeout(function() {
+                if (btn) btn.textContent = L ? '📍 Obtener ubicación GPS' : '📍 Get GPS Location';
+            }, 3000);
+        }
+    }, 20000);
+
+    function _gpsResetBtn(text) {
+        clearTimeout(_gpsTimeout);
+        if (btn) btn.textContent = text;
+    }
+
     if (!navigator.geolocation) {
-        btn.textContent = currentLang==='es'?'GPS no disponible':'GPS not available';
+        _gpsResetBtn(L ? 'GPS no disponible' : 'GPS not available');
         return;
     }
+
     navigator.geolocation.getCurrentPosition(
         pos => {
-            const lat = Math.round(pos.coords.latitude * 100) / 100;
-            const lon = Math.round(pos.coords.longitude * 100) / 100;
-            // Helper: fallback to CITIES_DB
-            function fallbackCityName() {
-                let nearestCity = null, nearestDist = Infinity;
-                for (const city of _allCities) {
-                    const dLat = city.lat - lat;
-                    const dLon = city.lon - lon;
-                    const dist = dLat * dLat + dLon * dLon;
-                    if (dist < nearestDist) { nearestDist = dist; nearestCity = city; }
+            try {
+                const lat = Math.round(pos.coords.latitude * 100) / 100;
+                const lon = Math.round(pos.coords.longitude * 100) / 100;
+                // Helper: fallback to CITIES_DB
+                function fallbackCityName() {
+                    try {
+                        let nearestCity = null, nearestDist = Infinity;
+                        for (const city of _allCities) {
+                            const dLat = city.lat - lat;
+                            const dLon = city.lon - lon;
+                            const dist = dLat * dLat + dLon * dLon;
+                            if (dist < nearestDist) { nearestDist = dist; nearestCity = city; }
+                        }
+                        return (nearestCity && nearestDist < 4) ? nearestCity.n : `${lat.toFixed(2)}°${lat>=0?'N':'S'}, ${Math.abs(lon).toFixed(2)}°${lon>=0?'E':'W'}`;
+                    } catch(e) {
+                        return `${lat.toFixed(2)}°${lat>=0?'N':'S'}, ${Math.abs(lon).toFixed(2)}°${lon>=0?'E':'W'}`;
+                    }
                 }
-                return (nearestCity && nearestDist < 4) ? nearestCity.n : `${lat.toFixed(2)}°${lat>=0?'N':'S'}, ${Math.abs(lon).toFixed(2)}°${lon>=0?'E':'W'}`;
+
+                function _applyLocation(name) {
+                    try {
+                        setUserLocation(lat, lon, name);
+                        updateLocationTimeBanner();
+                    } catch(e) {
+                        console.error('GPS setUserLocation error:', e);
+                    }
+                    _gpsResetBtn('📍 ' + name.split(',')[0]);
+                }
+
+                // Try reverse geocoding via Nominatim (OpenStreetMap) — free, no API key
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&zoom=14&addressdetails=1`, {
+                    headers: { 'Accept-Language': currentLang === 'es' ? 'es' : 'en' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    let name = '';
+                    if (data && data.address) {
+                        const a = data.address;
+                        const place = a.village || a.town || a.city || a.hamlet || a.suburb || a.municipality || a.county || '';
+                        const country = a.country || '';
+                        name = place ? (place + (country ? ', ' + country : '')) : '';
+                    }
+                    if (!name) name = fallbackCityName();
+                    _applyLocation(name);
+                })
+                .catch(() => {
+                    _applyLocation(fallbackCityName());
+                });
+            } catch(e) {
+                console.error('GPS success callback error:', e);
+                _gpsResetBtn(L ? '⚠️ Error GPS' : '⚠️ GPS Error');
+                setTimeout(function() {
+                    if (btn) btn.textContent = L ? '📍 Obtener ubicación GPS' : '📍 Get GPS Location';
+                }, 3000);
             }
-            // Try reverse geocoding via Nominatim (OpenStreetMap) — free, no API key
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&zoom=14&addressdetails=1`, {
-                headers: { 'Accept-Language': currentLang === 'es' ? 'es' : 'en' }
-            })
-            .then(r => r.json())
-            .then(data => {
-                let name = '';
-                if (data && data.address) {
-                    const a = data.address;
-                    // Try city/town/village/hamlet in order of specificity
-                    const place = a.village || a.town || a.city || a.hamlet || a.suburb || a.municipality || a.county || '';
-                    const country = a.country || '';
-                    name = place ? (place + (country ? ', ' + country : '')) : '';
-                }
-                if (!name) name = fallbackCityName();
-                setUserLocation(lat, lon, name);
-                updateLocationTimeBanner();
-                if (btn) btn.textContent = '📍 ' + name.split(',')[0];
-            })
-            .catch(() => {
-                // Offline or API error — use local database
-                var fname = fallbackCityName();
-                setUserLocation(lat, lon, fname);
-                updateLocationTimeBanner();
-                if (btn) btn.textContent = '📍 ' + fname.split(',')[0];
-            });
         },
         err => {
-            var L = currentLang === 'es';
             if (err.code === 1) {
-                btn.textContent = L ? '⚠️ Permiso denegado' : '⚠️ Permission denied';
+                _gpsResetBtn(L ? '⚠️ Permiso denegado' : '⚠️ Permission denied');
             } else if (err.code === 3) {
-                btn.textContent = L ? '⚠️ Tiempo agotado' : '⚠️ Timed out';
+                _gpsResetBtn(L ? '⚠️ Tiempo agotado' : '⚠️ Timed out');
             } else {
-                btn.textContent = L ? '⚠️ Error GPS' : '⚠️ GPS Error';
+                _gpsResetBtn(L ? '⚠️ Error GPS' : '⚠️ GPS Error');
             }
-            // Reset button after 3 seconds
             setTimeout(function() {
                 if (btn) btn.textContent = L ? '📍 Obtener ubicación GPS' : '📍 Get GPS Location';
             }, 3000);
@@ -26188,7 +26220,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v469';
+const APP_VERSION = 'v470';
 var _pendingSW = null;
 
 // What's New removed per user request
