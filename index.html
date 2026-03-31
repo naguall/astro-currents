@@ -24291,6 +24291,96 @@ function goToCurrentCycle() {
         modal.innerHTML = html;
     };
 
+    // ── Make h4 sections expandable ──
+    function _makeExpandable(content) {
+        // Convert h4 sections into clickable expandable sections
+        return content.replace(/<h4>(.*?)<\/h4>([\s\S]*?)(?=<h4>|<h3>|$)/g, function(match, title, body) {
+            var id = 'exp_' + Math.random().toString(36).substr(2, 6);
+            return '<div style="margin-bottom:8px;border:1px solid rgba(201,168,64,0.2);border-radius:10px;overflow:hidden;">' +
+                '<div onclick="var b=document.getElementById(\'' + id + '\');var a=this.querySelector(\'span:first-child\');if(b.style.display===\'none\'){b.style.display=\'block\';a.textContent=\'▼\'}else{b.style.display=\'none\';a.textContent=\'▶\'}" style="padding:10px 12px;background:rgba(201,168,64,0.08);cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;">' +
+                '<span style="color:#c9a840;font-size:0.8em;">▶</span><span style="font-weight:700;color:#ffd54f;font-size:0.85em;">' + title + '</span></div>' +
+                '<div id="' + id + '" style="display:none;padding:10px 12px;font-size:0.83em;color:rgba(255,255,255,0.8);line-height:1.6;">' + body.trim() + '</div></div>';
+        });
+    }
+
+    // ── Course AI Chat ──
+    var _courseAIChatHistory = [];
+    var _courseAITyping = false;
+
+    function _buildCourseChatHTML(isES, lessonTitle, modTitle) {
+        return '<div style="margin-top:20px;border:1px solid rgba(102,126,234,0.3);border-radius:12px;overflow:hidden;">' +
+            '<div style="padding:10px 12px;background:rgba(102,126,234,0.1);border-bottom:1px solid rgba(102,126,234,0.2);display:flex;align-items:center;gap:8px;">' +
+            '<span style="font-size:1.1em;">🤖</span><div><div style="font-weight:700;color:#667eea;font-size:0.82em;">' + (isES ? 'Tutor AI — Pregunta lo que quieras' : 'AI Tutor — Ask anything') + '</div>' +
+            '<div style="font-size:0.65em;color:rgba(255,255,255,0.35);">' + (isES ? 'Expande temas, pide ejemplos, aclara dudas' : 'Expand topics, ask for examples, clarify doubts') + '</div></div></div>' +
+            '<div id="courseAIChatMsgs" style="max-height:300px;overflow-y:auto;padding:8px 12px;"></div>' +
+            '<div style="padding:8px 12px;border-top:1px solid rgba(102,126,234,0.15);display:flex;gap:6px;align-items:flex-end;">' +
+            '<textarea id="courseAIChatInput" rows="1" placeholder="' + (isES ? 'Pregunta sobre ' + lessonTitle + '...' : 'Ask about ' + lessonTitle + '...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);border-radius:10px;color:white;padding:8px 10px;font-size:0.82em;resize:none;outline:none;font-family:inherit;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendCourseAIChat();}"></textarea>' +
+            '<button onclick="sendCourseAIChat()" style="background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#667eea;padding:8px 12px;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>' +
+            '</div></div>';
+    }
+
+    window.sendCourseAIChat = async function() {
+        if (_courseAITyping) return;
+        var input = document.getElementById('courseAIChatInput');
+        var msgs = document.getElementById('courseAIChatMsgs');
+        if (!input || !msgs) return;
+        var text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        input.style.height = 'auto';
+
+        // Add user message
+        msgs.innerHTML += '<div style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:12px 12px 4px 12px;font-size:0.82em;color:rgba(255,255,255,0.85);text-align:left;">' + text.replace(/</g,'&lt;') + '</div></div>';
+        msgs.scrollTop = msgs.scrollHeight;
+
+        _courseAIChatHistory.push({role: 'user', parts: [{text: text}]});
+
+        // Loading indicator
+        msgs.innerHTML += '<div id="courseAILoading" style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;font-size:0.82em;color:rgba(255,255,255,0.4);">...</div></div>';
+        msgs.scrollTop = msgs.scrollHeight;
+
+        _courseAITyping = true;
+        try {
+            if (typeof aiIsConfigured !== 'function' || !aiIsConfigured()) {
+                var ld = document.getElementById('courseAILoading'); if (ld) ld.remove();
+                var isES = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
+                msgs.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;max-width:85%;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">' + (isES ? 'Configura tu API key de Gemini en ⚙️ Preferencias.' : 'Set up your Gemini API key in ⚙️ Preferences.') + '</div></div>';
+                _courseAITyping = false;
+                return;
+            }
+            var isES = (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es';
+            var sysPrompt = (isES ? 'Eres un tutor experto de astrología profesional. Respondes en español de forma clara, didáctica y profunda. Usa ejemplos prácticos. Si te preguntan sobre un tema, da la explicación más completa y profesional posible. Relaciona con la carta natal del estudiante cuando sea relevante.' : 'You are an expert professional astrology tutor. Answer clearly, didactically and in depth. Use practical examples. Give the most complete and professional explanation possible.');
+            var personalKey = typeof getGeminiKey === 'function' ? getGeminiKey() : null;
+            var apiUrl = personalKey
+                ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey
+                : (typeof AI_PROXY_URL !== 'undefined' ? AI_PROXY_URL : '');
+            var response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    system_instruction: {parts: [{text: sysPrompt}]},
+                    contents: _courseAIChatHistory,
+                    generationConfig: {temperature: 0.7, maxOutputTokens: 4096}
+                })
+            });
+            var ld = document.getElementById('courseAILoading'); if (ld) ld.remove();
+            if (response.ok) {
+                var data = await response.json();
+                var reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : (isES ? 'Sin respuesta' : 'No response');
+                _courseAIChatHistory.push({role: 'model', parts: [{text: reply}]});
+                var formatted = reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+                msgs.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.5;"><p>' + formatted + '</p></div></div>';
+            } else {
+                msgs.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ Error</div></div>';
+            }
+        } catch(e) {
+            var ld = document.getElementById('courseAILoading'); if (ld) ld.remove();
+            msgs.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ ' + (e.message || 'Error') + '</div></div>';
+        }
+        _courseAITyping = false;
+        msgs.scrollTop = msgs.scrollHeight;
+    };
+
     // ── UI: Lesson View (Theory/Practice/Quiz) ──
     window.openCourseLesson = function(modIdx, lessonIdx) {
         var isES = L();
@@ -24300,6 +24390,15 @@ function goToCurrentCycle() {
 
         var modal = document.getElementById('astroCourseModal');
         if (!modal) return;
+
+        // Reset chat history for new lesson
+        _courseAIChatHistory = [];
+        // Seed chat with lesson context
+        var contextMsg = isES
+            ? 'El estudiante está en el módulo "' + mod.title_es + '", lección "' + lesson.title_es + '". Contexto del tema: ' + (lesson.content_es || lesson.title_es).replace(/<[^>]+>/g, '').substring(0, 500)
+            : 'The student is in module "' + mod.title_en + '", lesson "' + lesson.title_en + '". Topic context: ' + (lesson.content_en || lesson.title_en).replace(/<[^>]+>/g, '').substring(0, 500);
+        _courseAIChatHistory.push({role: 'user', parts: [{text: contextMsg}]});
+        _courseAIChatHistory.push({role: 'model', parts: [{text: isES ? 'Entendido. Estoy listo para ayudarte con este tema. ¿Qué te gustaría saber?' : 'Understood. I\'m ready to help you with this topic. What would you like to know?'}]});
 
         var html = '<div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,64,0.2);flex-shrink:0;">' +
             '<div style="display:flex;align-items:center;gap:10px;"><button onclick="openCourseModule(' + modIdx + ')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.8em;cursor:pointer;">←</button>' +
@@ -24312,20 +24411,23 @@ function goToCurrentCycle() {
             html += _renderQuiz(modIdx, lessonIdx, isES);
             html += '</div>';
         } else {
-            // Theory or Practice view
-            var content = isES ? lesson.content_es : lesson.content_en;
-            html += '<div style="flex:1;padding:16px;overflow-y:auto;"><div style="color:rgba(255,255,255,0.85);font-size:0.85em;line-height:1.65;">' + content + '</div>';
+            // Theory or Practice view — with expandable sections
+            var rawContent = isES ? lesson.content_es : lesson.content_en;
+            var content = _makeExpandable(rawContent);
+            html += '<div style="flex:1;padding:16px;overflow-y:auto;">' +
+                '<div style="color:rgba(255,255,255,0.85);font-size:0.85em;line-height:1.65;">' + content + '</div>';
 
-            // Mark as done button
+            // AI Chat for this lesson
+            html += _buildCourseChatHTML(isES, isES ? lesson.title_es : lesson.title_en, isES ? mod.title_es : mod.title_en);
+
+            // Mark as done + navigation
             var isDone = _isLessonDone(lesson.id);
-            html += '<div style="margin-top:20px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;">';
+            html += '<div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;">';
             if (!isDone) {
-                html += '<button onclick="markCourseLessonDone(\'' + lesson.id + '\',' + modIdx + ',' + lessonIdx + ')" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(102,187,106,0.2),rgba(102,187,106,0.1));border:1px solid rgba(102,187,106,0.4);border-radius:10px;color:#66bb6a;font-size:0.85em;font-weight:700;cursor:pointer;">✅ ' + (isES ? 'Marcar como completado' : 'Mark as completed') + '</button>';
+                html += '<button onclick="markCourseLessonDone(\'' + lesson.id + '\',' + modIdx + ',' + lessonIdx + ')" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(102,187,106,0.2),rgba(102,187,106,0.1));border:1px solid rgba(102,187,106,0.4);border-radius:10px;color:#66bb6a;font-size:0.85em;font-weight:700;cursor:pointer;">✅ ' + (isES ? 'Completado' : 'Completed') + '</button>';
             } else {
                 html += '<div style="flex:1;padding:12px;text-align:center;color:#66bb6a;font-size:0.85em;font-weight:600;">✅ ' + (isES ? 'Completado' : 'Completed') + '</div>';
             }
-
-            // Next lesson
             if (lessonIdx < mod.lessons.length - 1) {
                 html += '<button onclick="openCourseLesson(' + modIdx + ',' + (lessonIdx + 1) + ')" style="padding:12px 20px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:10px;color:#c9a840;font-size:0.85em;font-weight:600;cursor:pointer;">' + (isES ? 'Siguiente' : 'Next') + ' →</button>';
             }
@@ -24351,10 +24453,10 @@ function goToCurrentCycle() {
         questions.forEach(function(q, qIdx) {
             var qText = isES ? q.q_es : q.q_en;
             var opts = isES ? q.opts_es : q.opts_en;
-            html += '<div style="margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:10px;">' +
+            html += '<div id="quizQ_' + qIdx + '" style="margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:10px;">' +
                 '<div style="font-weight:600;color:#fff;font-size:0.85em;margin-bottom:10px;">' + (qIdx + 1) + '. ' + qText + '</div>';
             opts.forEach(function(opt, oIdx) {
-                html += '<label style="display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:4px;border-radius:8px;cursor:pointer;font-size:0.82em;color:rgba(255,255,255,0.7);" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'transparent\'">' +
+                html += '<label id="quizOpt_' + qIdx + '_' + oIdx + '" style="display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:4px;border-radius:8px;cursor:pointer;font-size:0.82em;color:rgba(255,255,255,0.7);transition:all 0.3s;" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'transparent\'">' +
                     '<input type="radio" name="cq_' + qIdx + '" value="' + oIdx + '" style="accent-color:#c9a840;"> ' + opt + '</label>';
             });
             html += '</div>';
@@ -24370,10 +24472,14 @@ function goToCurrentCycle() {
         var lesson = CURRICULUM[modIdx].lessons[lessonIdx];
         var questions = lesson.questions;
         var correct = 0;
+        var userAnswers = [];
 
         questions.forEach(function(q, qIdx) {
             var selected = document.querySelector('input[name="cq_' + qIdx + '"]:checked');
-            if (selected && parseInt(selected.value) === q.correct) correct++;
+            var selIdx = selected ? parseInt(selected.value) : -1;
+            var isCorrect = selIdx === q.correct;
+            if (isCorrect) correct++;
+            userAnswers.push({ selected: selIdx, correct: q.correct, isCorrect: isCorrect });
         });
 
         var score = Math.round((correct / questions.length) * 100);
@@ -24389,12 +24495,49 @@ function goToCurrentCycle() {
         var resultMsg = passed ? (isES ? '¡Felicidades! Aprobaste esta evaluación.' : 'Congratulations! You passed this quiz.') :
             (isES ? 'No aprobaste. Necesitas 60% para aprobar. Repasa las lecciones e inténtalo de nuevo.' : 'You didn\'t pass. You need 60% to pass. Review the lessons and try again.');
 
-        area.innerHTML = '<div style="text-align:center;padding:40px 20px;">' +
+        var reviewHtml = '';
+        // Build error review section
+        var hasErrors = userAnswers.some(function(a) { return !a.isCorrect; });
+        if (hasErrors) {
+            reviewHtml += '<div style="margin-top:20px;text-align:left;width:100%;max-width:400px;margin-left:auto;margin-right:auto;">' +
+                '<div style="font-weight:700;color:#ff6b6b;font-size:0.85em;margin-bottom:12px;text-align:center;">' + (isES ? '📋 Revisión de Errores' : '📋 Error Review') + '</div>';
+            questions.forEach(function(q, qIdx) {
+                var ua = userAnswers[qIdx];
+                if (ua.isCorrect) return; // Skip correct answers
+                var qText = isES ? q.q_es : q.q_en;
+                var opts = isES ? q.opts_es : q.opts_en;
+                var yourAnswer = ua.selected >= 0 ? opts[ua.selected] : (isES ? '(Sin respuesta)' : '(No answer)');
+                var correctAnswer = opts[q.correct];
+                reviewHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:10px;font-size:0.82em;">' +
+                    '<div style="color:rgba(255,255,255,0.7);font-weight:600;margin-bottom:6px;">' + (qIdx + 1) + '. ' + qText + '</div>' +
+                    '<div style="color:#ff6b6b;margin-bottom:3px;">❌ ' + (isES ? 'Tu respuesta: ' : 'Your answer: ') + yourAnswer + '</div>' +
+                    '<div style="color:#66bb6a;">✅ ' + (isES ? 'Correcta: ' : 'Correct: ') + correctAnswer + '</div></div>';
+            });
+            reviewHtml += '</div>';
+        }
+
+        // Also show correct answers with check marks
+        var correctReview = '';
+        var hasCorrects = userAnswers.some(function(a) { return a.isCorrect; });
+        if (hasCorrects) {
+            correctReview += '<div style="margin-top:12px;text-align:left;width:100%;max-width:400px;margin-left:auto;margin-right:auto;">' +
+                '<div style="font-weight:700;color:#66bb6a;font-size:0.85em;margin-bottom:8px;text-align:center;">' + (isES ? '✅ Respuestas Correctas' : '✅ Correct Answers') + '</div>';
+            questions.forEach(function(q, qIdx) {
+                if (!userAnswers[qIdx].isCorrect) return;
+                var opts = isES ? q.opts_es : q.opts_en;
+                correctReview += '<div style="margin-bottom:4px;padding:6px 10px;background:rgba(102,187,106,0.06);border-radius:8px;font-size:0.78em;color:rgba(255,255,255,0.5);">' +
+                    (qIdx+1) + '. ✅ ' + opts[q.correct] + '</div>';
+            });
+            correctReview += '</div>';
+        }
+
+        area.innerHTML = '<div style="text-align:center;padding:30px 16px;">' +
             '<div style="font-size:3em;margin-bottom:16px;">' + resultIcon + '</div>' +
             '<div style="font-size:2em;font-weight:800;color:' + resultColor + ';">' + score + '%</div>' +
-            '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);margin:12px 0 24px;">' + correct + '/' + questions.length + ' ' + (isES ? 'correctas' : 'correct') + '</div>' +
-            '<div style="font-size:0.9em;color:rgba(255,255,255,0.6);margin-bottom:24px;">' + resultMsg + '</div>' +
-            '<div style="display:flex;gap:8px;justify-content:center;">' +
+            '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);margin:12px 0 16px;">' + correct + '/' + questions.length + ' ' + (isES ? 'correctas' : 'correct') + '</div>' +
+            '<div style="font-size:0.9em;color:rgba(255,255,255,0.6);margin-bottom:16px;">' + resultMsg + '</div>' +
+            reviewHtml + correctReview +
+            '<div style="display:flex;gap:8px;justify-content:center;margin-top:20px;">' +
             (!passed ? '<button onclick="openCourseLesson(' + modIdx + ',' + lessonIdx + ')" style="padding:12px 20px;background:rgba(255,107,107,0.15);border:1px solid rgba(255,107,107,0.3);border-radius:10px;color:#ff6b6b;font-size:0.85em;font-weight:600;cursor:pointer;">🔄 ' + (isES ? 'Reintentar' : 'Retry') + '</button>' : '') +
             '<button onclick="openCourseModule(' + modIdx + ')" style="padding:12px 20px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:10px;color:#c9a840;font-size:0.85em;font-weight:600;cursor:pointer;">← ' + (isES ? 'Volver al módulo' : 'Back to module') + '</button>' +
             '</div></div>';
@@ -27998,7 +28141,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v487';
+const APP_VERSION = 'v488';
 var _pendingSW = null;
 
 // What's New removed per user request
