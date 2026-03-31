@@ -692,6 +692,10 @@
     <!-- Google Identity Services for Calendar sync -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+    <!-- Firebase SDK for AstroConnect Social Network -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
     <!-- Swiss Ephemeris WASM — professional-grade astronomical calculations (same engine as astro.com) -->
     <script type="module">
     import SwissEph from 'https://cdn.jsdelivr.net/gh/prolaxu/swisseph-wasm@main/src/swisseph.js';
@@ -735,6 +739,7 @@
                 <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Solar</button>
                 <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="gregorianButtonLabel">Greg</span></button>
                 <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Astro</span></button>
+                <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">🌐 Social</button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
@@ -4091,6 +4096,8 @@ function updateUILanguage() {
         switchToPersonalMode();
     } else if (calendarMode === 'personal') {
         switchToPersonalMode();
+    } else if (calendarMode === 'social') {
+        switchToSocialMode();
     }
 }
 
@@ -14638,9 +14645,10 @@ function updateModeButtons() {
     const personalBtn = document.getElementById('personalModeBtn');
 
     const asp2026Btn = document.getElementById('aspects2026ModeBtn');
+    const socialBtn = document.getElementById('socialModeBtn');
 
     // Reset all
-    [lunarBtn, solarBtn, earthBtn, ssBtn, gregorianBtn, personalBtn, asp2026Btn].forEach(btn => {
+    [lunarBtn, solarBtn, earthBtn, ssBtn, gregorianBtn, personalBtn, asp2026Btn, socialBtn].forEach(btn => {
         if (!btn) return;
         btn.style.background = 'rgba(255,255,255,0.04)'; btn.style.border = '1px solid rgba(255,255,255,0.10)';
         btn.style.color = 'rgba(255,255,255,0.45)';
@@ -14660,6 +14668,7 @@ function updateModeButtons() {
     else if (calendarMode === 'gregorian') activeStyle(gregorianBtn, '#e8c84a');
     else if (calendarMode === 'personal') activeStyle(personalBtn, '#9b59b6');
     else if (calendarMode === 'aspects2026') activeStyle(asp2026Btn, '#e91e63');
+    else if (calendarMode === 'social') activeStyle(socialBtn, '#00bcd4');
 }
 
 // ══════════════════════════════════════════════════
@@ -28306,8 +28315,1447 @@ function forceAppUpdate() {
 }
 window.forceAppUpdate = forceAppUpdate;
 
+// ═══════════════════════════════════════════════════════════════════
+// ASTROCONNECT — Social Network for Astrological Connections (v489)
+// ═══════════════════════════════════════════════════════════════════
+(function() {
+'use strict';
+
+// ── Firebase Configuration ──
+// IMPORTANT: Replace with your Firebase project config
+var FIRE_CFG = {
+    apiKey: localStorage.getItem('astroconnect_firebase_apiKey') || '',
+    authDomain: localStorage.getItem('astroconnect_firebase_authDomain') || '',
+    projectId: localStorage.getItem('astroconnect_firebase_projectId') || '',
+    storageBucket: localStorage.getItem('astroconnect_firebase_storageBucket') || '',
+    messagingSenderId: localStorage.getItem('astroconnect_firebase_messagingSenderId') || '',
+    appId: localStorage.getItem('astroconnect_firebase_appId') || ''
+};
+
+var _fireApp = null;
+var _db = null;
+var _auth = null;
+var _socialUser = null;
+var _socialProfile = null;
+var _socialView = 'home'; // home, discover, communities, messages, profile, notifications
+var _matchCache = null;
+var _chatListeners = {};
+var _notifListener = null;
+var _unreadCount = 0;
+var _communityCache = {};
+var _feedCache = [];
+var _socialInitialized = false;
+
+function L() { return (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es'; }
+
+// ── Firebase Init ──
+function _initFirebase() {
+    if (_socialInitialized) return true;
+    if (!FIRE_CFG.apiKey || !FIRE_CFG.projectId) return false;
+    try {
+        if (!firebase.apps.length) {
+            _fireApp = firebase.initializeApp(FIRE_CFG);
+        } else {
+            _fireApp = firebase.apps[0];
+        }
+        _db = firebase.firestore();
+        _auth = firebase.auth();
+        _auth.onAuthStateChanged(function(user) {
+            _socialUser = user;
+            if (user) {
+                _loadProfile(user.uid);
+                _listenNotifications(user.uid);
+            } else {
+                _socialProfile = null;
+                _unreadCount = 0;
+            }
+            if (typeof calendarMode !== 'undefined' && calendarMode === 'social') {
+                _renderSocial();
+            }
+        });
+        _socialInitialized = true;
+        return true;
+    } catch(e) {
+        console.error('AstroConnect Firebase init error:', e);
+        return false;
+    }
+}
+
+// ── Auth Functions ──
+function _signInGoogle() {
+    if (!_auth) return;
+    var provider = new firebase.auth.GoogleAuthProvider();
+    _auth.signInWithPopup(provider).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function _signInEmail(email, pass) {
+    if (!_auth) return;
+    _auth.signInWithEmailAndPassword(email, pass).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function _signUpEmail(email, pass, displayName) {
+    if (!_auth) return;
+    _auth.createUserWithEmailAndPassword(email, pass).then(function(cred) {
+        return cred.user.updateProfile({ displayName: displayName });
+    }).then(function() {
+        _socialUser = _auth.currentUser;
+        _renderSocial();
+    }).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function _signOut() {
+    if (_auth) _auth.signOut();
+    _socialProfile = null;
+    _matchCache = null;
+    Object.keys(_chatListeners).forEach(function(k) { if (_chatListeners[k]) _chatListeners[k](); });
+    _chatListeners = {};
+    if (_notifListener) { _notifListener(); _notifListener = null; }
+}
+
+// ── Profile Management ──
+function _loadProfile(uid) {
+    if (!_db) return;
+    _db.collection('users').doc(uid).get().then(function(doc) {
+        if (doc.exists) {
+            _socialProfile = doc.data();
+            _socialProfile._uid = uid;
+        }
+    });
+}
+
+function _publishProfile(callback) {
+    if (!_socialUser || !_db) return;
+    var natal = typeof getNatalData === 'function' ? getNatalData() : null;
+    if (!natal) { alert(L() ? 'Primero configura tu carta natal en la sección Astro' : 'First set up your natal chart in the Astro section'); return; }
+
+    var chartKey = 'natalChart_' + natal.id;
+    var chartRaw = localStorage.getItem(chartKey) || localStorage.getItem('natalChart');
+    var chart = null;
+    try { chart = JSON.parse(chartRaw); } catch(e) {}
+    if (!chart || !chart.planets) {
+        alert(L() ? 'No se encontró la carta natal calculada. Ve a Astro y espera que se calcule.' : 'Calculated natal chart not found. Go to Astro and wait for calculation.');
+        return;
+    }
+
+    // Build searchable profile
+    var planets = chart.planets;
+    var houses = chart.houses;
+    var profile = {
+        displayName: _socialUser.displayName || _socialUser.email.split('@')[0],
+        photoURL: _socialUser.photoURL || '',
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        // Searchable planet data
+        sunSign: planets.sun ? planets.sun.sign : '',
+        sunDegree: planets.sun ? Math.floor(planets.sun.degree) : 0,
+        moonSign: planets.moon ? planets.moon.sign : '',
+        moonDegree: planets.moon ? Math.floor(planets.moon.degree) : 0,
+        ascSign: houses ? _signFromLong(houses.ascendant) : '',
+        ascDegree: houses ? Math.floor(houses.ascendant % 30) : 0,
+        mercurySign: planets.mercury ? planets.mercury.sign : '',
+        venusSign: planets.venus ? planets.venus.sign : '',
+        marsSign: planets.mars ? planets.mars.sign : '',
+        jupiterSign: planets.jupiter ? planets.jupiter.sign : '',
+        saturnSign: planets.saturn ? planets.saturn.sign : '',
+        uranusSign: planets.uranus ? planets.uranus.sign : '',
+        neptuneSign: planets.neptune ? planets.neptune.sign : '',
+        plutoSign: planets.pluto ? planets.pluto.sign : '',
+        chironSign: planets.chiron ? planets.chiron.sign : '',
+        northnodeSign: planets.northnode ? planets.northnode.sign : '',
+        // Full chart data for detailed comparison
+        chartData: {
+            planets: _serializePlanets(planets),
+            houses: houses ? { ascendant: houses.ascendant, mc: houses.mc, cusps: houses.cusps } : null,
+            aspects: chart.natalAspects ? chart.natalAspects.slice(0, 50) : [],
+            elements: chart.elementQuality || null
+        },
+        // Privacy (default: show signs only)
+        privacy: _socialProfile && _socialProfile.privacy ? _socialProfile.privacy : {
+            showBirthData: false,
+            showDegrees: true,
+            showHouses: true,
+            showAspects: true,
+            allowMessages: true,
+            showOnSearch: true
+        },
+        bio: _socialProfile && _socialProfile.bio ? _socialProfile.bio : '',
+        online: true
+    };
+
+    _db.collection('users').doc(_socialUser.uid).set(profile, { merge: true }).then(function() {
+        _socialProfile = profile;
+        _socialProfile._uid = _socialUser.uid;
+        if (callback) callback();
+        _renderSocial();
+    }).catch(function(e) { alert('Error: ' + e.message); });
+}
+
+function _serializePlanets(planets) {
+    var result = {};
+    ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode','lilith'].forEach(function(p) {
+        if (planets[p]) {
+            result[p] = {
+                sign: planets[p].sign || '',
+                degree: planets[p].degree || 0,
+                longitude: planets[p].longitude || 0,
+                isRetrograde: planets[p].isRetrograde || false
+            };
+        }
+    });
+    return result;
+}
+
+function _signFromLong(lng) {
+    var signs = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+    return signs[Math.floor((lng % 360) / 30)];
+}
+
+// ── Matching Algorithm ──
+function _calcSimilarity(myChart, theirChart) {
+    if (!myChart || !theirChart || !myChart.planets || !theirChart.planets) return 0;
+    var score = 0;
+    var maxScore = 0;
+
+    // Planet sign matches (weighted)
+    var weights = { sun: 12, moon: 14, mercury: 6, venus: 10, mars: 8, jupiter: 5, saturn: 5, uranus: 3, neptune: 3, pluto: 2, chiron: 4, northnode: 6 };
+    Object.keys(weights).forEach(function(p) {
+        maxScore += weights[p] + 4; // +4 for degree bonus
+        var my = myChart.planets[p];
+        var their = theirChart.planets[p];
+        if (my && their && my.sign === their.sign) {
+            score += weights[p];
+            // Degree proximity bonus (within 5°)
+            var degDiff = Math.abs((my.degree || 0) - (their.degree || 0));
+            if (degDiff <= 1) score += 4;
+            else if (degDiff <= 3) score += 3;
+            else if (degDiff <= 5) score += 2;
+            else if (degDiff <= 8) score += 1;
+        }
+    });
+
+    // Ascendant match
+    maxScore += 14;
+    if (myChart.houses && theirChart.houses) {
+        var myAsc = _signFromLong(myChart.houses.ascendant);
+        var theirAsc = _signFromLong(theirChart.houses.ascendant);
+        if (myAsc === theirAsc) {
+            score += 14;
+            var ascDegDiff = Math.abs((myChart.houses.ascendant % 30) - (theirChart.houses.ascendant % 30));
+            if (ascDegDiff <= 3) score += 3;
+        }
+        maxScore += 3;
+    }
+
+    // MC match
+    maxScore += 6;
+    if (myChart.houses && theirChart.houses && myChart.houses.mc && theirChart.houses.mc) {
+        if (_signFromLong(myChart.houses.mc) === _signFromLong(theirChart.houses.mc)) score += 6;
+    }
+
+    // Element distribution similarity
+    if (myChart.elements && theirChart.elements) {
+        maxScore += 8;
+        var elScore = 0;
+        ['fire','earth','air','water'].forEach(function(el) {
+            var myPct = (myChart.elements[el] || {}).pct || 0;
+            var theirPct = (theirChart.elements[el] || {}).pct || 0;
+            var diff = Math.abs(myPct - theirPct);
+            if (diff <= 5) elScore += 2;
+            else if (diff <= 10) elScore += 1;
+        });
+        score += elScore;
+    }
+
+    // Aspect pattern similarity (bonus)
+    if (myChart.aspects && theirChart.aspects) {
+        maxScore += 10;
+        var myAspSet = {};
+        myChart.aspects.forEach(function(a) { myAspSet[a.planet1 + '-' + a.planet2 + '-' + a.type] = true; });
+        var matchedAsp = 0;
+        theirChart.aspects.forEach(function(a) {
+            if (myAspSet[a.planet1 + '-' + a.planet2 + '-' + a.type]) matchedAsp++;
+        });
+        var aspRatio = myChart.aspects.length > 0 ? matchedAsp / Math.max(myChart.aspects.length, theirChart.aspects.length) : 0;
+        score += Math.round(aspRatio * 10);
+    }
+
+    return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+}
+
+function _getMatchDetails(myChart, theirChart) {
+    var details = [];
+    if (!myChart || !theirChart || !myChart.planets || !theirChart.planets) return details;
+    var isES = L();
+
+    ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto','chiron','northnode'].forEach(function(p) {
+        var my = myChart.planets[p];
+        var their = theirChart.planets[p];
+        if (my && their && my.sign === their.sign) {
+            var degDiff = Math.abs((my.degree || 0) - (their.degree || 0));
+            var pName = p.charAt(0).toUpperCase() + p.slice(1);
+            details.push({
+                planet: pName,
+                sign: my.sign,
+                exactness: degDiff <= 1 ? 'exact' : degDiff <= 3 ? 'close' : 'same_sign',
+                degDiff: Math.round(degDiff * 10) / 10
+            });
+        }
+    });
+
+    if (myChart.houses && theirChart.houses) {
+        var myAsc = _signFromLong(myChart.houses.ascendant);
+        var theirAsc = _signFromLong(theirChart.houses.ascendant);
+        if (myAsc === theirAsc) {
+            details.push({ planet: isES ? 'Ascendente' : 'Ascendant', sign: myAsc, exactness: 'same_sign', degDiff: Math.abs((myChart.houses.ascendant % 30) - (theirChart.houses.ascendant % 30)) });
+        }
+    }
+
+    return details;
+}
+
+// ── Search Functions ──
+function _searchUsers(filters, callback) {
+    if (!_db) return;
+    var query = _db.collection('users').where('privacy.showOnSearch', '==', true);
+
+    if (filters.sunSign) query = query.where('sunSign', '==', filters.sunSign);
+    else if (filters.moonSign) query = query.where('moonSign', '==', filters.moonSign);
+    else if (filters.ascSign) query = query.where('ascSign', '==', filters.ascSign);
+    else if (filters.planet && filters.sign) query = query.where(filters.planet + 'Sign', '==', filters.sign);
+
+    query.limit(50).get().then(function(snap) {
+        var results = [];
+        snap.forEach(function(doc) {
+            if (doc.id === _socialUser.uid) return; // skip self
+            var data = doc.data();
+            data._uid = doc.id;
+            results.push(data);
+        });
+        // If degree filter, post-filter
+        if (filters.degree !== undefined && filters.planet) {
+            var key = filters.planet + 'Degree';
+            var orb = filters.orb || 5;
+            results = results.filter(function(u) {
+                return Math.abs((u[key] || 0) - filters.degree) <= orb;
+            });
+        }
+        // Calculate similarity for each
+        if (_socialProfile && _socialProfile.chartData) {
+            results.forEach(function(u) {
+                u._similarity = _calcSimilarity(_socialProfile.chartData, u.chartData);
+            });
+            results.sort(function(a, b) { return b._similarity - a._similarity; });
+        }
+        callback(results);
+    }).catch(function(e) { console.error('Search error:', e); callback([]); });
+}
+
+function _findTopMatches(callback) {
+    if (!_db || !_socialProfile) return;
+    _db.collection('users').where('privacy.showOnSearch', '==', true).limit(100).get().then(function(snap) {
+        var results = [];
+        snap.forEach(function(doc) {
+            if (doc.id === _socialUser.uid) return;
+            var data = doc.data();
+            data._uid = doc.id;
+            data._similarity = _calcSimilarity(_socialProfile.chartData, data.chartData);
+            results.push(data);
+        });
+        results.sort(function(a, b) { return b._similarity - a._similarity; });
+        _matchCache = results;
+        callback(results);
+    });
+}
+
+// ── Communities ──
+function _createCommunity(name, description, tag, callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('communities').add({
+        name: name,
+        description: description,
+        tag: tag,
+        createdBy: _socialUser.uid,
+        createdByName: _socialUser.displayName || '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        memberCount: 1,
+        members: [_socialUser.uid]
+    }).then(function(docRef) {
+        if (callback) callback(docRef.id);
+    });
+}
+
+function _getCommunities(callback) {
+    if (!_db) return;
+    _db.collection('communities').orderBy('memberCount', 'desc').limit(30).get().then(function(snap) {
+        var list = [];
+        snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; list.push(d); });
+        callback(list);
+    });
+}
+
+function _joinCommunity(communityId, callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('communities').doc(communityId).update({
+        members: firebase.firestore.FieldValue.arrayUnion(_socialUser.uid),
+        memberCount: firebase.firestore.FieldValue.increment(1)
+    }).then(callback);
+}
+
+function _leaveCommunity(communityId, callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('communities').doc(communityId).update({
+        members: firebase.firestore.FieldValue.arrayRemove(_socialUser.uid),
+        memberCount: firebase.firestore.FieldValue.increment(-1)
+    }).then(callback);
+}
+
+function _postToCommunity(communityId, content, callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('communities').doc(communityId).collection('posts').add({
+        authorUid: _socialUser.uid,
+        authorName: _socialUser.displayName || '',
+        authorPhoto: _socialUser.photoURL || '',
+        content: content,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        likes: [],
+        likeCount: 0,
+        commentCount: 0
+    }).then(function(ref) { if (callback) callback(ref.id); });
+}
+
+function _getCommunityPosts(communityId, callback) {
+    if (!_db) return;
+    _db.collection('communities').doc(communityId).collection('posts')
+        .orderBy('createdAt', 'desc').limit(30).get().then(function(snap) {
+        var posts = [];
+        snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; posts.push(d); });
+        callback(posts);
+    });
+}
+
+function _likePost(communityId, postId) {
+    if (!_db || !_socialUser) return;
+    _db.collection('communities').doc(communityId).collection('posts').doc(postId).update({
+        likes: firebase.firestore.FieldValue.arrayUnion(_socialUser.uid),
+        likeCount: firebase.firestore.FieldValue.increment(1)
+    });
+}
+
+function _commentOnPost(communityId, postId, content, callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('communities').doc(communityId).collection('posts').doc(postId)
+        .collection('comments').add({
+        authorUid: _socialUser.uid,
+        authorName: _socialUser.displayName || '',
+        authorPhoto: _socialUser.photoURL || '',
+        content: content,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        _db.collection('communities').doc(communityId).collection('posts').doc(postId).update({
+            commentCount: firebase.firestore.FieldValue.increment(1)
+        });
+        if (callback) callback();
+    });
+}
+
+function _getComments(communityId, postId, callback) {
+    if (!_db) return;
+    _db.collection('communities').doc(communityId).collection('posts').doc(postId)
+        .collection('comments').orderBy('createdAt', 'asc').limit(50).get().then(function(snap) {
+        var comments = [];
+        snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; comments.push(d); });
+        callback(comments);
+    });
+}
+
+// ── Chat System ──
+function _getOrCreateChat(otherUid, callback) {
+    if (!_db || !_socialUser) return;
+    var myUid = _socialUser.uid;
+    var chatId = myUid < otherUid ? myUid + '_' + otherUid : otherUid + '_' + myUid;
+    var chatRef = _db.collection('chats').doc(chatId);
+    chatRef.get().then(function(doc) {
+        if (!doc.exists) {
+            chatRef.set({
+                participants: [myUid, otherUid],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: '',
+                lastMessageAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        callback(chatId);
+    });
+}
+
+function _sendChatMsg(chatId, text) {
+    if (!_db || !_socialUser) return;
+    var batch = _db.batch();
+    var msgRef = _db.collection('chats').doc(chatId).collection('messages').doc();
+    batch.set(msgRef, {
+        senderUid: _socialUser.uid,
+        senderName: _socialUser.displayName || '',
+        text: text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        read: false
+    });
+    batch.update(_db.collection('chats').doc(chatId), {
+        lastMessage: text.substring(0, 100),
+        lastMessageAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    batch.commit();
+}
+
+function _listenToChat(chatId, callback) {
+    if (_chatListeners[chatId]) _chatListeners[chatId](); // unsub old
+    _chatListeners[chatId] = _db.collection('chats').doc(chatId).collection('messages')
+        .orderBy('createdAt', 'asc').limitToLast(100)
+        .onSnapshot(function(snap) {
+            var msgs = [];
+            snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; msgs.push(d); });
+            callback(msgs);
+        });
+}
+
+function _getMyChats(callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('chats').where('participants', 'array-contains', _socialUser.uid)
+        .orderBy('lastMessageAt', 'desc').limit(20).get().then(function(snap) {
+        var chats = [];
+        snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; chats.push(d); });
+        callback(chats);
+    });
+}
+
+// ── Feed System ──
+function _postToFeed(content, type, callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('feed').add({
+        authorUid: _socialUser.uid,
+        authorName: _socialUser.displayName || '',
+        authorPhoto: _socialUser.photoURL || '',
+        authorSun: _socialProfile ? _socialProfile.sunSign : '',
+        authorMoon: _socialProfile ? _socialProfile.moonSign : '',
+        authorAsc: _socialProfile ? _socialProfile.ascSign : '',
+        content: content,
+        type: type || 'post', // post, insight, transit_share
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        likes: [],
+        likeCount: 0,
+        commentCount: 0
+    }).then(function(ref) { if (callback) callback(ref.id); });
+}
+
+function _getFeed(callback) {
+    if (!_db) return;
+    _db.collection('feed').orderBy('createdAt', 'desc').limit(30).get().then(function(snap) {
+        var posts = [];
+        snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; posts.push(d); });
+        _feedCache = posts;
+        callback(posts);
+    });
+}
+
+function _likeFeedPost(postId) {
+    if (!_db || !_socialUser) return;
+    _db.collection('feed').doc(postId).update({
+        likes: firebase.firestore.FieldValue.arrayUnion(_socialUser.uid),
+        likeCount: firebase.firestore.FieldValue.increment(1)
+    });
+}
+
+function _commentFeedPost(postId, content, callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('feed').doc(postId).collection('comments').add({
+        authorUid: _socialUser.uid,
+        authorName: _socialUser.displayName || '',
+        content: content,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        _db.collection('feed').doc(postId).update({ commentCount: firebase.firestore.FieldValue.increment(1) });
+        if (callback) callback();
+    });
+}
+
+// ── Notifications ──
+function _sendNotification(toUid, type, data) {
+    if (!_db) return;
+    _db.collection('notifications').doc(toUid).collection('items').add({
+        type: type, // match_found, new_message, community_post, like, comment
+        data: data,
+        fromUid: _socialUser ? _socialUser.uid : '',
+        fromName: _socialUser ? (_socialUser.displayName || '') : '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        read: false
+    });
+}
+
+function _listenNotifications(uid) {
+    if (!_db) return;
+    if (_notifListener) _notifListener();
+    _notifListener = _db.collection('notifications').doc(uid).collection('items')
+        .where('read', '==', false).orderBy('createdAt', 'desc').limit(20)
+        .onSnapshot(function(snap) {
+            _unreadCount = snap.size;
+            var badge = document.getElementById('socialNotifBadge');
+            if (badge) badge.textContent = _unreadCount > 0 ? _unreadCount : '';
+            if (badge) badge.style.display = _unreadCount > 0 ? 'inline-flex' : 'none';
+        });
+}
+
+function _getNotifications(callback) {
+    if (!_db || !_socialUser) return;
+    _db.collection('notifications').doc(_socialUser.uid).collection('items')
+        .orderBy('createdAt', 'desc').limit(30).get().then(function(snap) {
+        var notifs = [];
+        snap.forEach(function(doc) { var d = doc.data(); d._id = doc.id; notifs.push(d); });
+        callback(notifs);
+    });
+}
+
+function _markNotifRead(notifId) {
+    if (!_db || !_socialUser) return;
+    _db.collection('notifications').doc(_socialUser.uid).collection('items').doc(notifId).update({ read: true });
+}
+
+// ════════════════════════════════════════
+// UI RENDERING
+// ════════════════════════════════════════
+
+var _SC = 'background:rgba(0,188,212,0.08);border:1px solid rgba(0,188,212,0.2);border-radius:12px;';
+var _SCbtn = 'padding:10px 18px;border-radius:10px;font-weight:600;cursor:pointer;font-size:0.85em;border:none;';
+
+function _renderSocial() {
+    var container = document.getElementById('socialContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'socialContainer';
+        container.style.cssText = 'padding:0 8px;max-width:600px;margin:0 auto;';
+        var lunarWeeks = document.getElementById('lunarWeeks');
+        if (lunarWeeks && lunarWeeks.parentNode) {
+            lunarWeeks.parentNode.insertBefore(container, lunarWeeks.nextSibling);
+        }
+    }
+    container.style.display = 'block';
+
+    var isES = L();
+
+    // Check Firebase config
+    if (!FIRE_CFG.apiKey || !FIRE_CFG.projectId) {
+        _renderSetupScreen(container, isES);
+        return;
+    }
+
+    // Init Firebase
+    if (!_socialInitialized) {
+        var ok = _initFirebase();
+        if (!ok) { _renderSetupScreen(container, isES); return; }
+    }
+
+    // Not logged in
+    if (!_socialUser) {
+        _renderAuthScreen(container, isES);
+        return;
+    }
+
+    // No profile published yet
+    if (!_socialProfile || !_socialProfile.sunSign) {
+        _renderPublishProfile(container, isES);
+        return;
+    }
+
+    // Main social UI
+    _renderMainSocial(container, isES);
+}
+
+function _renderSetupScreen(container, isES) {
+    container.innerHTML =
+        '<div style="padding:20px;text-align:center;">' +
+        '<div style="font-size:2.5em;margin-bottom:12px;">🌐</div>' +
+        '<div style="font-size:1.3em;font-weight:700;color:#00bcd4;margin-bottom:8px;">AstroConnect</div>' +
+        '<div style="color:rgba(255,255,255,0.5);font-size:0.85em;margin-bottom:24px;">' +
+            (isES ? 'Red social astrológica — Conecta con tus gemelos cósmicos' : 'Astrological social network — Connect with your cosmic twins') +
+        '</div>' +
+        '<div style="' + _SC + 'padding:16px;margin-bottom:16px;text-align:left;">' +
+            '<div style="font-weight:700;color:#00bcd4;margin-bottom:12px;">🔧 ' + (isES ? 'Configurar Firebase' : 'Configure Firebase') + '</div>' +
+            '<div style="color:rgba(255,255,255,0.6);font-size:0.8em;margin-bottom:16px;">' +
+                (isES ? 'Para activar AstroConnect necesitas un proyecto Firebase gratuito:' : 'To activate AstroConnect you need a free Firebase project:') +
+            '</div>' +
+            '<ol style="color:rgba(255,255,255,0.7);font-size:0.78em;line-height:1.8;padding-left:20px;margin-bottom:16px;">' +
+                '<li>' + (isES ? 'Ve a <a href="https://console.firebase.google.com" target="_blank" style="color:#00bcd4;">console.firebase.google.com</a>' : 'Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#00bcd4;">console.firebase.google.com</a>') + '</li>' +
+                '<li>' + (isES ? 'Crea un proyecto nuevo (gratis)' : 'Create a new project (free)') + '</li>' +
+                '<li>' + (isES ? 'Activa Authentication → Google y Email' : 'Enable Authentication → Google and Email') + '</li>' +
+                '<li>' + (isES ? 'Crea Firestore Database (modo test)' : 'Create Firestore Database (test mode)') + '</li>' +
+                '<li>' + (isES ? 'En Configuración del proyecto, copia los datos de la web app' : 'In Project settings, copy web app config') + '</li>' +
+            '</ol>' +
+            '<div style="display:grid;gap:8px;">' +
+                _cfgInput('apiKey', 'API Key') +
+                _cfgInput('authDomain', 'Auth Domain') +
+                _cfgInput('projectId', 'Project ID') +
+                _cfgInput('storageBucket', 'Storage Bucket') +
+                _cfgInput('messagingSenderId', 'Messaging Sender ID') +
+                _cfgInput('appId', 'App ID') +
+            '</div>' +
+            '<button onclick="window._saveFirebaseConfig()" style="' + _SCbtn + 'width:100%;margin-top:12px;background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;">' +
+                (isES ? '✨ Activar AstroConnect' : '✨ Activate AstroConnect') +
+            '</button>' +
+        '</div>' +
+        '</div>';
+}
+
+function _cfgInput(key, label) {
+    var val = localStorage.getItem('astroconnect_firebase_' + key) || '';
+    return '<div><label style="font-size:0.72em;color:rgba(255,255,255,0.4);">' + label + '</label>' +
+        '<input id="fbCfg_' + key + '" value="' + val + '" placeholder="' + label + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.82em;box-sizing:border-box;" /></div>';
+}
+
+window._saveFirebaseConfig = function() {
+    ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(function(k) {
+        var inp = document.getElementById('fbCfg_' + k);
+        if (inp && inp.value.trim()) {
+            localStorage.setItem('astroconnect_firebase_' + k, inp.value.trim());
+            FIRE_CFG[k] = inp.value.trim();
+        }
+    });
+    _socialInitialized = false;
+    _renderSocial();
+};
+
+function _renderAuthScreen(container, isES) {
+    container.innerHTML =
+        '<div style="padding:20px;text-align:center;">' +
+        '<div style="font-size:2.5em;margin-bottom:12px;">🌐</div>' +
+        '<div style="font-size:1.3em;font-weight:700;color:#00bcd4;margin-bottom:6px;">AstroConnect</div>' +
+        '<div style="color:rgba(255,255,255,0.5);font-size:0.82em;margin-bottom:24px;">' +
+            (isES ? 'Inicia sesión para conectar con la comunidad astrológica' : 'Sign in to connect with the astrological community') +
+        '</div>' +
+        '<button onclick="window._socialSignInGoogle()" style="' + _SCbtn + 'width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+            '<span style="font-size:1.2em;">G</span> ' + (isES ? 'Entrar con Google' : 'Sign in with Google') +
+        '</button>' +
+        '<div style="color:rgba(255,255,255,0.3);font-size:0.75em;margin:12px 0;">── ' + (isES ? 'o con email' : 'or with email') + ' ──</div>' +
+        '<div id="socialAuthForm" style="display:grid;gap:8px;">' +
+            '<input id="socialAuthName" placeholder="' + (isES ? 'Nombre (solo para registro)' : 'Name (only for sign up)') + '" style="padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.85em;" />' +
+            '<input id="socialAuthEmail" type="email" placeholder="Email" style="padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.85em;" />' +
+            '<input id="socialAuthPass" type="password" placeholder="' + (isES ? 'Contraseña' : 'Password') + '" style="padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.85em;" />' +
+            '<div style="display:flex;gap:8px;">' +
+                '<button onclick="window._socialLogin()" style="' + _SCbtn + 'flex:1;background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;">' + (isES ? 'Entrar' : 'Sign In') + '</button>' +
+                '<button onclick="window._socialSignUp()" style="' + _SCbtn + 'flex:1;background:rgba(0,188,212,0.15);color:#00bcd4;border:1px solid rgba(0,188,212,0.3);">' + (isES ? 'Registrarse' : 'Sign Up') + '</button>' +
+            '</div>' +
+        '</div>' +
+        '</div>';
+}
+
+window._socialSignInGoogle = function() { _signInGoogle(); };
+window._socialLogin = function() {
+    var e = document.getElementById('socialAuthEmail');
+    var p = document.getElementById('socialAuthPass');
+    if (e && p) _signInEmail(e.value, p.value);
+};
+window._socialSignUp = function() {
+    var n = document.getElementById('socialAuthName');
+    var e = document.getElementById('socialAuthEmail');
+    var p = document.getElementById('socialAuthPass');
+    if (e && p) _signUpEmail(e.value, p.value, n ? n.value : '');
+};
+
+function _renderPublishProfile(container, isES) {
+    container.innerHTML =
+        '<div style="padding:20px;text-align:center;">' +
+        '<div style="font-size:2em;margin-bottom:10px;">✨</div>' +
+        '<div style="font-weight:700;color:#00bcd4;font-size:1.1em;margin-bottom:6px;">' +
+            (isES ? '¡Bienvenido/a, ' : 'Welcome, ') + (_socialUser.displayName || _socialUser.email) + '!' +
+        '</div>' +
+        '<div style="color:rgba(255,255,255,0.5);font-size:0.82em;margin-bottom:20px;">' +
+            (isES ? 'Publica tu perfil astrológico para conectar con la comunidad' : 'Publish your astrological profile to connect with the community') +
+        '</div>' +
+        '<div style="' + _SC + 'padding:16px;text-align:left;margin-bottom:16px;">' +
+            '<div style="font-weight:600;color:rgba(255,255,255,0.8);font-size:0.85em;margin-bottom:8px;">' + (isES ? 'Tu carta natal se compartirá con:' : 'Your natal chart will share:') + '</div>' +
+            '<div style="color:rgba(255,255,255,0.5);font-size:0.78em;line-height:1.8;">' +
+                '☀️ ' + (isES ? 'Signo solar, lunar, ascendente' : 'Sun sign, moon sign, ascendant') + '<br>' +
+                '🪐 ' + (isES ? 'Signos planetarios' : 'Planetary signs') + '<br>' +
+                '📐 ' + (isES ? 'Aspectos natales (configurable)' : 'Natal aspects (configurable)') + '<br>' +
+                '🔒 ' + (isES ? 'Datos de nacimiento NUNCA se comparten (configurable)' : 'Birth data NEVER shared (configurable)') +
+            '</div>' +
+        '</div>' +
+        '<textarea id="socialBio" placeholder="' + (isES ? 'Bio / sobre ti (opcional)' : 'Bio / about you (optional)') + '" style="width:100%;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.85em;min-height:60px;resize:vertical;box-sizing:border-box;margin-bottom:12px;"></textarea>' +
+        '<button onclick="window._publishSocialProfile()" style="' + _SCbtn + 'width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;font-size:0.95em;padding:14px;">' +
+            '🌐 ' + (isES ? 'Publicar mi Perfil Astrológico' : 'Publish my Astrological Profile') +
+        '</button>' +
+        '<button onclick="window._socialLogout()" style="' + _SCbtn + 'width:100%;margin-top:8px;background:transparent;color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.1);font-size:0.8em;">' +
+            (isES ? 'Cerrar sesión' : 'Sign out') +
+        '</button>' +
+        '</div>';
+}
+
+window._publishSocialProfile = function() {
+    var bioEl = document.getElementById('socialBio');
+    if (bioEl && bioEl.value) {
+        if (!_socialProfile) _socialProfile = {};
+        _socialProfile.bio = bioEl.value;
+    }
+    _publishProfile();
+};
+window._socialLogout = function() { _signOut(); _renderSocial(); };
+
+// ── Main Social UI ──
+function _renderMainSocial(container, isES) {
+    // Navigation bar
+    var navHtml = '<div style="display:flex;gap:4px;margin-bottom:12px;padding:4px;background:rgba(0,0,0,0.2);border-radius:12px;overflow-x:auto;">';
+    var tabs = [
+        { id: 'home', icon: '🏠', label: isES ? 'Inicio' : 'Home' },
+        { id: 'discover', icon: '🔍', label: isES ? 'Descubrir' : 'Discover' },
+        { id: 'communities', icon: '👥', label: isES ? 'Grupos' : 'Groups' },
+        { id: 'messages', icon: '💬', label: isES ? 'Chat' : 'Chat' },
+        { id: 'profile', icon: '⚙️', label: isES ? 'Perfil' : 'Profile' }
+    ];
+    tabs.forEach(function(tab) {
+        var isActive = _socialView === tab.id;
+        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:8px 4px;border:none;border-radius:8px;cursor:pointer;font-size:0.72em;white-space:nowrap;' +
+            (isActive ? 'background:rgba(0,188,212,0.2);color:#00bcd4;font-weight:700;' : 'background:transparent;color:rgba(255,255,255,0.4);font-weight:500;') +
+            '">' + tab.icon + '<br>' + tab.label +
+            (tab.id === 'messages' && _unreadCount > 0 ? ' <span style="background:#ff4444;color:#fff;border-radius:8px;padding:1px 5px;font-size:0.8em;">' + _unreadCount + '</span>' : '') +
+            '</button>';
+    });
+    navHtml += '</div>';
+
+    container.innerHTML = navHtml + '<div id="socialContent"></div>';
+
+    var content = document.getElementById('socialContent');
+    if (_socialView === 'home') _renderHomeFeed(content, isES);
+    else if (_socialView === 'discover') _renderDiscover(content, isES);
+    else if (_socialView === 'communities') _renderCommunities(content, isES);
+    else if (_socialView === 'messages') _renderMessages(content, isES);
+    else if (_socialView === 'profile') _renderProfile(content, isES);
+}
+
+window._switchSocialTab = function(tab) {
+    _socialView = tab;
+    _renderSocial();
+};
+
+// ── HOME FEED ──
+function _renderHomeFeed(content, isES) {
+    content.innerHTML =
+        '<div style="margin-bottom:12px;">' +
+            '<div style="' + _SC + 'padding:12px;">' +
+                '<textarea id="feedPostInput" placeholder="' + (isES ? '¿Qué insight astrológico quieres compartir?' : 'What astrological insight do you want to share?') + '" style="width:100%;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.85em;min-height:50px;resize:vertical;box-sizing:border-box;margin-bottom:8px;"></textarea>' +
+                '<div style="display:flex;justify-content:flex-end;">' +
+                    '<button onclick="window._submitFeedPost()" style="' + _SCbtn + 'background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;">' + (isES ? 'Publicar' : 'Post') + '</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div id="feedPosts" style="color:rgba(255,255,255,0.4);text-align:center;padding:20px;font-size:0.85em;">' +
+            (isES ? 'Cargando feed...' : 'Loading feed...') +
+        '</div>';
+
+    _getFeed(function(posts) {
+        var el = document.getElementById('feedPosts');
+        if (!el) return;
+        if (posts.length === 0) {
+            el.innerHTML = '<div style="padding:30px;text-align:center;color:rgba(255,255,255,0.3);font-size:0.85em;">' +
+                (isES ? '¡Sé el primero en publicar! Comparte un insight astrológico.' : 'Be the first to post! Share an astrological insight.') + '</div>';
+            return;
+        }
+        var html = '';
+        posts.forEach(function(post) {
+            html += _renderFeedPostCard(post, isES);
+        });
+        el.innerHTML = html;
+    });
+}
+
+function _renderFeedPostCard(post, isES) {
+    var timeStr = post.createdAt ? _timeAgo(post.createdAt.toDate ? post.createdAt.toDate() : new Date(post.createdAt)) : '';
+    var isLiked = post.likes && post.likes.indexOf(_socialUser.uid) >= 0;
+    return '<div style="' + _SC + 'padding:12px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+            '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#00bcd4,#0097a7);display:flex;align-items:center;justify-content:center;font-size:0.8em;color:#fff;">' + (post.authorName ? post.authorName.charAt(0).toUpperCase() : '?') + '</div>' +
+            '<div><div style="font-weight:600;color:#fff;font-size:0.85em;">' + (post.authorName || 'Anon') + '</div>' +
+            '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);">' +
+                (post.authorSun ? '☀️' + post.authorSun : '') + (post.authorMoon ? ' 🌙' + post.authorMoon : '') + (post.authorAsc ? ' ⬆️' + post.authorAsc : '') +
+                ' · ' + timeStr +
+            '</div></div>' +
+        '</div>' +
+        '<div style="color:rgba(255,255,255,0.8);font-size:0.85em;line-height:1.6;margin-bottom:10px;">' + _escHtml(post.content) + '</div>' +
+        '<div style="display:flex;gap:12px;align-items:center;">' +
+            '<button onclick="window._likeFP(\'' + post._id + '\')" style="background:transparent;border:none;color:' + (isLiked ? '#ff4081' : 'rgba(255,255,255,0.4)') + ';cursor:pointer;font-size:0.8em;">' + (isLiked ? '❤️' : '🤍') + ' ' + (post.likeCount || 0) + '</button>' +
+            '<button onclick="window._toggleFPComments(\'' + post._id + '\')" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:0.8em;">💬 ' + (post.commentCount || 0) + '</button>' +
+        '</div>' +
+        '<div id="fpComments_' + post._id + '" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);"></div>' +
+    '</div>';
+}
+
+window._submitFeedPost = function() {
+    var inp = document.getElementById('feedPostInput');
+    if (!inp || !inp.value.trim()) return;
+    _postToFeed(inp.value.trim(), 'post', function() {
+        inp.value = '';
+        _renderSocial();
+    });
+};
+
+window._likeFP = function(postId) { _likeFeedPost(postId); };
+
+window._toggleFPComments = function(postId) {
+    var el = document.getElementById('fpComments_' + postId);
+    if (!el) return;
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+        el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.8em;">...</div>';
+        _db.collection('feed').doc(postId).collection('comments').orderBy('createdAt', 'asc').limit(20).get().then(function(snap) {
+            var html = '';
+            snap.forEach(function(doc) {
+                var c = doc.data();
+                html += '<div style="margin-bottom:6px;padding:6px;background:rgba(255,255,255,0.03);border-radius:6px;">' +
+                    '<span style="font-weight:600;color:#00bcd4;font-size:0.78em;">' + (c.authorName || 'Anon') + '</span> ' +
+                    '<span style="color:rgba(255,255,255,0.7);font-size:0.78em;">' + _escHtml(c.content) + '</span></div>';
+            });
+            html += '<div style="display:flex;gap:6px;margin-top:6px;">' +
+                '<input id="fpCmtInput_' + postId + '" placeholder="' + (L() ? 'Comentar...' : 'Comment...') + '" style="flex:1;padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.8em;" />' +
+                '<button onclick="window._submitFPComment(\'' + postId + '\')" style="padding:6px 10px;background:rgba(0,188,212,0.2);border:1px solid rgba(0,188,212,0.3);border-radius:6px;color:#00bcd4;font-size:0.8em;cursor:pointer;">' + (L() ? 'Enviar' : 'Send') + '</button></div>';
+            el.innerHTML = html;
+        });
+    } else {
+        el.style.display = 'none';
+    }
+};
+
+window._submitFPComment = function(postId) {
+    var inp = document.getElementById('fpCmtInput_' + postId);
+    if (!inp || !inp.value.trim()) return;
+    _commentFeedPost(postId, inp.value.trim(), function() {
+        inp.value = '';
+        window._toggleFPComments(postId);
+        setTimeout(function() { window._toggleFPComments(postId); }, 300);
+    });
+};
+
+// ── DISCOVER (Search + Matching) ──
+function _renderDiscover(content, isES) {
+    var signs = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+    var planets = [
+        { val: 'sun', label: '☀️ ' + (isES ? 'Sol' : 'Sun') },
+        { val: 'moon', label: '🌙 ' + (isES ? 'Luna' : 'Moon') },
+        { val: 'asc', label: '⬆️ ' + (isES ? 'Ascendente' : 'Ascendant') },
+        { val: 'mercury', label: '☿ Mercury' },
+        { val: 'venus', label: '♀ Venus' },
+        { val: 'mars', label: '♂ Mars' },
+        { val: 'jupiter', label: '♃ Jupiter' },
+        { val: 'saturn', label: '♄ Saturn' }
+    ];
+
+    var html = '';
+
+    // Twin finder
+    html += '<div style="' + _SC + 'padding:14px;margin-bottom:12px;text-align:center;">' +
+        '<div style="font-size:1.5em;margin-bottom:6px;">👯</div>' +
+        '<div style="font-weight:700;color:#00bcd4;font-size:1em;margin-bottom:4px;">' + (isES ? 'Gemelo Astrológico' : 'Astrological Twin') + '</div>' +
+        '<div style="color:rgba(255,255,255,0.4);font-size:0.78em;margin-bottom:12px;">' + (isES ? 'Encuentra a la persona con la carta natal más similar a la tuya' : 'Find the person with the most similar natal chart to yours') + '</div>' +
+        '<button onclick="window._findMyTwin()" style="' + _SCbtn + 'background:linear-gradient(135deg,#e040fb,#7c4dff);color:#fff;">' +
+            '✨ ' + (isES ? 'Buscar mi Gemelo' : 'Find my Twin') +
+        '</button>' +
+    '</div>';
+
+    // Top matches
+    html += '<div style="' + _SC + 'padding:14px;margin-bottom:12px;">' +
+        '<div style="font-weight:700;color:#ffd54f;font-size:0.9em;margin-bottom:10px;">🏆 ' + (isES ? 'Top Matches — Mayor Similitud' : 'Top Matches — Highest Similarity') + '</div>' +
+        '<div id="topMatchesArea" style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:10px;">' +
+            '<button onclick="window._loadTopMatches()" style="' + _SCbtn + 'background:rgba(255,213,79,0.15);color:#ffd54f;border:1px solid rgba(255,213,79,0.3);">' + (isES ? 'Cargar Matches' : 'Load Matches') + '</button>' +
+        '</div>' +
+    '</div>';
+
+    // Search by planet/sign
+    html += '<div style="' + _SC + 'padding:14px;margin-bottom:12px;">' +
+        '<div style="font-weight:700;color:#fff;font-size:0.9em;margin-bottom:10px;">🔍 ' + (isES ? 'Buscar por Planeta y Signo' : 'Search by Planet and Sign') + '</div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+            '<select id="searchPlanet" style="flex:1;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.82em;">' +
+                planets.map(function(p) { return '<option value="' + p.val + '">' + p.label + '</option>'; }).join('') +
+            '</select>' +
+            '<select id="searchSign" style="flex:1;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.82em;">' +
+                signs.map(function(s) { return '<option value="' + s + '">' + _signEmoji(s) + ' ' + s + '</option>'; }).join('') +
+            '</select>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+            '<input id="searchDegree" type="number" min="0" max="29" placeholder="' + (isES ? 'Grado (opcional)' : 'Degree (optional)') + '" style="flex:1;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.82em;" />' +
+            '<input id="searchOrb" type="number" min="1" max="10" placeholder="' + (isES ? 'Orbe ±' : 'Orb ±') + '" value="5" style="width:70px;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.82em;" />' +
+        '</div>' +
+        '<button onclick="window._doSearch()" style="' + _SCbtn + 'width:100%;background:rgba(0,188,212,0.15);color:#00bcd4;border:1px solid rgba(0,188,212,0.3);">' + (isES ? 'Buscar' : 'Search') + '</button>' +
+        '<div id="searchResults" style="margin-top:12px;"></div>' +
+    '</div>';
+
+    content.innerHTML = html;
+}
+
+function _signEmoji(sign) {
+    var map = { Aries:'♈', Taurus:'♉', Gemini:'♊', Cancer:'♋', Leo:'♌', Virgo:'♍', Libra:'♎', Scorpio:'♏', Sagittarius:'♐', Capricorn:'♑', Aquarius:'♒', Pisces:'♓' };
+    return map[sign] || '';
+}
+
+window._findMyTwin = function() {
+    _findTopMatches(function(results) {
+        if (results.length === 0) {
+            alert(L() ? 'Aún no hay otros usuarios. ¡Comparte Moon Sync!' : 'No other users yet. Share Moon Sync!');
+            return;
+        }
+        var twin = results[0];
+        var isES = L();
+        var details = _getMatchDetails(_socialProfile.chartData, twin.chartData);
+        var html = '<div style="padding:20px;text-align:center;">' +
+            '<div style="font-size:2.5em;margin-bottom:8px;">👯✨</div>' +
+            '<div style="font-weight:700;color:#e040fb;font-size:1.2em;margin-bottom:4px;">' + (isES ? '¡Gemelo Astrológico Encontrado!' : 'Astrological Twin Found!') + '</div>' +
+            '<div style="font-size:1.8em;font-weight:800;color:#00bcd4;margin-bottom:4px;">' + twin._similarity + '%</div>' +
+            '<div style="font-weight:600;color:#fff;font-size:1em;margin-bottom:4px;">' + (twin.displayName || 'User') + '</div>' +
+            '<div style="color:rgba(255,255,255,0.5);font-size:0.8em;margin-bottom:12px;">' +
+                '☀️ ' + twin.sunSign + ' · 🌙 ' + twin.moonSign + ' · ⬆️ ' + (twin.ascSign || '?') +
+            '</div>';
+        if (details.length > 0) {
+            html += '<div style="text-align:left;' + _SC + 'padding:12px;margin-bottom:12px;">' +
+                '<div style="font-weight:600;color:#ffd54f;font-size:0.82em;margin-bottom:8px;">' + (isES ? 'Coincidencias:' : 'Matches:') + '</div>';
+            details.forEach(function(d) {
+                var badge = d.exactness === 'exact' ? '🎯' : d.exactness === 'close' ? '🔥' : '✓';
+                html += '<div style="font-size:0.78em;color:rgba(255,255,255,0.7);margin-bottom:4px;">' +
+                    badge + ' ' + d.planet + ' ' + (isES ? 'en' : 'in') + ' ' + _signEmoji(d.sign) + d.sign +
+                    (d.degDiff <= 3 ? ' <span style="color:#e040fb;">(' + d.degDiff.toFixed(1) + '°)</span>' : '') +
+                '</div>';
+            });
+            html += '</div>';
+        }
+        html += '<button onclick="window._startChatWith(\'' + twin._uid + '\',\'' + _escAttr(twin.displayName) + '\')" style="' + _SCbtn + 'width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;">💬 ' + (isES ? 'Enviar Mensaje' : 'Send Message') + '</button>' +
+            '</div>';
+
+        var overlay = document.createElement('div');
+        overlay.id = 'twinOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.innerHTML = '<div style="max-width:400px;width:100%;' + _SC + 'background:rgba(10,10,30,0.98);padding:0;overflow:hidden;">' + html +
+            '<button onclick="document.getElementById(\'twinOverlay\').remove()" style="' + _SCbtn + 'width:calc(100% - 40px);margin:0 20px 20px;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.1);">' + (isES ? 'Cerrar' : 'Close') + '</button></div>';
+        document.body.appendChild(overlay);
+    });
+};
+
+window._loadTopMatches = function() {
+    var el = document.getElementById('topMatchesArea');
+    if (el) el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;">' + (L() ? 'Buscando...' : 'Searching...') + '</div>';
+    _findTopMatches(function(results) {
+        if (!el) return;
+        if (results.length === 0) {
+            el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;padding:10px;">' + (L() ? 'No se encontraron usuarios aún.' : 'No users found yet.') + '</div>';
+            return;
+        }
+        var html = '';
+        results.slice(0, 10).forEach(function(u) {
+            html += _renderUserCard(u, L());
+        });
+        el.innerHTML = html;
+    });
+};
+
+window._doSearch = function() {
+    var planet = document.getElementById('searchPlanet').value;
+    var sign = document.getElementById('searchSign').value;
+    var degInp = document.getElementById('searchDegree');
+    var orbInp = document.getElementById('searchOrb');
+    var degree = degInp && degInp.value !== '' ? parseInt(degInp.value) : undefined;
+    var orb = orbInp ? parseInt(orbInp.value) || 5 : 5;
+
+    var filters = { sign: sign };
+    if (planet === 'asc') filters.ascSign = sign;
+    else if (planet === 'sun') filters.sunSign = sign;
+    else if (planet === 'moon') filters.moonSign = sign;
+    else { filters.planet = planet; filters.sign = sign; }
+    if (degree !== undefined) { filters.degree = degree; filters.orb = orb; filters.planet = planet; }
+
+    var el = document.getElementById('searchResults');
+    if (el) el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:10px;">' + (L() ? 'Buscando...' : 'Searching...') + '</div>';
+
+    _searchUsers(filters, function(results) {
+        if (!el) return;
+        if (results.length === 0) {
+            el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:10px;">' + (L() ? 'No se encontraron resultados.' : 'No results found.') + '</div>';
+            return;
+        }
+        var html = '<div style="font-size:0.78em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + results.length + (L() ? ' usuarios encontrados' : ' users found') + '</div>';
+        results.forEach(function(u) { html += _renderUserCard(u, L()); });
+        el.innerHTML = html;
+    });
+};
+
+function _renderUserCard(user, isES) {
+    var sim = user._similarity || 0;
+    var simColor = sim >= 70 ? '#e040fb' : sim >= 50 ? '#ffd54f' : sim >= 30 ? '#00bcd4' : 'rgba(255,255,255,0.4)';
+    return '<div style="' + _SC + 'padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">' +
+        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00bcd4,#0097a7);display:flex;align-items:center;justify-content:center;font-size:0.85em;color:#fff;flex-shrink:0;">' + (user.displayName ? user.displayName.charAt(0).toUpperCase() : '?') + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+            '<div style="font-weight:600;color:#fff;font-size:0.85em;">' + (user.displayName || 'User') + '</div>' +
+            '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);">☀️' + user.sunSign + ' 🌙' + user.moonSign + ' ⬆️' + (user.ascSign || '?') + '</div>' +
+        '</div>' +
+        '<div style="text-align:center;flex-shrink:0;">' +
+            '<div style="font-size:1.1em;font-weight:800;color:' + simColor + ';">' + sim + '%</div>' +
+            '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);">' + (isES ? 'similitud' : 'match') + '</div>' +
+        '</div>' +
+        '<button onclick="window._startChatWith(\'' + user._uid + '\',\'' + _escAttr(user.displayName) + '\')" style="background:rgba(0,188,212,0.15);border:1px solid rgba(0,188,212,0.3);border-radius:8px;color:#00bcd4;padding:6px 10px;font-size:0.75em;cursor:pointer;flex-shrink:0;">💬</button>' +
+    '</div>';
+}
+
+// ── COMMUNITIES ──
+function _renderCommunities(content, isES) {
+    var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+        '<div style="font-weight:700;color:#fff;font-size:0.95em;">👥 ' + (isES ? 'Comunidades' : 'Communities') + '</div>' +
+        '<button onclick="window._showCreateCommunity()" style="' + _SCbtn + 'background:rgba(0,188,212,0.15);color:#00bcd4;border:1px solid rgba(0,188,212,0.3);font-size:0.78em;">+ ' + (isES ? 'Crear' : 'Create') + '</button>' +
+    '</div>' +
+    '<div id="createCommunityForm" style="display:none;' + _SC + 'padding:12px;margin-bottom:12px;">' +
+        '<input id="newCommunityName" placeholder="' + (isES ? 'Nombre (ej: Luna en Escorpio)' : 'Name (eg: Moon in Scorpio)') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.85em;margin-bottom:8px;box-sizing:border-box;" />' +
+        '<input id="newCommunityDesc" placeholder="' + (isES ? 'Descripción' : 'Description') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.85em;margin-bottom:8px;box-sizing:border-box;" />' +
+        '<input id="newCommunityTag" placeholder="' + (isES ? 'Tag (ej: moon-scorpio)' : 'Tag (eg: moon-scorpio)') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:0.85em;margin-bottom:8px;box-sizing:border-box;" />' +
+        '<button onclick="window._createCommunity()" style="' + _SCbtn + 'width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;">' + (isES ? 'Crear Comunidad' : 'Create Community') + '</button>' +
+    '</div>' +
+    '<div id="communityList" style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:20px;">' + (isES ? 'Cargando...' : 'Loading...') + '</div>';
+
+    content.innerHTML = html;
+
+    // Auto-suggest communities based on user chart
+    _getCommunities(function(list) {
+        var el = document.getElementById('communityList');
+        if (!el) return;
+        if (list.length === 0) {
+            // Suggest creating based on user's chart
+            var suggestions = [];
+            if (_socialProfile) {
+                if (_socialProfile.sunSign) suggestions.push('☀️ Sol en ' + _socialProfile.sunSign);
+                if (_socialProfile.moonSign) suggestions.push('🌙 Luna en ' + _socialProfile.moonSign);
+                if (_socialProfile.ascSign) suggestions.push('⬆️ Ascendente ' + _socialProfile.ascSign);
+            }
+            el.innerHTML = '<div style="padding:16px;">' +
+                '<div style="color:rgba(255,255,255,0.5);font-size:0.85em;margin-bottom:12px;">' + (isES ? 'No hay comunidades aún. ¡Crea la primera!' : 'No communities yet. Create the first!') + '</div>' +
+                (suggestions.length > 0 ? '<div style="color:rgba(255,255,255,0.3);font-size:0.78em;">' + (isES ? 'Sugerencias: ' : 'Suggestions: ') + suggestions.join(', ') + '</div>' : '') +
+            '</div>';
+            return;
+        }
+        var html = '';
+        list.forEach(function(c) {
+            var isMember = c.members && c.members.indexOf(_socialUser.uid) >= 0;
+            html += '<div style="' + _SC + 'padding:12px;margin-bottom:8px;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                    '<div onclick="window._openCommunity(\'' + c._id + '\',\'' + _escAttr(c.name) + '\')" style="cursor:pointer;flex:1;">' +
+                        '<div style="font-weight:600;color:#fff;font-size:0.88em;">' + _escHtml(c.name) + '</div>' +
+                        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);">' + _escHtml(c.description || '') + ' · 👤 ' + (c.memberCount || 0) + '</div>' +
+                    '</div>' +
+                    (isMember
+                        ? '<button onclick="window._openCommunity(\'' + c._id + '\',\'' + _escAttr(c.name) + '\')" style="' + _SCbtn + 'background:rgba(0,188,212,0.15);color:#00bcd4;border:1px solid rgba(0,188,212,0.3);font-size:0.75em;">' + (isES ? 'Entrar' : 'Open') + '</button>'
+                        : '<button onclick="window._joinComm(\'' + c._id + '\')" style="' + _SCbtn + 'background:rgba(102,187,106,0.15);color:#66bb6a;border:1px solid rgba(102,187,106,0.3);font-size:0.75em;">+ ' + (isES ? 'Unirse' : 'Join') + '</button>'
+                    ) +
+                '</div>' +
+            '</div>';
+        });
+        el.innerHTML = html;
+    });
+}
+
+window._showCreateCommunity = function() {
+    var form = document.getElementById('createCommunityForm');
+    if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+};
+
+window._createCommunity = function() {
+    var name = document.getElementById('newCommunityName');
+    var desc = document.getElementById('newCommunityDesc');
+    var tag = document.getElementById('newCommunityTag');
+    if (!name || !name.value.trim()) return;
+    _createCommunity(name.value.trim(), desc ? desc.value.trim() : '', tag ? tag.value.trim() : '', function() {
+        _renderSocial();
+    });
+};
+
+window._joinComm = function(id) {
+    _joinCommunity(id, function() { _renderSocial(); });
+};
+
+window._openCommunity = function(communityId, name) {
+    var content = document.getElementById('socialContent');
+    if (!content) return;
+    var isES = L();
+
+    content.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+            '<button onclick="window._switchSocialTab(\'communities\')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.8em;cursor:pointer;">←</button>' +
+            '<div style="font-weight:700;color:#fff;font-size:0.95em;">' + _escHtml(name) + '</div>' +
+        '</div>' +
+        '<div style="' + _SC + 'padding:12px;margin-bottom:12px;">' +
+            '<textarea id="communityPostInput" placeholder="' + (isES ? 'Comparte algo con la comunidad...' : 'Share something with the community...') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.85em;min-height:40px;resize:vertical;box-sizing:border-box;margin-bottom:8px;"></textarea>' +
+            '<button onclick="window._postToComm(\'' + communityId + '\')" style="' + _SCbtn + 'background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;font-size:0.82em;">' + (isES ? 'Publicar' : 'Post') + '</button>' +
+        '</div>' +
+        '<div id="communityPosts" style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:10px;">' + (isES ? 'Cargando...' : 'Loading...') + '</div>';
+
+    _getCommunityPosts(communityId, function(posts) {
+        var el = document.getElementById('communityPosts');
+        if (!el) return;
+        if (posts.length === 0) {
+            el.innerHTML = '<div style="padding:20px;color:rgba(255,255,255,0.3);font-size:0.82em;">' + (isES ? 'Sin publicaciones aún. ¡Sé el primero!' : 'No posts yet. Be the first!') + '</div>';
+            return;
+        }
+        var html = '';
+        posts.forEach(function(post) {
+            html += '<div style="' + _SC + 'padding:10px;margin-bottom:8px;">' +
+                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+                    '<div style="font-weight:600;color:#00bcd4;font-size:0.82em;">' + (post.authorName || 'Anon') + '</div>' +
+                    '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);">' + (post.createdAt ? _timeAgo(post.createdAt.toDate ? post.createdAt.toDate() : new Date()) : '') + '</div>' +
+                '</div>' +
+                '<div style="color:rgba(255,255,255,0.8);font-size:0.82em;line-height:1.5;">' + _escHtml(post.content) + '</div>' +
+                '<div style="margin-top:6px;display:flex;gap:10px;">' +
+                    '<button onclick="window._likeCommPost(\'' + communityId + '\',\'' + post._id + '\')" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:0.75em;">❤️ ' + (post.likeCount || 0) + '</button>' +
+                    '<button onclick="window._toggleCommComments(\'' + communityId + '\',\'' + post._id + '\')" style="background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:0.75em;">💬 ' + (post.commentCount || 0) + '</button>' +
+                '</div>' +
+                '<div id="commComments_' + post._id + '" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);"></div>' +
+            '</div>';
+        });
+        el.innerHTML = html;
+    });
+};
+
+window._postToComm = function(communityId) {
+    var inp = document.getElementById('communityPostInput');
+    if (!inp || !inp.value.trim()) return;
+    _postToCommunity(communityId, inp.value.trim(), function() {
+        inp.value = '';
+    });
+};
+
+window._likeCommPost = function(cId, pId) { _likePost(cId, pId); };
+
+window._toggleCommComments = function(communityId, postId) {
+    var el = document.getElementById('commComments_' + postId);
+    if (!el) return;
+    if (el.style.display === 'none') {
+        el.style.display = 'block';
+        _getComments(communityId, postId, function(comments) {
+            var html = '';
+            comments.forEach(function(c) {
+                html += '<div style="padding:4px 0;font-size:0.78em;"><span style="font-weight:600;color:#00bcd4;">' + (c.authorName || 'Anon') + '</span> <span style="color:rgba(255,255,255,0.6);">' + _escHtml(c.content) + '</span></div>';
+            });
+            html += '<div style="display:flex;gap:6px;margin-top:6px;">' +
+                '<input id="commCmtInput_' + postId + '" placeholder="' + (L() ? 'Comentar...' : 'Comment...') + '" style="flex:1;padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:0.78em;" />' +
+                '<button onclick="window._submitCommComment(\'' + communityId + '\',\'' + postId + '\')" style="padding:6px 8px;background:rgba(0,188,212,0.2);border:1px solid rgba(0,188,212,0.3);border-radius:6px;color:#00bcd4;font-size:0.75em;cursor:pointer;">' + (L() ? 'OK' : 'OK') + '</button></div>';
+            el.innerHTML = html;
+        });
+    } else {
+        el.style.display = 'none';
+    }
+};
+
+window._submitCommComment = function(communityId, postId) {
+    var inp = document.getElementById('commCmtInput_' + postId);
+    if (!inp || !inp.value.trim()) return;
+    _commentOnPost(communityId, postId, inp.value.trim(), function() { inp.value = ''; });
+};
+
+// ── MESSAGES / CHAT ──
+function _renderMessages(content, isES) {
+    content.innerHTML =
+        '<div style="font-weight:700;color:#fff;font-size:0.95em;margin-bottom:12px;">💬 ' + (isES ? 'Mensajes' : 'Messages') + '</div>' +
+        '<div id="chatListArea" style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:20px;">' + (isES ? 'Cargando...' : 'Loading...') + '</div>';
+
+    _getMyChats(function(chats) {
+        var el = document.getElementById('chatListArea');
+        if (!el) return;
+        if (chats.length === 0) {
+            el.innerHTML = '<div style="padding:20px;color:rgba(255,255,255,0.3);font-size:0.85em;">' +
+                (isES ? 'Sin conversaciones aún. Busca usuarios en Descubrir y envíales un mensaje.' : 'No conversations yet. Find users in Discover and send them a message.') +
+            '</div>';
+            return;
+        }
+        var html = '';
+        chats.forEach(function(chat) {
+            var otherUid = chat.participants.find(function(p) { return p !== _socialUser.uid; });
+            html += '<div onclick="window._openChat(\'' + chat._id + '\',\'' + (otherUid || '') + '\')" style="' + _SC + 'padding:12px;margin-bottom:8px;cursor:pointer;">' +
+                '<div style="font-weight:600;color:#fff;font-size:0.85em;">' + (otherUid ? otherUid.substring(0, 8) + '...' : 'Chat') + '</div>' +
+                '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + _escHtml(chat.lastMessage || '') + '</div>' +
+            '</div>';
+        });
+        el.innerHTML = html;
+    });
+}
+
+window._startChatWith = function(uid, name) {
+    _getOrCreateChat(uid, function(chatId) {
+        window._openChat(chatId, uid, name);
+    });
+};
+
+window._openChat = function(chatId, otherUid, otherName) {
+    var content = document.getElementById('socialContent');
+    if (!content) return;
+    var isES = L();
+    var displayName = otherName || (otherUid ? otherUid.substring(0, 8) : 'Chat');
+
+    content.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+            '<button onclick="window._switchSocialTab(\'messages\')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.8em;cursor:pointer;">←</button>' +
+            '<div style="font-weight:700;color:#fff;font-size:0.9em;">💬 ' + _escHtml(displayName) + '</div>' +
+        '</div>' +
+        '<div id="chatMessages" style="min-height:200px;max-height:400px;overflow-y:auto;' + _SC + 'padding:12px;margin-bottom:10px;">' +
+            '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;">' + (isES ? 'Cargando...' : 'Loading...') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+            '<input id="chatMsgInput" placeholder="' + (isES ? 'Escribe un mensaje...' : 'Type a message...') + '" style="flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.85em;" onkeydown="if(event.key===\'Enter\')window._sendChat(\'' + chatId + '\')" />' +
+            '<button onclick="window._sendChat(\'' + chatId + '\')" style="' + _SCbtn + 'background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;">➤</button>' +
+        '</div>';
+
+    _listenToChat(chatId, function(msgs) {
+        var el = document.getElementById('chatMessages');
+        if (!el) return;
+        if (msgs.length === 0) {
+            el.innerHTML = '<div style="color:rgba(255,255,255,0.3);font-size:0.82em;text-align:center;padding:20px;">' + (isES ? 'Inicia la conversación...' : 'Start the conversation...') + '</div>';
+            return;
+        }
+        var html = '';
+        msgs.forEach(function(msg) {
+            var isMine = msg.senderUid === _socialUser.uid;
+            html += '<div style="margin-bottom:8px;display:flex;justify-content:' + (isMine ? 'flex-end' : 'flex-start') + ';">' +
+                '<div style="max-width:80%;padding:8px 12px;border-radius:12px;' +
+                    (isMine ? 'background:rgba(0,188,212,0.2);border:1px solid rgba(0,188,212,0.3);' : 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);') +
+                '">' +
+                    (isMine ? '' : '<div style="font-size:0.7em;font-weight:600;color:#00bcd4;margin-bottom:2px;">' + (msg.senderName || 'User') + '</div>') +
+                    '<div style="color:rgba(255,255,255,0.85);font-size:0.82em;">' + _escHtml(msg.text) + '</div>' +
+                '</div>' +
+            '</div>';
+        });
+        el.innerHTML = html;
+        el.scrollTop = el.scrollHeight;
+    });
+};
+
+window._sendChat = function(chatId) {
+    var inp = document.getElementById('chatMsgInput');
+    if (!inp || !inp.value.trim()) return;
+    _sendChatMsg(chatId, inp.value.trim());
+    inp.value = '';
+};
+
+// ── PROFILE / SETTINGS ──
+function _renderProfile(content, isES) {
+    var p = _socialProfile || {};
+    content.innerHTML =
+        '<div style="text-align:center;margin-bottom:16px;">' +
+            '<div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#00bcd4,#0097a7);display:flex;align-items:center;justify-content:center;font-size:1.5em;color:#fff;margin:0 auto 8px;">' + (p.displayName ? p.displayName.charAt(0).toUpperCase() : '?') + '</div>' +
+            '<div style="font-weight:700;color:#fff;font-size:1.1em;">' + (p.displayName || '') + '</div>' +
+            '<div style="font-size:0.8em;color:rgba(255,255,255,0.4);">' +
+                '☀️ ' + (p.sunSign || '?') + ' · 🌙 ' + (p.moonSign || '?') + ' · ⬆️ ' + (p.ascSign || '?') +
+            '</div>' +
+        '</div>' +
+        // Bio
+        '<div style="' + _SC + 'padding:12px;margin-bottom:12px;">' +
+            '<div style="font-weight:600;color:rgba(255,255,255,0.7);font-size:0.85em;margin-bottom:8px;">📝 Bio</div>' +
+            '<textarea id="socialBioEdit" style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#fff;font-size:0.82em;min-height:50px;resize:vertical;box-sizing:border-box;">' + _escHtml(p.bio || '') + '</textarea>' +
+        '</div>' +
+        // Privacy settings
+        '<div style="' + _SC + 'padding:12px;margin-bottom:12px;">' +
+            '<div style="font-weight:600;color:rgba(255,255,255,0.7);font-size:0.85em;margin-bottom:10px;">🔒 ' + (isES ? 'Privacidad' : 'Privacy') + '</div>' +
+            _privacyToggle('showDegrees', isES ? 'Mostrar grados planetarios' : 'Show planetary degrees', p.privacy) +
+            _privacyToggle('showHouses', isES ? 'Mostrar casas' : 'Show houses', p.privacy) +
+            _privacyToggle('showAspects', isES ? 'Mostrar aspectos' : 'Show aspects', p.privacy) +
+            _privacyToggle('showBirthData', isES ? 'Mostrar datos de nacimiento' : 'Show birth data', p.privacy) +
+            _privacyToggle('allowMessages', isES ? 'Permitir mensajes privados' : 'Allow private messages', p.privacy) +
+            _privacyToggle('showOnSearch', isES ? 'Aparecer en búsquedas' : 'Appear in searches', p.privacy) +
+        '</div>' +
+        '<button onclick="window._saveProfileSettings()" style="' + _SCbtn + 'width:100%;background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;margin-bottom:8px;">' + (isES ? 'Guardar Cambios' : 'Save Changes') + '</button>' +
+        '<button onclick="window._refreshProfile()" style="' + _SCbtn + 'width:100%;background:rgba(255,213,79,0.15);color:#ffd54f;border:1px solid rgba(255,213,79,0.3);margin-bottom:8px;">' + (isES ? '🔄 Actualizar Carta Natal' : '🔄 Update Natal Chart') + '</button>' +
+        '<button onclick="window._socialLogout()" style="' + _SCbtn + 'width:100%;background:rgba(255,107,107,0.1);color:#ff6b6b;border:1px solid rgba(255,107,107,0.2);">' + (isES ? 'Cerrar Sesión' : 'Sign Out') + '</button>';
+}
+
+function _privacyToggle(key, label, privacy) {
+    var isOn = privacy && privacy[key] !== undefined ? privacy[key] : true;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+        '<span style="font-size:0.78em;color:rgba(255,255,255,0.6);">' + label + '</span>' +
+        '<button id="priv_' + key + '" onclick="window._togglePrivacy(\'' + key + '\')" style="width:42px;height:22px;border-radius:11px;border:none;cursor:pointer;position:relative;' +
+            (isOn ? 'background:#00bcd4;' : 'background:rgba(255,255,255,0.15);') + '">' +
+            '<span style="position:absolute;top:2px;' + (isOn ? 'right:2px;' : 'left:2px;') + 'width:18px;height:18px;border-radius:50%;background:#fff;transition:all 0.2s;"></span>' +
+        '</button>' +
+    '</div>';
+}
+
+window._togglePrivacy = function(key) {
+    if (!_socialProfile) _socialProfile = {};
+    if (!_socialProfile.privacy) _socialProfile.privacy = {};
+    _socialProfile.privacy[key] = !_socialProfile.privacy[key];
+    var btn = document.getElementById('priv_' + key);
+    if (btn) {
+        var isOn = _socialProfile.privacy[key];
+        btn.style.background = isOn ? '#00bcd4' : 'rgba(255,255,255,0.15)';
+        btn.innerHTML = '<span style="position:absolute;top:2px;' + (isOn ? 'right:2px;' : 'left:2px;') + 'width:18px;height:18px;border-radius:50%;background:#fff;transition:all 0.2s;"></span>';
+    }
+};
+
+window._saveProfileSettings = function() {
+    if (!_db || !_socialUser || !_socialProfile) return;
+    var bio = document.getElementById('socialBioEdit');
+    var updates = {
+        privacy: _socialProfile.privacy || {},
+        bio: bio ? bio.value : (_socialProfile.bio || ''),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    _db.collection('users').doc(_socialUser.uid).update(updates).then(function() {
+        _socialProfile.bio = updates.bio;
+        alert(L() ? '✅ Cambios guardados' : '✅ Changes saved');
+    });
+};
+
+window._refreshProfile = function() {
+    _publishProfile(function() {
+        alert(L() ? '✅ Carta natal actualizada' : '✅ Natal chart updated');
+    });
+};
+
+// ── Utility Functions ──
+function _escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _escAttr(str) {
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+function _timeAgo(date) {
+    if (!date) return '';
+    var now = new Date();
+    var diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return diff + 's';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+    return Math.floor(diff / 86400) + 'd';
+}
+
+// ── Switch to Social Mode ──
+window.switchToSocialMode = function() {
+    if (typeof calendarMode !== 'undefined') calendarMode = 'social';
+    localStorage.setItem('calendarMode', 'social');
+
+    document.body.classList.remove('solar-mode');
+    document.body.classList.remove('gregorian-mode');
+    document.body.classList.remove('personal-mode');
+
+    // Hide all other panels
+    ['lunarWeeks', 'solarWeeks', 'gregorianCalendar', 'solarInfoPanel', 'earthInfoPanel', 'solarSystemPanel', 'aspects2026Panel', 'lunarInfoBanner', 'currentDayInfo', 'planetaryAspectsSection', 'personalCalendar'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    var nav = document.querySelector('.navigation');
+    if (nav) nav.style.display = 'none';
+
+    var title = document.getElementById('calendarTitle');
+    if (title) title.innerHTML = '🌐 AstroConnect';
+
+    if (typeof updateModeButtons === 'function') updateModeButtons();
+
+    _renderSocial();
+};
+
+// ── Init on mode restore ──
+if (localStorage.getItem('calendarMode') === 'social') {
+    // Will be handled by the existing mode restore logic
+}
+
+})();
+
 // Register Service Worker with update notification
-const APP_VERSION = 'v489';
+const APP_VERSION = 'v490';
 var _pendingSW = null;
 
 // What's New removed per user request
