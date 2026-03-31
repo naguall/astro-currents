@@ -724,6 +724,7 @@
                     <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">📚</button>
                     <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.65em;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;padding:0 3px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
                     <button id="moonCompassBtn" onclick="openMoonCompass()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">🧭</button>
+                    <button id="astroCourseBtn" onclick="openAstroCourse()" style="background:transparent;border:1px solid rgba(201,168,64,0.4);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:#c9a840;line-height:1;" title="Curso de Astrología">🎓</button>
                     <button id="preferencesBtn" onclick="openPreferencesModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">⚙️</button>
                 </div>
             </div>
@@ -24004,6 +24005,404 @@ function goToCurrentCycle() {
 }
 
 // ==============================================
+// ASTROLOGY COURSE — Professional Training System (v487)
+// ==============================================
+
+(function() {
+    var COURSE_KEY = 'moonSync_astroCourse';
+    var L = function() { return (typeof currentLang !== 'undefined' ? currentLang : 'es') === 'es'; };
+
+    // ── Course Curriculum Structure ──
+    var CURRICULUM = [
+        {
+            id: 'M1', icon: '🌌',
+            title_es: 'Fundamentos del Cosmos', title_en: 'Cosmic Fundamentals',
+            desc_es: 'Los cimientos de la astrología: historia, astronomía básica y el zodiaco', desc_en: 'Astrology foundations: history, basic astronomy and the zodiac',
+            lessons: [
+                { id: 'L1', title_es: '¿Qué es la Astrología?', title_en: 'What is Astrology?', type: 'theory',
+                  content_es: '<h3>🌌 ¿Qué es la Astrología?</h3><p>La astrología es el estudio de la relación entre los movimientos celestes y los eventos terrestres. No es adivinación — es un <b>lenguaje simbólico</b> que conecta los ciclos cósmicos con la experiencia humana.</p><h4>Orígenes</h4><p>Nació hace más de 4,000 años en Mesopotamia. Los babilonios observaron que los ciclos planetarios coincidían con eventos en la Tierra: cosechas, inundaciones, guerras. Crearon los primeros calendarios basados en la Luna y el Sol.</p><h4>Astrología vs Astronomía</h4><p><b>Astronomía:</b> Ciencia que estudia la posición física de los astros.<br><b>Astrología:</b> Interpreta el <i>significado simbólico</i> de esas posiciones para la vida humana.</p><h4>El Principio Hermético</h4><p><i>"Como es arriba, es abajo"</i> — Los patrones del cosmos se reflejan en los patrones de nuestra vida. No es causalidad directa, sino <b>sincronicidad</b> (concepto que Carl Jung estudió profundamente).</p><h4>Tipos de Astrología</h4><p>• <b>Natal:</b> Tu carta al nacer — tu mapa de potenciales<br>• <b>Tránsitos:</b> Planetas actuales sobre tu carta — timing de eventos<br>• <b>Sinastrí­a:</b> Compatibilidad entre cartas<br>• <b>Horaria:</b> Responder preguntas específicas<br>• <b>Electiva:</b> Elegir el mejor momento para actuar<br>• <b>Mundana:</b> Eventos globales y países</p>',
+                  content_en: '<h3>🌌 What is Astrology?</h3><p>Astrology is the study of the relationship between celestial movements and terrestrial events. It\'s not fortune-telling — it\'s a <b>symbolic language</b> that connects cosmic cycles with human experience.</p><h4>Origins</h4><p>It was born over 4,000 years ago in Mesopotamia. The Babylonians observed that planetary cycles coincided with events on Earth: harvests, floods, wars. They created the first calendars based on the Moon and Sun.</p><h4>Astrology vs Astronomy</h4><p><b>Astronomy:</b> Science studying the physical position of celestial bodies.<br><b>Astrology:</b> Interprets the <i>symbolic meaning</i> of those positions for human life.</p><h4>The Hermetic Principle</h4><p><i>"As above, so below"</i> — Cosmic patterns reflect in our life patterns. It\'s not direct causation, but <b>synchronicity</b> (a concept Carl Jung studied deeply).</p><h4>Types of Astrology</h4><p>• <b>Natal:</b> Your chart at birth — your map of potentials<br>• <b>Transits:</b> Current planets over your chart — event timing<br>• <b>Synastry:</b> Compatibility between charts<br>• <b>Horary:</b> Answering specific questions<br>• <b>Electional:</b> Choosing the best time to act<br>• <b>Mundane:</b> Global events and nations</p>' },
+                { id: 'L2', title_es: 'La Eclíptica y el Zodiaco', title_en: 'The Ecliptic and the Zodiac', type: 'theory',
+                  content_es: '<h3>♈ La Eclíptica y el Zodiaco</h3><p>La <b>eclíptica</b> es el camino aparente del Sol a través del cielo durante un año. Este camino atraviesa 12 constelaciones que forman el <b>zodiaco</b>.</p><h4>Zodiaco Tropical vs Sideral</h4><p><b>Tropical</b> (occidental): Basado en las estaciones. 0° Aries = equinoccio de primavera (21 marzo). Es el que usa Moon Sync.<br><b>Sideral</b> (védico/hindú): Basado en las estrellas fijas. Tiene un desfase de ~24° con el tropical debido a la precesión de los equinoccios.</p><h4>Los 12 Signos</h4><p>Cada signo ocupa exactamente 30° de la eclíptica (360° ÷ 12 = 30°):</p><p>♈ <b>Aries</b> (0°-30°) — Fuego Cardinal<br>♉ <b>Tauro</b> (30°-60°) — Tierra Fijo<br>♊ <b>Géminis</b> (60°-90°) — Aire Mutable<br>♋ <b>Cáncer</b> (90°-120°) — Agua Cardinal<br>♌ <b>Leo</b> (120°-150°) — Fuego Fijo<br>♍ <b>Virgo</b> (150°-180°) — Tierra Mutable<br>♎ <b>Libra</b> (180°-210°) — Aire Cardinal<br>♏ <b>Escorpio</b> (210°-240°) — Agua Fijo<br>♐ <b>Sagitario</b> (240°-270°) — Fuego Mutable<br>♑ <b>Capricornio</b> (270°-300°) — Tierra Cardinal<br>♒ <b>Acuario</b> (300°-330°) — Aire Fijo<br>♓ <b>Piscis</b> (330°-360°) — Agua Mutable</p>',
+                  content_en: '<h3>♈ The Ecliptic and the Zodiac</h3><p>The <b>ecliptic</b> is the Sun\'s apparent path through the sky during a year. This path crosses 12 constellations that form the <b>zodiac</b>.</p><h4>Tropical vs Sidereal Zodiac</h4><p><b>Tropical</b> (Western): Based on seasons. 0° Aries = spring equinox (March 21). This is what Moon Sync uses.<br><b>Sidereal</b> (Vedic/Hindu): Based on fixed stars. Has a ~24° offset from tropical due to precession of equinoxes.</p><h4>The 12 Signs</h4><p>Each sign occupies exactly 30° of the ecliptic (360° ÷ 12 = 30°):</p><p>♈ <b>Aries</b> (0°-30°) — Cardinal Fire<br>♉ <b>Taurus</b> (30°-60°) — Fixed Earth<br>♊ <b>Gemini</b> (60°-90°) — Mutable Air<br>♋ <b>Cancer</b> (90°-120°) — Cardinal Water<br>♌ <b>Leo</b> (120°-150°) — Fixed Fire<br>♍ <b>Virgo</b> (150°-180°) — Mutable Earth<br>♎ <b>Libra</b> (180°-210°) — Cardinal Air<br>♏ <b>Scorpio</b> (210°-240°) — Fixed Water<br>♐ <b>Sagittarius</b> (240°-270°) — Mutable Fire<br>♑ <b>Capricorn</b> (270°-300°) — Cardinal Earth<br>♒ <b>Aquarius</b> (300°-330°) — Fixed Air<br>♓ <b>Pisces</b> (330°-360°) — Mutable Water</p>' },
+                { id: 'L3', title_es: 'Elementos y Modalidades', title_en: 'Elements and Modalities', type: 'theory',
+                  content_es: '<h3>🔥 Elementos y Modalidades</h3><h4>Los 4 Elementos</h4><p>Cada signo pertenece a uno de 4 elementos que describen su <b>energía fundamental</b>:</p><p>🔥 <b>Fuego</b> (Aries, Leo, Sagitario): Energía, acción, inspiración, entusiasmo. Son los iniciadores, creativos y apasionados.<br>🌍 <b>Tierra</b> (Tauro, Virgo, Capricornio): Estabilidad, practicidad, materialización. Son los constructores, realistas y productivos.<br>💨 <b>Aire</b> (Géminis, Libra, Acuario): Comunicación, ideas, relaciones. Son los pensadores, sociales y conectores.<br>💧 <b>Agua</b> (Cáncer, Escorpio, Piscis): Emociones, intuición, profundidad. Son los sensitivos, empáticos y transformadores.</p><h4>Las 3 Modalidades</h4><p>Describen <b>cómo</b> actúa la energía del signo:</p><p>⚡ <b>Cardinal</b> (Aries, Cáncer, Libra, Capricornio): INICIAN. Son líderes que arrancan proyectos y ciclos nuevos.<br>🏔️ <b>Fijo</b> (Tauro, Leo, Escorpio, Acuario): SOSTIENEN. Dan estabilidad, perseverancia y profundidad.<br>🌊 <b>Mutable</b> (Géminis, Virgo, Sagitario, Piscis): ADAPTAN. Son flexibles, versátiles y facilitan las transiciones.</p><h4>La Combinación</h4><p>Cada signo es ÚNICO porque combina un elemento + una modalidad. No hay dos signos iguales:<br>Aries = Fuego Cardinal (inicio ardiente)<br>Tauro = Tierra Fija (estabilidad material)<br>Géminis = Aire Mutable (ideas cambiantes)</p>',
+                  content_en: '<h3>🔥 Elements and Modalities</h3><h4>The 4 Elements</h4><p>Each sign belongs to one of 4 elements describing its <b>fundamental energy</b>:</p><p>🔥 <b>Fire</b> (Aries, Leo, Sagittarius): Energy, action, inspiration, enthusiasm. They are initiators, creative and passionate.<br>🌍 <b>Earth</b> (Taurus, Virgo, Capricorn): Stability, practicality, materialization. They are builders, realistic and productive.<br>💨 <b>Air</b> (Gemini, Libra, Aquarius): Communication, ideas, relationships. They are thinkers, social and connectors.<br>💧 <b>Water</b> (Cancer, Scorpio, Pisces): Emotions, intuition, depth. They are sensitives, empaths and transformers.</p><h4>The 3 Modalities</h4><p>Describe <b>how</b> the sign\'s energy acts:</p><p>⚡ <b>Cardinal</b> (Aries, Cancer, Libra, Capricorn): INITIATE. Leaders who start new projects and cycles.<br>🏔️ <b>Fixed</b> (Taurus, Leo, Scorpio, Aquarius): SUSTAIN. Provide stability, perseverance and depth.<br>🌊 <b>Mutable</b> (Gemini, Virgo, Sagittarius, Pisces): ADAPT. Flexible, versatile and facilitate transitions.</p><h4>The Combination</h4><p>Each sign is UNIQUE because it combines an element + a modality. No two signs are the same:<br>Aries = Cardinal Fire (fiery beginning)<br>Taurus = Fixed Earth (material stability)<br>Gemini = Mutable Air (changing ideas)</p>' },
+                { id: 'Q1', title_es: 'Evaluación: Fundamentos', title_en: 'Quiz: Fundamentals', type: 'quiz',
+                  questions: [
+                    { q_es: '¿Cuántos grados ocupa cada signo del zodiaco?', q_en: 'How many degrees does each zodiac sign occupy?',
+                      opts_es: ['15°','30°','45°','60°'], opts_en: ['15°','30°','45°','60°'], correct: 1 },
+                    { q_es: '¿Qué elemento corresponde a Escorpio?', q_en: 'What element corresponds to Scorpio?',
+                      opts_es: ['Fuego','Tierra','Aire','Agua'], opts_en: ['Fire','Earth','Air','Water'], correct: 3 },
+                    { q_es: '¿Qué modalidad INICIA ciclos nuevos?', q_en: 'Which modality INITIATES new cycles?',
+                      opts_es: ['Fijo','Mutable','Cardinal','Dual'], opts_en: ['Fixed','Mutable','Cardinal','Dual'], correct: 2 },
+                    { q_es: '¿Cuál es la diferencia entre zodiaco tropical y sideral?', q_en: 'What is the difference between tropical and sidereal zodiac?',
+                      opts_es: ['Tropical usa estrellas fijas','Sideral usa las estaciones','Tropical usa las estaciones, sideral las estrellas','No hay diferencia'], opts_en: ['Tropical uses fixed stars','Sidereal uses seasons','Tropical uses seasons, sidereal uses stars','No difference'], correct: 2 },
+                    { q_es: '¿Qué tipo de astrología estudia la compatibilidad entre dos personas?', q_en: 'What type of astrology studies compatibility between two people?',
+                      opts_es: ['Horaria','Electiva','Sinastrí­a','Mundana'], opts_en: ['Horary','Electional','Synastry','Mundane'], correct: 2 }
+                  ]
+                },
+                { id: 'P1', title_es: 'Práctica: Tu Carta en Moon Sync', title_en: 'Practice: Your Chart in Moon Sync', type: 'practice',
+                  content_es: '<h3>🔭 Práctica: Explora Tu Carta</h3><p>Ahora aplica lo aprendido usando <b>tu propia carta natal</b> en Moon Sync:</p><ol><li><b>Ve a la pestaña Astro/Calendario</b> — Toca el botón "Astro" en la barra superior.</li><li><b>Toca el día de HOY</b> — Se abrirá tu información del día con tus tránsitos activos.</li><li><b>Identifica los elementos</b> — Mira los planetas listados. ¿En qué signos están? Clasifica cada uno por elemento (🔥🌍💨💧).</li><li><b>Cuenta tus elementos</b> — ¿Cuál es tu elemento dominante? Si tienes 4 planetas en signos de Agua, el Agua domina tu carta.</li><li><b>Identifica las modalidades</b> — ¿Tienes más planetas en signos Cardinales, Fijos o Mutables?</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Tip:</b> Tu elemento dominante describe tu manera natural de actuar. Tu modalidad dominante describe tu estilo: iniciar, sostener o adaptar.</p>',
+                  content_en: '<h3>🔭 Practice: Explore Your Chart</h3><p>Now apply what you learned using <b>your own natal chart</b> in Moon Sync:</p><ol><li><b>Go to Astro/Calendar tab</b> — Tap the "Astro" button in the top bar.</li><li><b>Tap TODAY</b> — Your day info with active transits will open.</li><li><b>Identify the elements</b> — Look at the listed planets. What signs are they in? Classify each by element (🔥🌍💨💧).</li><li><b>Count your elements</b> — What is your dominant element? If you have 4 planets in Water signs, Water dominates your chart.</li><li><b>Identify the modalities</b> — Do you have more planets in Cardinal, Fixed or Mutable signs?</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Tip:</b> Your dominant element describes your natural way of acting. Your dominant modality describes your style: initiating, sustaining or adapting.</p>' }
+            ]
+        },
+        {
+            id: 'M2', icon: '🪐',
+            title_es: 'Los Planetas — Actores del Cielo', title_en: 'The Planets — Actors of the Sky',
+            desc_es: 'El significado de cada planeta y su rol en tu carta natal', desc_en: 'The meaning of each planet and its role in your natal chart',
+            lessons: [
+                { id: 'L4', title_es: 'Luminarias: Sol y Luna', title_en: 'Luminaries: Sun and Moon', type: 'theory',
+                  content_es: '<h3>☀️ Las Luminarias: Sol y Luna</h3><p>El Sol y la Luna son los dos astros más importantes en tu carta natal. Juntos forman tu <b>núcleo identitario</b>.</p><h4>☀️ El Sol — Tu Esencia</h4><p><b>Ciclo:</b> 1 año (30 días por signo)<br><b>Representa:</b> Tu identidad consciente, tu voluntad, tu propósito de vida, tu vitalidad.<br><b>Pregunta clave:</b> "¿QUIÉN soy yo en mi esencia?"</p><p>El signo solar es lo que la mayoría conoce como "su signo". Pero es solo UNA pieza del rompecabezas — hay 9 planetas más.</p><h4>🌙 La Luna — Tu Mundo Interior</h4><p><b>Ciclo:</b> ~29.5 días (2.5 días por signo)<br><b>Representa:</b> Tus emociones, instintos, necesidades de seguridad, tu infancia, tu relación con la madre.<br><b>Pregunta clave:</b> "¿QUÉ necesito para sentirme seguro/a?"</p><p>La Luna cambia de signo cada ~2.5 días, por eso es crucial conocer la hora exacta de nacimiento.</p><h4>Sol + Luna = Tu Dualidad</h4><p>• Sol en Leo + Luna en Cáncer = Brillas públicamente pero necesitas nido seguro en privado<br>• Sol en Acuario + Luna en Tauro = Ideas revolucionarias pero necesitas estabilidad material<br>• Si Sol y Luna están en el mismo signo = personalidad muy integrada y consistente</p>',
+                  content_en: '<h3>☀️ The Luminaries: Sun and Moon</h3><p>The Sun and Moon are the two most important celestial bodies in your natal chart. Together they form your <b>identity core</b>.</p><h4>☀️ The Sun — Your Essence</h4><p><b>Cycle:</b> 1 year (30 days per sign)<br><b>Represents:</b> Your conscious identity, will, life purpose, vitality.<br><b>Key question:</b> "WHO am I in my essence?"</p><p>The sun sign is what most people know as "their sign." But it\'s just ONE piece of the puzzle — there are 9 more planets.</p><h4>🌙 The Moon — Your Inner World</h4><p><b>Cycle:</b> ~29.5 days (2.5 days per sign)<br><b>Represents:</b> Your emotions, instincts, security needs, childhood, relationship with mother.<br><b>Key question:</b> "WHAT do I need to feel safe?"</p><p>The Moon changes sign every ~2.5 days, which is why knowing the exact birth time is crucial.</p><h4>Sun + Moon = Your Duality</h4><p>• Sun in Leo + Moon in Cancer = You shine publicly but need a safe nest privately<br>• Sun in Aquarius + Moon in Taurus = Revolutionary ideas but need material stability<br>• If Sun and Moon are in the same sign = very integrated and consistent personality</p>' },
+                { id: 'L5', title_es: 'Planetas Personales: Mercurio, Venus, Marte', title_en: 'Personal Planets: Mercury, Venus, Mars', type: 'theory',
+                  content_es: '<h3>🪐 Planetas Personales</h3><p>Los planetas personales se mueven rápido y definen tu <b>personalidad cotidiana</b>.</p><h4>☿ Mercurio — Tu Mente</h4><p><b>Ciclo:</b> ~88 días<br><b>Representa:</b> Comunicación, pensamiento, aprendizaje, comercio, escritura.<br><b>Retrograda:</b> ~3 veces al año (21 días) — revisión de comunicaciones y contratos.</p><h4>♀ Venus — Tu Corazón</h4><p><b>Ciclo:</b> ~225 días<br><b>Representa:</b> Amor, belleza, valores, dinero, placeres, arte.<br><b>En tu carta:</b> Cómo amas, qué valoras, tu estilo estético y qué te atrae.</p><h4>♂ Marte — Tu Guerrero</h4><p><b>Ciclo:</b> ~687 días (~2 años)<br><b>Representa:</b> Acción, deseo, agresión, energía sexual, competitividad, coraje.<br><b>En tu carta:</b> Cómo luchas, qué te motiva a actuar, tu estilo de enojo.</p><h4>La Tríada Personal</h4><p>Mercurio + Venus + Marte = cómo piensas, amas y actúas en el día a día. Estos tres planetas siempre están cerca del Sol en tu carta.</p>',
+                  content_en: '<h3>🪐 Personal Planets</h3><p>Personal planets move quickly and define your <b>daily personality</b>.</p><h4>☿ Mercury — Your Mind</h4><p><b>Cycle:</b> ~88 days<br><b>Represents:</b> Communication, thinking, learning, commerce, writing.<br><b>Retrograde:</b> ~3 times/year (21 days) — review of communications and contracts.</p><h4>♀ Venus — Your Heart</h4><p><b>Cycle:</b> ~225 days<br><b>Represents:</b> Love, beauty, values, money, pleasures, art.<br><b>In your chart:</b> How you love, what you value, your aesthetic style.</p><h4>♂ Mars — Your Warrior</h4><p><b>Cycle:</b> ~687 days (~2 years)<br><b>Represents:</b> Action, desire, aggression, sexual energy, competitiveness, courage.<br><b>In your chart:</b> How you fight, what motivates you to act, your anger style.</p><h4>The Personal Triad</h4><p>Mercury + Venus + Mars = how you think, love and act day-to-day. These three planets are always close to the Sun in your chart.</p>' },
+                { id: 'L6', title_es: 'Planetas Sociales y Transpersonales', title_en: 'Social and Transpersonal Planets', type: 'theory',
+                  content_es: '<h3>🔮 Planetas Sociales y Transpersonales</h3><h4>Planetas Sociales</h4><p>♃ <b>Júpiter</b> (~12 años) — Expansión, abundancia, fe, viajes, filosofía, suerte. Un año por signo. Donde está Júpiter en tu carta = área de abundancia natural.</p><p>♄ <b>Saturno</b> (~29 años) — Estructura, disciplina, límites, madurez, karma, responsabilidad. El "gran maestro". Su retorno a los ~29 años marca la entrada a la adultez real.</p><h4>Planetas Transpersonales (Generacionales)</h4><p>♅ <b>Urano</b> (~84 años) — Revolución, innovación, libertad, cambios súbitos, tecnología. En un signo ~7 años. Generaciones enteras comparten signo de Urano.</p><p>♆ <b>Neptuno</b> (~165 años) — Espiritualidad, sueños, ilusión, compasión, arte transcendente, confusión. En un signo ~14 años.</p><p>♇ <b>Plutón</b> (~248 años) — Transformación profunda, poder, muerte/renacimiento, lo oculto, psicología profunda. En un signo 12-30 años (órbita irregular).</p><h4>Importancia de la Casa</h4><p>Para planetas lentos, el <b>signo</b> es generacional (millones lo comparten). Lo que te hace único es la <b>casa</b> donde caen y los <b>aspectos</b> que forman con tus planetas personales.</p>',
+                  content_en: '<h3>🔮 Social and Transpersonal Planets</h3><h4>Social Planets</h4><p>♃ <b>Jupiter</b> (~12 years) — Expansion, abundance, faith, travel, philosophy, luck. One year per sign. Where Jupiter is in your chart = area of natural abundance.</p><p>♄ <b>Saturn</b> (~29 years) — Structure, discipline, limits, maturity, karma, responsibility. The "great teacher". Its return at ~29 marks the entry to real adulthood.</p><h4>Transpersonal Planets (Generational)</h4><p>♅ <b>Uranus</b> (~84 years) — Revolution, innovation, freedom, sudden changes, technology. In one sign ~7 years.</p><p>♆ <b>Neptune</b> (~165 years) — Spirituality, dreams, illusion, compassion, transcendent art, confusion. In one sign ~14 years.</p><p>♇ <b>Pluto</b> (~248 years) — Deep transformation, power, death/rebirth, the occult, depth psychology. In one sign 12-30 years (irregular orbit).</p><h4>Importance of the House</h4><p>For slow planets, the <b>sign</b> is generational (millions share it). What makes you unique is the <b>house</b> where they fall and the <b>aspects</b> they form with your personal planets.</p>' },
+                { id: 'Q2', title_es: 'Evaluación: Planetas', title_en: 'Quiz: Planets', type: 'quiz',
+                  questions: [
+                    { q_es: '¿Qué planeta representa tus emociones y necesidades de seguridad?', q_en: 'Which planet represents your emotions and security needs?',
+                      opts_es: ['Sol','Luna','Venus','Neptuno'], opts_en: ['Sun','Moon','Venus','Neptune'], correct: 1 },
+                    { q_es: '¿Cuánto tarda Saturno en completar su órbita?', q_en: 'How long does Saturn take to complete its orbit?',
+                      opts_es: ['12 años','29 años','84 años','165 años'], opts_en: ['12 years','29 years','84 years','165 years'], correct: 1 },
+                    { q_es: '¿Qué planeta rige la comunicación y el pensamiento?', q_en: 'Which planet rules communication and thinking?',
+                      opts_es: ['Venus','Marte','Mercurio','Júpiter'], opts_en: ['Venus','Mars','Mercury','Jupiter'], correct: 2 },
+                    { q_es: 'Los planetas transpersonales son importantes por:', q_en: 'Transpersonal planets are important because of:',
+                      opts_es: ['Su signo (generacional)','Su casa y aspectos (personal)','Solo su signo','No son importantes'], opts_en: ['Their sign (generational)','Their house and aspects (personal)','Only their sign','They\'re not important'], correct: 1 }
+                  ]
+                },
+                { id: 'P2', title_es: 'Práctica: Tus Planetas', title_en: 'Practice: Your Planets', type: 'practice',
+                  content_es: '<h3>🔭 Práctica: Identifica Tus Planetas</h3><ol><li><b>Abre tu info del día</b> en Moon Sync (toca el día de hoy en Astro/Calendario)</li><li><b>Busca tu Sol y Luna</b> — ¿En qué signos están? Escribe: "Mi Sol es _____ y mi Luna es _____"</li><li><b>Identifica Mercurio, Venus y Marte</b> — ¿Están en el mismo signo que tu Sol o en signos diferentes?</li><li><b>Busca Júpiter y Saturno</b> — ¿En qué casas están? Esa es tu área de expansión (Júpiter) y disciplina (Saturno)</li><li><b>Pregunta al AI</b> — Abre el chat AI (✨) y pregunta: "¿Qué significa mi Sol en [signo] con Luna en [signo]?"</li></ol><p style="margin-top:12px;padding:10px;background:rgba(102,126,234,0.1);border-radius:8px;border-left:3px solid #667eea;">🤖 <b>Usa el AI:</b> El asistente de Moon Sync puede interpretar cualquier combinación de planetas en tu carta. ¡Aprovéchalo!</p>',
+                  content_en: '<h3>🔭 Practice: Identify Your Planets</h3><ol><li><b>Open your day info</b> in Moon Sync (tap today in Astro/Calendar)</li><li><b>Find your Sun and Moon</b> — What signs are they in? Write: "My Sun is _____ and my Moon is _____"</li><li><b>Identify Mercury, Venus and Mars</b> — Are they in the same sign as your Sun or different signs?</li><li><b>Find Jupiter and Saturn</b> — What houses are they in? That\'s your area of expansion (Jupiter) and discipline (Saturn)</li><li><b>Ask the AI</b> — Open the AI chat (✨) and ask: "What does my Sun in [sign] with Moon in [sign] mean?"</li></ol><p style="margin-top:12px;padding:10px;background:rgba(102,126,234,0.1);border-radius:8px;border-left:3px solid #667eea;">🤖 <b>Use the AI:</b> Moon Sync\'s assistant can interpret any combination of planets in your chart. Take advantage of it!</p>' }
+            ]
+        },
+        {
+            id: 'M3', icon: '🏠',
+            title_es: 'Las 12 Casas Astrológicas', title_en: 'The 12 Astrological Houses',
+            desc_es: 'Las áreas de vida donde actúan los planetas', desc_en: 'The life areas where planets operate',
+            lessons: [
+                { id: 'L7', title_es: 'Casas 1-6: El Mundo Personal', title_en: 'Houses 1-6: The Personal World', type: 'theory',
+                  content_es: '<h3>🏠 Casas 1-6: Tu Mundo Personal</h3><p>Las casas son las <b>12 áreas de vida</b>. Si los planetas son actores y los signos son disfraces, las casas son el <b>escenario</b> donde actúan.</p><h4>Casa 1 — El Ascendente (YO)</h4><p>Tu apariencia física, primera impresión, cómo te presentas al mundo. El signo de esta casa es tu <b>Ascendente</b> — tan importante como tu Sol.</p><h4>Casa 2 — Recursos (TENGO)</h4><p>Dinero, posesiones, valores personales, autoestima, talentos naturales.</p><h4>Casa 3 — Comunicación (PIENSO)</h4><p>Mente, comunicación diaria, hermanos, vecinos, viajes cortos, educación temprana.</p><h4>Casa 4 — Hogar (SIENTO)</h4><p>Familia, raíces, hogar, madre, tu mundo emocional interno, tu base de seguridad. El IC (Imum Coeli).</p><h4>Casa 5 — Creatividad (CREO)</h4><p>Creatividad, romance, hijos, juego, diversión, especulación, expresión artística.</p><h4>Casa 6 — Servicio (SIRVO)</h4><p>Salud, trabajo diario, rutinas, servicio a otros, mascotas, alimentación, hábitos.</p>',
+                  content_en: '<h3>🏠 Houses 1-6: Your Personal World</h3><p>Houses are the <b>12 life areas</b>. If planets are actors and signs are costumes, houses are the <b>stage</b> where they perform.</p><h4>House 1 — The Ascendant (I AM)</h4><p>Your physical appearance, first impression, how you present yourself. This house\'s sign is your <b>Ascendant</b> — as important as your Sun.</p><h4>House 2 — Resources (I HAVE)</h4><p>Money, possessions, personal values, self-esteem, natural talents.</p><h4>House 3 — Communication (I THINK)</h4><p>Mind, daily communication, siblings, neighbors, short trips, early education.</p><h4>House 4 — Home (I FEEL)</h4><p>Family, roots, home, mother, inner emotional world, security base. The IC (Imum Coeli).</p><h4>House 5 — Creativity (I CREATE)</h4><p>Creativity, romance, children, play, fun, speculation, artistic expression.</p><h4>House 6 — Service (I SERVE)</h4><p>Health, daily work, routines, service to others, pets, nutrition, habits.</p>' },
+                { id: 'L8', title_es: 'Casas 7-12: El Mundo Social', title_en: 'Houses 7-12: The Social World', type: 'theory',
+                  content_es: '<h3>🌍 Casas 7-12: Tu Mundo Social</h3><h4>Casa 7 — Relaciones (ME RELACIONO)</h4><p>Pareja, matrimonio, socios, enemigos abiertos, contratos. El Descendente — lo que buscas en otros (y lo que proyectas).</p><h4>Casa 8 — Transformación (ME TRANSFORMO)</h4><p>Muerte, renacimiento, sexualidad profunda, herencias, dinero de otros, crisis, poder, lo oculto, psicología profunda.</p><h4>Casa 9 — Filosofía (COMPRENDO)</h4><p>Filosofía, religión, viajes largos, educación superior, ley, publicación, búsqueda de significado.</p><h4>Casa 10 — Carrera (LOGRO)</h4><p>Carrera, estatus social, padre, reputación, logros públicos, autoridad. El MC (Medio Cielo) — tu destino profesional visible.</p><h4>Casa 11 — Comunidad (ESPERO)</h4><p>Amigos, grupos, organizaciones, esperanzas, proyectos sociales, humanitarismo, tecnología.</p><h4>Casa 12 — Espiritualidad (TRASCIENDO)</h4><p>Inconsciente, espiritualidad, aislamiento, sueños, karma, enemigos ocultos, hospitales, prisiones, auto-sabotaje, iluminación.</p><h4>Los 4 Ángulos</h4><p>Las casas 1 (ASC), 4 (IC), 7 (DSC), 10 (MC) son los <b>ángulos</b> — los puntos más poderosos de tu carta. Planetas en estos puntos tienen influencia máxima.</p>',
+                  content_en: '<h3>🌍 Houses 7-12: Your Social World</h3><h4>House 7 — Relationships (I RELATE)</h4><p>Partner, marriage, associates, open enemies, contracts. The Descendant — what you seek in others (and project).</p><h4>House 8 — Transformation (I TRANSFORM)</h4><p>Death, rebirth, deep sexuality, inheritances, others\' money, crises, power, the occult, depth psychology.</p><h4>House 9 — Philosophy (I UNDERSTAND)</h4><p>Philosophy, religion, long journeys, higher education, law, publishing, search for meaning.</p><h4>House 10 — Career (I ACHIEVE)</h4><p>Career, social status, father, reputation, public achievements, authority. The MC (Midheaven) — your visible professional destiny.</p><h4>House 11 — Community (I HOPE)</h4><p>Friends, groups, organizations, hopes, social projects, humanitarianism, technology.</p><h4>House 12 — Spirituality (I TRANSCEND)</h4><p>Unconscious, spirituality, isolation, dreams, karma, hidden enemies, hospitals, self-sabotage, enlightenment.</p><h4>The 4 Angles</h4><p>Houses 1 (ASC), 4 (IC), 7 (DSC), 10 (MC) are the <b>angles</b> — the most powerful chart points. Planets at these points have maximum influence.</p>' },
+                { id: 'Q3', title_es: 'Evaluación: Casas', title_en: 'Quiz: Houses', type: 'quiz',
+                  questions: [
+                    { q_es: '¿Qué casa representa tu carrera y reputación pública?', q_en: 'Which house represents your career and public reputation?',
+                      opts_es: ['Casa 2','Casa 6','Casa 10','Casa 11'], opts_en: ['House 2','House 6','House 10','House 11'], correct: 2 },
+                    { q_es: '¿Qué es el Ascendente?', q_en: 'What is the Ascendant?',
+                      opts_es: ['Tu signo solar','El signo de tu Casa 1','El signo de tu Luna','Tu MC'], opts_en: ['Your sun sign','Your House 1 sign','Your Moon sign','Your MC'], correct: 1 },
+                    { q_es: '¿Qué casa se relaciona con el inconsciente y la espiritualidad?', q_en: 'Which house relates to the unconscious and spirituality?',
+                      opts_es: ['Casa 8','Casa 9','Casa 11','Casa 12'], opts_en: ['House 8','House 9','House 11','House 12'], correct: 3 },
+                    { q_es: '¿Cuáles son los 4 ángulos de la carta?', q_en: 'What are the 4 chart angles?',
+                      opts_es: ['Casas 1,2,3,4','Casas 1,4,7,10','Casas 3,6,9,12','Casas 2,5,8,11'], opts_en: ['Houses 1,2,3,4','Houses 1,4,7,10','Houses 3,6,9,12','Houses 2,5,8,11'], correct: 1 }
+                  ]
+                },
+                { id: 'P3', title_es: 'Práctica: Tus Casas', title_en: 'Practice: Your Houses', type: 'practice',
+                  content_es: '<h3>🔭 Práctica: Mapea Tus Casas</h3><ol><li><b>Identifica tu Ascendente</b> — En Moon Sync, busca tu ASC en la info del día. ¿En qué signo está? Ese es tu "filtro" hacia el mundo.</li><li><b>Encuentra tu MC</b> — Es tu destino profesional. ¿Qué signo rige tu Casa 10?</li><li><b>¿Dónde está tu Sol?</b> — ¿En qué casa cae? Esa es el área de vida donde brillas naturalmente.</li><li><b>¿Dónde está tu Luna?</b> — Esa es el área donde necesitas seguridad emocional.</li><li><b>Casas vacías</b> — No te preocupes por casas sin planetas. Se rigen por el signo en su cúspide y el planeta regente de ese signo.</li></ol><p style="margin-top:12px;padding:10px;background:rgba(201,168,64,0.1);border-radius:8px;border-left:3px solid #c9a840;">💡 <b>Recuerda:</b> Las casas con más planetas son tus áreas de mayor actividad en la vida. Las casas angulares (1,4,7,10) con planetas indican temas centrales.</p>',
+                  content_en: '<h3>🔭 Practice: Map Your Houses</h3><ol><li><b>Identify your Ascendant</b> — In Moon Sync, find your ASC in the day info. What sign is it in? That\'s your "filter" to the world.</li><li><b>Find your MC</b> — It\'s your professional destiny. What sign rules your 10th House?</li><li><b>Where is your Sun?</b> — Which house does it fall in? That\'s the life area where you naturally shine.</li><li><b>Where is your Moon?</b> — That\'s the area where you need emotional security.</li><li><b>Empty houses</b> — Don\'t worry about houses without planets. They are ruled by the sign on their cusp and that sign\'s ruling planet.</li></ol>' }
+            ]
+        },
+        {
+            id: 'M4', icon: '⚡',
+            title_es: 'Aspectos Planetarios', title_en: 'Planetary Aspects',
+            desc_es: 'Las relaciones angulares entre planetas y su significado', desc_en: 'Angular relationships between planets and their meaning',
+            lessons: [
+                { id: 'L9', title_es: 'Aspectos Mayores', title_en: 'Major Aspects', type: 'theory',
+                  content_es: '<h3>⚡ Aspectos Mayores</h3><p>Los aspectos son los <b>ángulos</b> entre dos planetas medidos en grados. Son las "conversaciones" entre planetas — determina si cooperan o entran en conflicto.</p><h4>☌ Conjunción (0°) — Fusión</h4><p>Dos planetas en el mismo grado. Energías mezcladas e intensificadas. Puede ser armónico o tenso según los planetas. Orbe: 8-10°.</p><h4>⚹ Sextil (60°) — Oportunidad</h4><p>Aspecto suave. Talentos y oportunidades que requieren esfuerzo para activarse. Fluye pero no es automático. Orbe: 4-6°.</p><h4>□ Cuadratura (90°) — Tensión Creativa</h4><p>Aspecto duro. Conflicto interno, fricción, obstáculos que OBLIGAN al crecimiento. La fuente de tu mayor fuerza a largo plazo. Orbe: 7-8°.</p><h4>△ Trígono (120°) — Armonía Natural</h4><p>Aspecto suave. Flujo natural, talentos innatos, facilidad. Puede generar pereza si no se aprovecha. Orbe: 7-8°.</p><h4>☍ Oposición (180°) — Polaridad</h4><p>Aspecto duro. Tensión entre opuestos que busca equilibrio. Proyección en otros. Relaciones como espejo. Orbe: 8-10°.</p><h4>Aspectos Duros vs Suaves</h4><p><b>Suaves</b> (△ ⚹): Facilidad, talentos, zona de confort<br><b>Duros</b> (□ ☍): Desafíos, crecimiento, motivación<br>La carta ideal tiene AMBOS — los duros te impulsan, los suaves te sostienen.</p>',
+                  content_en: '<h3>⚡ Major Aspects</h3><p>Aspects are the <b>angles</b> between two planets measured in degrees. They are "conversations" between planets — determining if they cooperate or conflict.</p><h4>☌ Conjunction (0°) — Fusion</h4><p>Two planets at the same degree. Merged and intensified energies. Can be harmonious or tense depending on the planets. Orb: 8-10°.</p><h4>⚹ Sextile (60°) — Opportunity</h4><p>Soft aspect. Talents and opportunities that require effort to activate. Flows but isn\'t automatic. Orb: 4-6°.</p><h4>□ Square (90°) — Creative Tension</h4><p>Hard aspect. Internal conflict, friction, obstacles that FORCE growth. The source of your greatest long-term strength. Orb: 7-8°.</p><h4>△ Trine (120°) — Natural Harmony</h4><p>Soft aspect. Natural flow, innate talents, ease. Can generate laziness if not leveraged. Orb: 7-8°.</p><h4>☍ Opposition (180°) — Polarity</h4><p>Hard aspect. Tension between opposites seeking balance. Projection onto others. Relationships as mirrors. Orb: 8-10°.</p><h4>Hard vs Soft Aspects</h4><p><b>Soft</b> (△ ⚹): Ease, talents, comfort zone<br><b>Hard</b> (□ ☍): Challenges, growth, motivation<br>The ideal chart has BOTH — hard aspects push you, soft aspects support you.</p>' },
+                { id: 'L10', title_es: 'Aspectos en Moon Sync', title_en: 'Aspects in Moon Sync', type: 'theory',
+                  content_es: '<h3>📱 Aspectos en Moon Sync</h3><p>Moon Sync muestra aspectos en varias secciones. Aprender a leerlos es clave:</p><h4>En la Info del Día</h4><p>Los aspectos activos HOY aparecen como íconos tocables: ☌ ☍ △ □ ⚹. Cada uno muestra los planetas involucrados.</p><h4>En el Calendario Astro</h4><p>Los días con eventos astrológicos muestran iconos compactos. Puedes ver retrogradaciones (℞), cambios de signo, stelliums y eclipses.</p><h4>Cómo Leer un Aspecto</h4><p>Ejemplo: <b>Sol △ Júpiter</b><br>= Tu esencia (Sol) fluye armónicamente (△ trígono) con la expansión (Júpiter)<br>= Día de confianza, optimismo y oportunidades naturales</p><p>Ejemplo: <b>Luna □ Saturno</b><br>= Tus emociones (Luna) chocan (□ cuadratura) con los límites (Saturno)<br>= Sensación de restricción emocional, melancolía, pero disciplina interior</p><h4>Tránsitos vs Natales</h4><p><b>Aspectos natales:</b> Los que naciste — permanentes, parte de tu ADN astrológico.<br><b>Aspectos de tránsito:</b> Los planetas actuales activando tu carta — temporales, timing de eventos.</p>',
+                  content_en: '<h3>📱 Aspects in Moon Sync</h3><p>Moon Sync shows aspects in several sections. Learning to read them is key:</p><h4>In Day Info</h4><p>Active aspects TODAY appear as tappable icons: ☌ ☍ △ □ ⚹. Each shows the planets involved.</p><h4>In Astro Calendar</h4><p>Days with astrological events show compact icons. You can see retrogrades (℞), sign changes, stelliums and eclipses.</p><h4>How to Read an Aspect</h4><p>Example: <b>Sun △ Jupiter</b><br>= Your essence (Sun) flows harmoniously (△ trine) with expansion (Jupiter)<br>= Day of confidence, optimism and natural opportunities</p><p>Example: <b>Moon □ Saturn</b><br>= Your emotions (Moon) clash (□ square) with limits (Saturn)<br>= Emotional restriction, melancholy, but inner discipline</p><h4>Transits vs Natal</h4><p><b>Natal aspects:</b> What you were born with — permanent, part of your astrological DNA.<br><b>Transit aspects:</b> Current planets activating your chart — temporary, event timing.</p>' },
+                { id: 'Q4', title_es: 'Evaluación: Aspectos', title_en: 'Quiz: Aspects', type: 'quiz',
+                  questions: [
+                    { q_es: '¿Qué aspecto forma un ángulo de 120° y representa armonía natural?', q_en: 'Which aspect forms a 120° angle and represents natural harmony?',
+                      opts_es: ['Sextil','Cuadratura','Trígono','Oposición'], opts_en: ['Sextile','Square','Trine','Opposition'], correct: 2 },
+                    { q_es: '¿Qué aspecto es considerado el más tenso pero el mayor motor de crecimiento?', q_en: 'Which aspect is considered the most tense but the greatest growth driver?',
+                      opts_es: ['Conjunción','Cuadratura','Trígono','Sextil'], opts_en: ['Conjunction','Square','Trine','Sextile'], correct: 1 },
+                    { q_es: 'Sol △ Júpiter significa:', q_en: 'Sun △ Jupiter means:',
+                      opts_es: ['Conflicto con la autoridad','Armonía entre identidad y expansión','Restricción emocional','Confusión mental'], opts_en: ['Conflict with authority','Harmony between identity and expansion','Emotional restriction','Mental confusion'], correct: 1 }
+                  ]
+                },
+                { id: 'P4', title_es: 'Práctica: Lee Tus Aspectos', title_en: 'Practice: Read Your Aspects', type: 'practice',
+                  content_es: '<h3>🔭 Práctica: Lee Tus Aspectos de Hoy</h3><ol><li><b>Abre la info del día</b> en Moon Sync</li><li><b>Toca cada aspecto</b> que veas (☌ ☍ △ □ ⚹) — lee la interpretación que aparece</li><li><b>Clasifica:</b> ¿Cuántos aspectos duros (□ ☍) y cuántos suaves (△ ⚹) hay hoy?</li><li><b>Interpreta tú:</b> Antes de leer la interpretación AI, intenta describir qué significa el aspecto con lo que has aprendido</li><li><b>Compara con tu experiencia:</b> ¿Los aspectos duros coinciden con desafíos que sientes hoy? ¿Los suaves con facilidades?</li></ol>',
+                  content_en: '<h3>🔭 Practice: Read Today\'s Aspects</h3><ol><li><b>Open the day info</b> in Moon Sync</li><li><b>Tap each aspect</b> you see (☌ ☍ △ □ ⚹) — read the interpretation that appears</li><li><b>Classify:</b> How many hard aspects (□ ☍) and how many soft (△ ⚹) are there today?</li><li><b>Interpret yourself:</b> Before reading the AI interpretation, try to describe what the aspect means with what you\'ve learned</li><li><b>Compare with your experience:</b> Do hard aspects match challenges you feel today? Soft ones with ease?</li></ol>' }
+            ]
+        },
+        {
+            id: 'M5', icon: '🌙',
+            title_es: 'Ciclos Lunares y Solares', title_en: 'Lunar and Solar Cycles',
+            desc_es: 'Fases lunares, lunas nuevas/llenas, eclipses y retornos solares', desc_en: 'Lunar phases, new/full moons, eclipses and solar returns',
+            lessons: [
+                { id: 'L11', title_es: 'El Ciclo Lunar', title_en: 'The Lunar Cycle', type: 'theory',
+                  content_es: '<h3>🌙 El Ciclo Lunar</h3><p>La Luna completa un ciclo de ~29.5 días. Cada fase tiene una energía particular que afecta tus emociones, energía y capacidad de manifestar.</p><h4>Las 8 Fases</h4><p>🌑 <b>Luna Nueva</b> (0°): Semilla. Inicio de ciclo, intenciones, plantar nuevos proyectos.<br>🌒 <b>Creciente</b> (45°): Brote. Empujar hacia adelante, superar resistencia inicial.<br>🌓 <b>Cuarto Creciente</b> (90°): Crisis de acción. Decidir y actuar, no dudar.<br>🌔 <b>Gibosa Creciente</b> (135°): Refinamiento. Ajustar, analizar, perfeccionar.<br>🌕 <b>Luna Llena</b> (180°): Culminación. Resultados, revelaciones, máxima iluminación.<br>🌖 <b>Gibosa Menguante</b> (225°): Gratitud. Compartir lo logrado, enseñar.<br>🌗 <b>Cuarto Menguante</b> (270°): Crisis de consciencia. Soltar lo que no sirve.<br>🌘 <b>Balsámica</b> (315°): Entrega. Descanso, meditación, preparar el próximo ciclo.</p><h4>En Moon Sync</h4><p>El calendario Lunar muestra exactamente en qué fase estás cada día. Los iconos 🌑🌕 marcan lunas nuevas y llenas.</p>',
+                  content_en: '<h3>🌙 The Lunar Cycle</h3><p>The Moon completes a cycle of ~29.5 days. Each phase has a particular energy affecting your emotions, energy and ability to manifest.</p><h4>The 8 Phases</h4><p>🌑 <b>New Moon</b> (0°): Seed. Cycle start, intentions, planting new projects.<br>🌒 <b>Waxing Crescent</b> (45°): Sprout. Push forward, overcome initial resistance.<br>🌓 <b>First Quarter</b> (90°): Action crisis. Decide and act, don\'t hesitate.<br>🌔 <b>Waxing Gibbous</b> (135°): Refinement. Adjust, analyze, perfect.<br>🌕 <b>Full Moon</b> (180°): Culmination. Results, revelations, maximum illumination.<br>🌖 <b>Waning Gibbous</b> (225°): Gratitude. Share achievements, teach.<br>🌗 <b>Last Quarter</b> (270°): Consciousness crisis. Release what doesn\'t serve.<br>🌘 <b>Balsamic</b> (315°): Surrender. Rest, meditation, prepare next cycle.</p>' },
+                { id: 'L12', title_es: 'Retorno Solar y Eclipses', title_en: 'Solar Return and Eclipses', type: 'theory',
+                  content_es: '<h3>☀️ Retorno Solar y Eclipses</h3><h4>Retorno Solar (Revolución Solar)</h4><p>Ocurre cada año cuando el Sol regresa al grado EXACTO donde estaba al nacer. Es tu "carta del año" — revela los temas principales de ese año personal.</p><p>Moon Sync marca tu retorno solar con un icono especial 🎂. La carta se calcula para el momento exacto del retorno, no para la medianoche de tu cumpleaños.</p><h4>Eclipses</h4><p>Los eclipses son lunas nuevas y llenas POTENCIADAS que ocurren cerca de los nodos lunares:</p><p>🌑 <b>Eclipse Solar</b> (Luna Nueva potenciada): Nuevos comienzos dramáticos, aperturas de puertas, cambios de dirección en la vida. Efecto: ~6 meses.</p><p>🌕 <b>Eclipse Lunar</b> (Luna Llena potenciada): Revelaciones, finales, culminaciones emocionales intensas, cierres de ciclo. Efecto: ~3 meses.</p><h4>¿Dónde Caen en Tu Carta?</h4><p>La casa donde cae un eclipse indica el área de vida que será activada. Si cae en conjunción con un planeta natal, ese planeta se "despierta" intensamente.</p>',
+                  content_en: '<h3>☀️ Solar Return and Eclipses</h3><h4>Solar Return</h4><p>Occurs each year when the Sun returns to the EXACT degree where it was at your birth. It\'s your "year chart" — reveals the main themes of that personal year.</p><p>Moon Sync marks your solar return with a special 🎂 icon.</p><h4>Eclipses</h4><p>Eclipses are SUPERCHARGED new and full moons occurring near the lunar nodes:</p><p>🌑 <b>Solar Eclipse</b> (Supercharged New Moon): Dramatic new beginnings, door openings, life direction changes. Effect: ~6 months.</p><p>🌕 <b>Lunar Eclipse</b> (Supercharged Full Moon): Revelations, endings, intense emotional culminations, cycle closures. Effect: ~3 months.</p><h4>Where Do They Fall in Your Chart?</h4><p>The house where an eclipse falls indicates the life area that will be activated. If it conjuncts a natal planet, that planet "awakens" intensely.</p>' },
+                { id: 'Q5', title_es: 'Evaluación: Ciclos', title_en: 'Quiz: Cycles', type: 'quiz',
+                  questions: [
+                    { q_es: '¿Qué fase lunar es ideal para iniciar nuevos proyectos?', q_en: 'Which lunar phase is ideal for starting new projects?',
+                      opts_es: ['Luna Llena','Cuarto Menguante','Luna Nueva','Balsámica'], opts_en: ['Full Moon','Last Quarter','New Moon','Balsamic'], correct: 2 },
+                    { q_es: '¿Qué es un retorno solar?', q_en: 'What is a solar return?',
+                      opts_es: ['Cuando el Sol sale','Cuando el Sol vuelve a tu grado natal','Un eclipse solar','Cuando cambia de signo'], opts_en: ['When the Sun rises','When the Sun returns to your natal degree','A solar eclipse','When it changes sign'], correct: 1 },
+                    { q_es: 'Un eclipse lunar es:', q_en: 'A lunar eclipse is:',
+                      opts_es: ['Una luna nueva potenciada','Una luna llena potenciada','Un retorno solar','Un aspecto menor'], opts_en: ['A supercharged new moon','A supercharged full moon','A solar return','A minor aspect'], correct: 1 }
+                  ]
+                }
+            ]
+        },
+        {
+            id: 'M6', icon: '🔮',
+            title_es: 'Astrología Predictiva', title_en: 'Predictive Astrology',
+            desc_es: 'Tránsitos, progresiones y técnicas de predicción', desc_en: 'Transits, progressions and prediction techniques',
+            lessons: [
+                { id: 'L13', title_es: 'Tránsitos Planetarios', title_en: 'Planetary Transits', type: 'theory',
+                  content_es: '<h3>🔮 Tránsitos Planetarios</h3><p>Los tránsitos son los movimientos de los planetas ACTUALES sobre tu carta natal. Son la herramienta principal de predicción.</p><h4>Velocidad = Importancia</h4><p><b>Luna</b> (2.5 días/signo): Estado de ánimo diario<br><b>Sol, Mercurio, Venus</b> (1 mes/signo): Temas semanales<br><b>Marte</b> (2 meses/signo): Energía y conflictos de 2 meses<br><b>Júpiter</b> (1 año/signo): Oportunidades anuales<br><b>Saturno</b> (2.5 años/signo): Lecciones de vida de 2-3 años<br><b>Urano, Neptuno, Plutón</b> (años/signo): Transformaciones generacionales</p><h4>Tránsitos Más Importantes</h4><p>• <b>Saturno sobre Sol/Luna/ASC</b>: Pruebas y maduración (duros pero transformadores)<br>• <b>Júpiter sobre Sol/Luna/ASC</b>: Expansión y oportunidades<br>• <b>Plutón sobre cualquier planeta</b>: Transformación profunda e irreversible<br>• <b>Urano sobre cualquier planeta</b>: Cambios súbitos, liberación</p><h4>En Moon Sync</h4><p>Cada día muestra los tránsitos activos sobre tu carta. Los aspectos exactos (orbe < 1°) son los más intensos. Toca cualquier tránsito para ver su interpretación.</p>',
+                  content_en: '<h3>🔮 Planetary Transits</h3><p>Transits are the movements of CURRENT planets over your natal chart. They are the main prediction tool.</p><h4>Speed = Importance</h4><p><b>Moon</b> (2.5 days/sign): Daily mood<br><b>Sun, Mercury, Venus</b> (1 month/sign): Weekly themes<br><b>Mars</b> (2 months/sign): 2-month energy and conflicts<br><b>Jupiter</b> (1 year/sign): Annual opportunities<br><b>Saturn</b> (2.5 years/sign): 2-3 year life lessons<br><b>Uranus, Neptune, Pluto</b> (years/sign): Generational transformations</p><h4>Most Important Transits</h4><p>• <b>Saturn over Sun/Moon/ASC</b>: Tests and maturation<br>• <b>Jupiter over Sun/Moon/ASC</b>: Expansion and opportunities<br>• <b>Pluto over any planet</b>: Deep irreversible transformation<br>• <b>Uranus over any planet</b>: Sudden changes, liberation</p>' },
+                { id: 'L14', title_es: 'Retrogradaciones', title_en: 'Retrogrades', type: 'theory',
+                  content_es: '<h3>℞ Retrogradaciones</h3><p>Cuando un planeta parece moverse "hacia atrás" desde la perspectiva terrestre. No es real (es óptico), pero astrológicamente es significativo.</p><h4>Significado General</h4><p>Retrogradación = <b>RE-</b>: revisar, repensar, reconectar, repetir, reparar. La energía del planeta se vuelve hacia ADENTRO en lugar de expresarse hacia afuera.</p><h4>Mercurio Retrógrado ☿℞</h4><p>~3 veces/año, 21 días. Comunicaciones confusas, tecnología fallando, malentendidos, reencuentros. NO firmar contratos importantes si es posible esperar.</p><h4>Venus Retrógrado ♀℞</h4><p>Cada 18 meses, 40 días. Revisión de relaciones y valores. Ex parejas reaparecen. No es buen momento para cirugías estéticas o compras de lujo.</p><h4>Marte Retrógrado ♂℞</h4><p>Cada 2 años, 70 días. Frustración, energía baja, rabia reprimida. Revisar cómo usas tu energía y agresividad.</p><h4>En Moon Sync</h4><p>Los planetas retrógrados se marcan con ℞ en el calendario y la info del día. Moon Sync te alerta cuando un planeta importante entra en retrogradación.</p>',
+                  content_en: '<h3>℞ Retrogrades</h3><p>When a planet appears to move "backwards" from Earth\'s perspective. It\'s not real (it\'s optical), but astrologically significant.</p><h4>General Meaning</h4><p>Retrograde = <b>RE-</b>: review, rethink, reconnect, repeat, repair. The planet\'s energy turns INWARD instead of expressing outward.</p><h4>Mercury Retrograde ☿℞</h4><p>~3 times/year, 21 days. Confused communications, technology failing, misunderstandings, reunions. DON\'T sign important contracts if you can wait.</p><h4>Venus Retrograde ♀℞</h4><p>Every 18 months, 40 days. Relationship and values review. Ex-partners reappear.</p><h4>Mars Retrograde ♂℞</h4><p>Every 2 years, 70 days. Frustration, low energy, repressed anger. Review how you use your energy.</p>' },
+                { id: 'Q6', title_es: 'Evaluación Final', title_en: 'Final Quiz', type: 'quiz',
+                  questions: [
+                    { q_es: '¿Qué significa cuando un planeta está retrógrado?', q_en: 'What does it mean when a planet is retrograde?',
+                      opts_es: ['Se mueve hacia atrás realmente','Parece moverse hacia atrás (es óptico)','Desaparece del cielo','Cambia de color'], opts_en: ['It actually moves backwards','It appears to move backwards (optical)','It disappears from the sky','It changes color'], correct: 1 },
+                    { q_es: 'Si Saturno transita tu Sol natal, puedes esperar:', q_en: 'If Saturn transits your natal Sun, you can expect:',
+                      opts_es: ['Fiesta y diversión','Pruebas, maduración y estructura','Confusión total','Nada en particular'], opts_en: ['Party and fun','Tests, maturation and structure','Total confusion','Nothing in particular'], correct: 1 },
+                    { q_es: '¿Con qué frecuencia ocurre Mercurio retrógrado?', q_en: 'How often does Mercury retrograde occur?',
+                      opts_es: ['1 vez al año','3 veces al año','Cada 2 años','Cada mes'], opts_en: ['Once a year','3 times a year','Every 2 years','Every month'], correct: 1 }
+                  ]
+                }
+            ]
+        }
+    ];
+
+    // ── Progress Management ──
+    function _getProgress() {
+        try { return JSON.parse(localStorage.getItem(COURSE_KEY) || '{}'); } catch(e) { return {}; }
+    }
+    function _saveProgress(p) { localStorage.setItem(COURSE_KEY, JSON.stringify(p)); }
+    function _isLessonDone(lessonId) { return !!_getProgress()[lessonId]; }
+    function _markDone(lessonId, score) {
+        var p = _getProgress(); p[lessonId] = { done: true, score: score || null, date: new Date().toISOString() }; _saveProgress(p);
+    }
+    function _getModuleProgress(mod) {
+        var p = _getProgress(); var done = 0;
+        mod.lessons.forEach(function(l) { if (p[l.id]) done++; });
+        return { done: done, total: mod.lessons.length, pct: Math.round((done / mod.lessons.length) * 100) };
+    }
+    function _getOverallProgress() {
+        var p = _getProgress(); var done = 0; var total = 0;
+        CURRICULUM.forEach(function(m) { m.lessons.forEach(function(l) { total++; if (p[l.id]) done++; }); });
+        return { done: done, total: total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+    }
+
+    // ── UI: Main Course Modal ──
+    window.openAstroCourse = function() {
+        var isES = L();
+        var existing = document.getElementById('astroCourseModal');
+        if (existing) existing.remove();
+
+        var modal = document.createElement('div');
+        modal.id = 'astroCourseModal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:5000;background:rgba(2,2,15,0.97);overflow-y:auto;display:flex;flex-direction:column;';
+
+        var overall = _getOverallProgress();
+
+        var html = '<div style="padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,64,0.2);">' +
+            '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.5em;">🎓</span><div><div style="font-weight:700;color:#ffd54f;font-size:1.05em;">' + (isES ? 'Curso de Astrología Profesional' : 'Professional Astrology Course') + '</div>' +
+            '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);">' + (isES ? '6 módulos · Teoría + Práctica + Evaluación' : '6 modules · Theory + Practice + Quizzes') + '</div></div></div>' +
+            '<button onclick="document.getElementById(\'astroCourseModal\').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 12px;font-size:0.85em;cursor:pointer;">✕</button></div>';
+
+        // Progress bar
+        html += '<div style="padding:12px 16px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:0.75em;color:rgba(255,255,255,0.5);">' + (isES ? 'Progreso general' : 'Overall progress') + '</span><span style="font-size:0.75em;color:#c9a840;font-weight:600;">' + overall.pct + '% (' + overall.done + '/' + overall.total + ')</span></div>' +
+            '<div style="width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;"><div style="width:' + overall.pct + '%;height:100%;background:linear-gradient(90deg,#c9a840,#ffd54f);border-radius:3px;transition:width 0.5s;"></div></div></div>';
+
+        // Module cards
+        html += '<div style="flex:1;padding:0 16px 80px;overflow-y:auto;">';
+        CURRICULUM.forEach(function(mod, idx) {
+            var mp = _getModuleProgress(mod);
+            var isLocked = false;
+            if (idx > 0) {
+                var prevMp = _getModuleProgress(CURRICULUM[idx - 1]);
+                isLocked = prevMp.pct < 60; // Need 60% to unlock next module
+            }
+            var borderColor = mp.pct >= 100 ? 'rgba(102,187,106,0.5)' : (isLocked ? 'rgba(255,255,255,0.08)' : 'rgba(201,168,64,0.3)');
+            var opacity = isLocked ? '0.45' : '1';
+
+            html += '<div onclick="' + (isLocked ? '' : 'openCourseModule(' + idx + ')') + '" style="margin-bottom:10px;padding:14px;background:linear-gradient(135deg,rgba(7,9,42,0.8),rgba(4,5,25,0.9));border:1px solid ' + borderColor + ';border-radius:12px;cursor:' + (isLocked ? 'not-allowed' : 'pointer') + ';opacity:' + opacity + ';transition:all 0.2s;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.3em;">' + (isLocked ? '🔒' : mod.icon) + '</span>' +
+                '<div><div style="font-weight:700;color:' + (mp.pct >= 100 ? '#66bb6a' : '#fff') + ';font-size:0.9em;">' + (isES ? mod.title_es : mod.title_en) + '</div>' +
+                '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);margin-top:2px;">' + (isES ? mod.desc_es : mod.desc_en) + '</div></div></div>' +
+                '<div style="text-align:right;"><div style="font-size:0.75em;color:' + (mp.pct >= 100 ? '#66bb6a' : '#c9a840') + ';font-weight:600;">' + mp.pct + '%</div>' +
+                '<div style="width:40px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:3px;"><div style="width:' + mp.pct + '%;height:100%;background:' + (mp.pct >= 100 ? '#66bb6a' : '#c9a840') + ';border-radius:2px;"></div></div></div></div></div>';
+        });
+        html += '</div>';
+
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+    };
+
+    // ── UI: Module Detail View ──
+    window.openCourseModule = function(modIdx) {
+        var isES = L();
+        var mod = CURRICULUM[modIdx];
+        if (!mod) return;
+
+        var modal = document.getElementById('astroCourseModal');
+        if (!modal) return;
+
+        var html = '<div style="padding:16px 16px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,64,0.2);">' +
+            '<div style="display:flex;align-items:center;gap:10px;"><button onclick="openAstroCourse()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.8em;cursor:pointer;">←</button>' +
+            '<div><div style="font-weight:700;color:#ffd54f;font-size:1em;">' + mod.icon + ' ' + (isES ? mod.title_es : mod.title_en) + '</div></div></div>' +
+            '<button onclick="document.getElementById(\'astroCourseModal\').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 12px;font-size:0.85em;cursor:pointer;">✕</button></div>';
+
+        // Lesson list
+        html += '<div style="flex:1;padding:16px;overflow-y:auto;">';
+        mod.lessons.forEach(function(lesson, lIdx) {
+            var isDone = _isLessonDone(lesson.id);
+            var typeIcon = lesson.type === 'theory' ? '📖' : (lesson.type === 'quiz' ? '📝' : '🔭');
+            var typeLabel = lesson.type === 'theory' ? (isES ? 'Teoría' : 'Theory') : (lesson.type === 'quiz' ? (isES ? 'Evaluación' : 'Quiz') : (isES ? 'Práctica' : 'Practice'));
+            var typeColor = lesson.type === 'theory' ? '#667eea' : (lesson.type === 'quiz' ? '#ff6b6b' : '#66bb6a');
+
+            html += '<div onclick="openCourseLesson(' + modIdx + ',' + lIdx + ')" style="margin-bottom:8px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid ' + (isDone ? 'rgba(102,187,106,0.3)' : 'rgba(255,255,255,0.1)') + ';border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px;">' +
+                '<span style="font-size:1.1em;">' + (isDone ? '✅' : typeIcon) + '</span>' +
+                '<div style="flex:1;"><div style="font-weight:600;color:' + (isDone ? '#66bb6a' : '#fff') + ';font-size:0.85em;">' + (isES ? lesson.title_es : lesson.title_en) + '</div>' +
+                '<span style="font-size:0.65em;color:' + typeColor + ';background:' + typeColor + '20;padding:2px 8px;border-radius:10px;font-weight:600;">' + typeLabel + '</span></div>' +
+                (isDone && _getProgress()[lesson.id] && _getProgress()[lesson.id].score !== null ? '<span style="font-size:0.75em;color:#ffd54f;font-weight:600;">' + _getProgress()[lesson.id].score + '%</span>' : '') +
+                '</div>';
+        });
+
+        // Module navigation
+        html += '<div style="display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);">';
+        if (modIdx > 0) {
+            html += '<button onclick="openCourseModule(' + (modIdx - 1) + ')" style="flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);font-size:0.8em;cursor:pointer;">← ' + (isES ? 'Anterior' : 'Previous') + '</button>';
+        }
+        if (modIdx < CURRICULUM.length - 1) {
+            html += '<button onclick="openCourseModule(' + (modIdx + 1) + ')" style="flex:1;padding:10px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:8px;color:#c9a840;font-size:0.8em;font-weight:600;cursor:pointer;">' + (isES ? 'Siguiente' : 'Next') + ' →</button>';
+        }
+        html += '</div></div>';
+
+        modal.innerHTML = html;
+    };
+
+    // ── UI: Lesson View (Theory/Practice/Quiz) ──
+    window.openCourseLesson = function(modIdx, lessonIdx) {
+        var isES = L();
+        var mod = CURRICULUM[modIdx];
+        var lesson = mod.lessons[lessonIdx];
+        if (!lesson) return;
+
+        var modal = document.getElementById('astroCourseModal');
+        if (!modal) return;
+
+        var html = '<div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,64,0.2);flex-shrink:0;">' +
+            '<div style="display:flex;align-items:center;gap:10px;"><button onclick="openCourseModule(' + modIdx + ')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 10px;font-size:0.8em;cursor:pointer;">←</button>' +
+            '<div style="font-weight:700;color:#ffd54f;font-size:0.9em;">' + (isES ? lesson.title_es : lesson.title_en) + '</div></div>' +
+            '<button onclick="document.getElementById(\'astroCourseModal\').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.6);padding:6px 12px;font-size:0.85em;cursor:pointer;">✕</button></div>';
+
+        if (lesson.type === 'quiz') {
+            // Quiz view
+            html += '<div id="courseQuizArea" style="flex:1;padding:16px;overflow-y:auto;">';
+            html += _renderQuiz(modIdx, lessonIdx, isES);
+            html += '</div>';
+        } else {
+            // Theory or Practice view
+            var content = isES ? lesson.content_es : lesson.content_en;
+            html += '<div style="flex:1;padding:16px;overflow-y:auto;"><div style="color:rgba(255,255,255,0.85);font-size:0.85em;line-height:1.65;">' + content + '</div>';
+
+            // Mark as done button
+            var isDone = _isLessonDone(lesson.id);
+            html += '<div style="margin-top:20px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;">';
+            if (!isDone) {
+                html += '<button onclick="markCourseLessonDone(\'' + lesson.id + '\',' + modIdx + ',' + lessonIdx + ')" style="flex:1;padding:12px;background:linear-gradient(135deg,rgba(102,187,106,0.2),rgba(102,187,106,0.1));border:1px solid rgba(102,187,106,0.4);border-radius:10px;color:#66bb6a;font-size:0.85em;font-weight:700;cursor:pointer;">✅ ' + (isES ? 'Marcar como completado' : 'Mark as completed') + '</button>';
+            } else {
+                html += '<div style="flex:1;padding:12px;text-align:center;color:#66bb6a;font-size:0.85em;font-weight:600;">✅ ' + (isES ? 'Completado' : 'Completed') + '</div>';
+            }
+
+            // Next lesson
+            if (lessonIdx < mod.lessons.length - 1) {
+                html += '<button onclick="openCourseLesson(' + modIdx + ',' + (lessonIdx + 1) + ')" style="padding:12px 20px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:10px;color:#c9a840;font-size:0.85em;font-weight:600;cursor:pointer;">' + (isES ? 'Siguiente' : 'Next') + ' →</button>';
+            }
+            html += '</div></div>';
+        }
+
+        modal.innerHTML = html;
+    };
+
+    window.markCourseLessonDone = function(lessonId, modIdx, lessonIdx) {
+        _markDone(lessonId);
+        openCourseLesson(modIdx, lessonIdx);
+    };
+
+    // ── Quiz Renderer ──
+    function _renderQuiz(modIdx, lessonIdx, isES) {
+        var lesson = CURRICULUM[modIdx].lessons[lessonIdx];
+        var questions = lesson.questions;
+        var html = '';
+
+        html += '<div style="margin-bottom:16px;color:rgba(255,255,255,0.5);font-size:0.8em;">' + (isES ? 'Responde todas las preguntas y envía para ver tu resultado.' : 'Answer all questions and submit to see your score.') + '</div>';
+
+        questions.forEach(function(q, qIdx) {
+            var qText = isES ? q.q_es : q.q_en;
+            var opts = isES ? q.opts_es : q.opts_en;
+            html += '<div style="margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:10px;">' +
+                '<div style="font-weight:600;color:#fff;font-size:0.85em;margin-bottom:10px;">' + (qIdx + 1) + '. ' + qText + '</div>';
+            opts.forEach(function(opt, oIdx) {
+                html += '<label style="display:flex;align-items:center;gap:8px;padding:8px;margin-bottom:4px;border-radius:8px;cursor:pointer;font-size:0.82em;color:rgba(255,255,255,0.7);" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'transparent\'">' +
+                    '<input type="radio" name="cq_' + qIdx + '" value="' + oIdx + '" style="accent-color:#c9a840;"> ' + opt + '</label>';
+            });
+            html += '</div>';
+        });
+
+        html += '<button onclick="submitCourseQuiz(' + modIdx + ',' + lessonIdx + ')" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(201,168,64,0.25),rgba(201,168,64,0.1));border:1px solid rgba(201,168,64,0.4);border-radius:12px;color:#ffd54f;font-size:0.9em;font-weight:700;cursor:pointer;">📝 ' + (isES ? 'Enviar Evaluación' : 'Submit Quiz') + '</button>';
+
+        return html;
+    }
+
+    window.submitCourseQuiz = function(modIdx, lessonIdx) {
+        var isES = L();
+        var lesson = CURRICULUM[modIdx].lessons[lessonIdx];
+        var questions = lesson.questions;
+        var correct = 0;
+
+        questions.forEach(function(q, qIdx) {
+            var selected = document.querySelector('input[name="cq_' + qIdx + '"]:checked');
+            if (selected && parseInt(selected.value) === q.correct) correct++;
+        });
+
+        var score = Math.round((correct / questions.length) * 100);
+        var passed = score >= 60;
+
+        if (passed) _markDone(lesson.id, score);
+
+        var area = document.getElementById('courseQuizArea');
+        if (!area) return;
+
+        var resultColor = passed ? '#66bb6a' : '#ff6b6b';
+        var resultIcon = passed ? '🎉' : '😔';
+        var resultMsg = passed ? (isES ? '¡Felicidades! Aprobaste esta evaluación.' : 'Congratulations! You passed this quiz.') :
+            (isES ? 'No aprobaste. Necesitas 60% para aprobar. Repasa las lecciones e inténtalo de nuevo.' : 'You didn\'t pass. You need 60% to pass. Review the lessons and try again.');
+
+        area.innerHTML = '<div style="text-align:center;padding:40px 20px;">' +
+            '<div style="font-size:3em;margin-bottom:16px;">' + resultIcon + '</div>' +
+            '<div style="font-size:2em;font-weight:800;color:' + resultColor + ';">' + score + '%</div>' +
+            '<div style="font-size:0.85em;color:rgba(255,255,255,0.7);margin:12px 0 24px;">' + correct + '/' + questions.length + ' ' + (isES ? 'correctas' : 'correct') + '</div>' +
+            '<div style="font-size:0.9em;color:rgba(255,255,255,0.6);margin-bottom:24px;">' + resultMsg + '</div>' +
+            '<div style="display:flex;gap:8px;justify-content:center;">' +
+            (!passed ? '<button onclick="openCourseLesson(' + modIdx + ',' + lessonIdx + ')" style="padding:12px 20px;background:rgba(255,107,107,0.15);border:1px solid rgba(255,107,107,0.3);border-radius:10px;color:#ff6b6b;font-size:0.85em;font-weight:600;cursor:pointer;">🔄 ' + (isES ? 'Reintentar' : 'Retry') + '</button>' : '') +
+            '<button onclick="openCourseModule(' + modIdx + ')" style="padding:12px 20px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:10px;color:#c9a840;font-size:0.85em;font-weight:600;cursor:pointer;">← ' + (isES ? 'Volver al módulo' : 'Back to module') + '</button>' +
+            '</div></div>';
+    };
+
+})();
+
+// ==============================================
 // ONBOARDING — Welcome, Tour & Contextual Tips
 // ==============================================
 
@@ -24152,7 +24551,7 @@ function goToCurrentCycle() {
             },
             {
                 target: '#headerUtilBtns',
-                text: L ? '📚 Lecturas guardadas — 🔔 Historial de notificaciones — 🧭 Brújula lunar/planetaria — ⚙️ Preferencias y configuración.' : '📚 Saved readings — 🔔 Notification history — 🧭 Lunar/planetary compass — ⚙️ Preferences and settings.',
+                text: L ? '📚 Lecturas guardadas — 🔔 Notificaciones — 🧭 Brújula — 🎓 Curso de Astrología — ⚙️ Preferencias.' : '📚 Saved readings — 🔔 Notifications — 🧭 Compass — 🎓 Astrology Course — ⚙️ Preferences.',
                 position: 'bottom'
             },
             {
@@ -25913,6 +26312,13 @@ function openPreferencesModal() {
         '<button onclick="if(typeof resetOnboardingTutorial===\'function\')resetOnboardingTutorial();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.45);border-radius:8px;color:#c9a840;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Ver Tutorial':'View Tutorial') + '</button>'
     );
 
+    // ── Curso de Astrología ──
+    var _courseOverall = (function() { try { var p = JSON.parse(localStorage.getItem('moonSync_astroCourse') || '{}'); var d=0,t=0; [3+2,3+2,2+2,2+2,2+1,2+1].forEach(function(n){t+=n;}); Object.keys(p).forEach(function(){d++;}); return {pct:t>0?Math.round(d/t*100):0}; } catch(e){return{pct:0};} })();
+    sectionsHtml += _s('🔭', currentLang==='es'?'Curso de Astrología':'Astrology Course', '#e040fb',
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Curso profesional interactivo con 6 módulos: teoría, práctica con tu carta natal y evaluaciones.':'Interactive professional course with 6 modules: theory, practice with your natal chart and quizzes.') + '</div>' +
+        '<button onclick="if(typeof openAstroCourse===\'function\'){openAstroCourse();document.getElementById(\'preferencesModal\')&&document.getElementById(\'preferencesModal\').classList.remove(\'show\');}" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(224,64,251,0.2),rgba(224,64,251,0.05));border:1px solid rgba(224,64,251,0.45);border-radius:8px;color:#e040fb;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Abrir Curso':'Open Course') + ' (' + _courseOverall.pct + '%)</button>'
+    );
+
     // ── Actualización / Update ──
     sectionsHtml += _s('🔄', currentLang==='es'?'Actualización':'Update', '#7ec8ff',
         '<div style="font-size:0.75em;color:rgba(255,255,255,0.45);margin-bottom:10px;">' + (currentLang==='es'?'Si la app no muestra los últimos cambios, presiona para forzar la actualización. Se borrarán los datos en caché y se recargará la página.':'If the app is not showing the latest changes, press to force update. Cached data will be cleared and the page will reload.') + '</div>' +
@@ -27592,7 +27998,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v486';
+const APP_VERSION = 'v487';
 var _pendingSW = null;
 
 // What's New removed per user request
