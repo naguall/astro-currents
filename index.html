@@ -23958,6 +23958,352 @@ function goToCurrentCycle() {
 }
 
 // ==============================================
+// ONBOARDING — Welcome, Tour & Contextual Tips
+// ==============================================
+
+(function() {
+    var ONBOARDING_KEY = 'moonSync_onboardingDone';
+    var TIPS_KEY = 'moonSync_tipsShown';
+
+    // ── Slide data ──
+    function _getSlides() {
+        var L = currentLang === 'es';
+        return [
+            {
+                icon: '🌙',
+                title: L ? 'Bienvenido a Moon Sync' : 'Welcome to Moon Sync',
+                text: L ? 'Tu compañero astrológico personal. Sigue los ciclos lunares, solares y planetarios — todo sincronizado con tu carta natal.' : 'Your personal astrological companion. Follow lunar, solar and planetary cycles — all synced with your natal chart.',
+                color: '#667eea'
+            },
+            {
+                icon: '🌑',
+                title: L ? 'Calendario Lunar' : 'Lunar Calendar',
+                text: L ? 'Navega por ciclos lunares completos. Cada día muestra fases, aspectos planetarios y tus eventos de agenda. Toca cualquier día para ver detalles.' : 'Navigate full lunar cycles. Each day shows phases, planetary aspects and your agenda events. Tap any day for details.',
+                color: '#7ec8ff',
+                highlight: '#lunarModeBtn'
+            },
+            {
+                icon: '☉',
+                title: L ? 'Calendario Solar' : 'Solar Calendar',
+                text: L ? 'Sigue los tránsitos del Sol por cada signo zodiacal. Ve cambios de signo, retrógrados y aspectos interplanetarios día a día.' : 'Follow the Sun\'s transits through each zodiac sign. See sign changes, retrogrades and interplanetary aspects day by day.',
+                color: '#e8c84a',
+                highlight: '#solarModeBtn'
+            },
+            {
+                icon: '🔮',
+                title: L ? 'Tu Carta Natal (Astro)' : 'Your Natal Chart (Astro)',
+                text: L ? 'Crea tu perfil natal y accede a carta, tablas, calendario personal, tránsitos de hoy, ciclos cósmicos, sinastría, carta compuesta y Davison.' : 'Create your natal profile and access chart, tables, personal calendar, today\'s transits, cosmic cycles, synastry, composite and Davison charts.',
+                color: '#c39bd3',
+                highlight: '#personalModeBtn'
+            },
+            {
+                icon: '📅',
+                title: L ? 'Toca Cualquier Día' : 'Tap Any Day',
+                text: L ? 'Al tocar un día puedes ver: Agenda (eventos personales), Aspectos planetarios del día con interpretación AI, Diario y Reflexiones, e Info Lunar detallada.' : 'Tapping a day shows: Agenda (personal events), Planetary aspects with AI interpretation, Diary & Reflections, and detailed Lunar info.',
+                color: '#4ecdc4'
+            },
+            {
+                icon: '✨',
+                title: L ? 'Interpretación con AI' : 'AI Interpretation',
+                text: L ? 'Toca cualquier aspecto, tránsito o planeta para recibir una interpretación personalizada con inteligencia artificial. Puedes hacer preguntas de seguimiento en el chat.' : 'Tap any aspect, transit or planet to get a personalized AI interpretation. You can ask follow-up questions in the chat.',
+                color: '#ffd54f'
+            },
+            {
+                icon: '⚙️',
+                title: L ? '¡Listo para explorar!' : 'Ready to explore!',
+                text: L ? 'Puedes volver a ver este tutorial en ⚙️ Preferencias → Tutorial. ¡Explora los ciclos del cosmos!' : 'You can replay this tutorial in ⚙️ Preferences → Tutorial. Explore the cycles of the cosmos!',
+                color: '#c9a840'
+            }
+        ];
+    }
+
+    // ── Render welcome splash ──
+    window.showOnboardingWelcome = function(forceReplay) {
+        if (!forceReplay && localStorage.getItem(ONBOARDING_KEY)) return;
+
+        var L = currentLang === 'es';
+        var slides = _getSlides();
+        var currentSlide = 0;
+
+        // Create overlay
+        var overlay = document.createElement('div');
+        overlay.id = 'onboardingOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(2,2,15,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;transition:opacity 0.3s;';
+
+        function renderSlide(idx) {
+            var s = slides[idx];
+            var isLast = idx === slides.length - 1;
+            var isFirst = idx === 0;
+            overlay.innerHTML = '<div style="max-width:380px;width:100%;text-align:center;animation:fadeInUp 0.4s ease;">' +
+                // Progress dots
+                '<div style="display:flex;gap:6px;justify-content:center;margin-bottom:24px;">' +
+                slides.map(function(_, i) {
+                    return '<div style="width:' + (i === idx ? '24px' : '8px') + ';height:8px;border-radius:4px;background:' + (i === idx ? s.color : 'rgba(255,255,255,0.15)') + ';transition:all 0.3s;"></div>';
+                }).join('') +
+                '</div>' +
+                // Icon
+                '<div style="font-size:4em;margin-bottom:16px;filter:drop-shadow(0 0 20px ' + s.color + '55);animation:pulse 2s infinite;">' + s.icon + '</div>' +
+                // Title
+                '<h2 style="font-family:\'Cinzel\',serif;font-size:1.3em;color:' + s.color + ';margin:0 0 12px;letter-spacing:1px;">' + s.title + '</h2>' +
+                // Text
+                '<p style="font-size:0.9em;color:rgba(255,255,255,0.75);line-height:1.6;margin:0 0 28px;padding:0 10px;">' + s.text + '</p>' +
+                // Buttons
+                '<div style="display:flex;gap:12px;justify-content:center;align-items:center;">' +
+                    (!isFirst ? '<button onclick="window._onbPrev()" style="padding:10px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:25px;color:rgba(255,255,255,0.5);font-size:0.85em;cursor:pointer;">◀ ' + (L ? 'Anterior' : 'Back') + '</button>' : '') +
+                    '<button onclick="window._onbNext()" style="padding:12px 28px;background:linear-gradient(135deg,' + s.color + '33,' + s.color + '15);border:1.5px solid ' + s.color + '66;border-radius:25px;color:' + s.color + ';font-size:0.9em;font-weight:700;cursor:pointer;letter-spacing:0.5px;">' +
+                        (isLast ? (L ? '🚀 Comenzar' : '🚀 Start') : (L ? 'Siguiente ▶' : 'Next ▶')) +
+                    '</button>' +
+                '</div>' +
+                // Skip
+                (!isLast ? '<div onclick="window._onbSkip()" style="margin-top:16px;font-size:0.72em;color:rgba(255,255,255,0.25);cursor:pointer;">' + (L ? 'Saltar tutorial' : 'Skip tutorial') + '</div>' : '') +
+            '</div>';
+        }
+
+        window._onbNext = function() {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                renderSlide(currentSlide);
+            } else {
+                _closeOnboarding();
+            }
+        };
+
+        window._onbPrev = function() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                renderSlide(currentSlide);
+            }
+        };
+
+        window._onbSkip = function() {
+            _closeOnboarding();
+        };
+
+        function _closeOnboarding() {
+            localStorage.setItem(ONBOARDING_KEY, 'true');
+            overlay.style.opacity = '0';
+            setTimeout(function() {
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                // Start interactive tour after welcome
+                setTimeout(function() { showInteractiveTour(); }, 500);
+            }, 300);
+        }
+
+        renderSlide(0);
+        document.body.appendChild(overlay);
+    };
+
+    // ── Interactive Tour (step-by-step highlights) ──
+    window.showInteractiveTour = function(forceReplay) {
+        if (!forceReplay && localStorage.getItem(ONBOARDING_KEY + '_tour')) return;
+
+        var L = currentLang === 'es';
+        var steps = [
+            {
+                target: '.mode-btns',
+                text: L ? 'Estos botones cambian entre calendarios: Lunar, Solar, Gregoriano y Astro (tu carta natal).' : 'These buttons switch between calendars: Lunar, Solar, Gregorian and Astro (your natal chart).',
+                position: 'bottom'
+            },
+            {
+                target: '#currentDayInfo',
+                text: L ? 'Aquí ves el resumen de HOY: eventos de tu agenda, día lunar/solar actual y aspectos planetarios activos.' : 'Here you see TODAY\'s summary: your agenda events, current lunar/solar day and active planetary aspects.',
+                position: 'bottom'
+            },
+            {
+                target: '.lunar-week.active',
+                text: L ? 'Toca cualquier día para ver opciones: Agenda, Aspectos, Diario e Interpretación AI. Desliza horizontalmente para ver todos los días.' : 'Tap any day for options: Agenda, Aspects, Diary and AI Interpretation. Scroll horizontally to see all days.',
+                position: 'top'
+            },
+            {
+                target: '#aiChatIcon',
+                text: L ? 'El asistente AI puede responder preguntas sobre astrología, tu carta natal, tránsitos y más. ¡Pregúntale lo que quieras!' : 'The AI assistant can answer questions about astrology, your natal chart, transits and more. Ask anything!',
+                position: 'top'
+            },
+            {
+                target: '#settingsGear',
+                text: L ? 'En Preferencias puedes cambiar idioma, notificaciones, perfiles natales y volver a ver este tutorial.' : 'In Preferences you can change language, notifications, natal profiles and replay this tutorial.',
+                position: 'left'
+            }
+        ];
+
+        var stepIdx = 0;
+        var tourOverlay = document.createElement('div');
+        tourOverlay.id = 'tourOverlay';
+        tourOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:8000;pointer-events:none;';
+
+        var tourBackdrop = document.createElement('div');
+        tourBackdrop.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:7999;background:rgba(2,2,15,0.7);pointer-events:auto;';
+        tourBackdrop.onclick = function() { _advanceTour(); };
+
+        var tooltip = document.createElement('div');
+        tooltip.style.cssText = 'position:fixed;z-index:8001;max-width:300px;padding:14px 16px;background:linear-gradient(170deg,rgba(7,9,42,0.98),rgba(4,5,25,0.98));border:1.5px solid rgba(201,168,64,0.5);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.6);pointer-events:auto;';
+
+        function _showStep(idx) {
+            var step = steps[idx];
+            if (!step) { _closeTour(); return; }
+
+            var el = document.querySelector(step.target);
+            if (!el || !el.getBoundingClientRect) {
+                // Skip invisible targets
+                stepIdx++;
+                if (stepIdx < steps.length) _showStep(stepIdx);
+                else _closeTour();
+                return;
+            }
+
+            var rect = el.getBoundingClientRect();
+            // Highlight element
+            el.style.position = el.style.position || 'relative';
+            el.style.zIndex = '8002';
+            el.style.boxShadow = '0 0 0 4000px rgba(2,2,15,0.7), 0 0 15px rgba(201,168,64,0.5)';
+            el.style.borderRadius = el.style.borderRadius || '8px';
+            el.dataset.tourHighlight = 'true';
+
+            // Position tooltip
+            var L = currentLang === 'es';
+            tooltip.innerHTML = '<div style="font-size:0.85em;color:rgba(255,255,255,0.85);line-height:1.5;margin-bottom:10px;">' + step.text + '</div>' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                    '<span style="font-size:0.65em;color:rgba(255,255,255,0.3);">' + (idx + 1) + '/' + steps.length + '</span>' +
+                    '<button onclick="window._advanceTour()" style="padding:6px 16px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.4);border-radius:20px;color:#c9a840;font-size:0.8em;font-weight:600;cursor:pointer;">' +
+                        (idx < steps.length - 1 ? (L ? 'Siguiente' : 'Next') : (L ? '✓ Listo' : '✓ Done')) +
+                    '</button>' +
+                '</div>';
+
+            // Calculate position
+            var top, left;
+            if (step.position === 'bottom') {
+                top = rect.bottom + 10;
+                left = Math.max(10, rect.left + rect.width / 2 - 150);
+            } else if (step.position === 'top') {
+                top = rect.top - 110;
+                left = Math.max(10, rect.left + rect.width / 2 - 150);
+            } else {
+                top = rect.top;
+                left = rect.left - 310;
+            }
+            // Keep in viewport
+            if (left < 10) left = 10;
+            if (left > window.innerWidth - 310) left = window.innerWidth - 310;
+            if (top < 10) top = rect.bottom + 10;
+            if (top > window.innerHeight - 120) top = rect.top - 110;
+
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+        }
+
+        window._advanceTour = function() {
+            // Remove highlight from current
+            document.querySelectorAll('[data-tour-highlight]').forEach(function(el) {
+                el.style.zIndex = '';
+                el.style.boxShadow = '';
+                delete el.dataset.tourHighlight;
+            });
+            stepIdx++;
+            if (stepIdx < steps.length) {
+                _showStep(stepIdx);
+            } else {
+                _closeTour();
+            }
+        };
+
+        function _closeTour() {
+            document.querySelectorAll('[data-tour-highlight]').forEach(function(el) {
+                el.style.zIndex = '';
+                el.style.boxShadow = '';
+                delete el.dataset.tourHighlight;
+            });
+            localStorage.setItem(ONBOARDING_KEY + '_tour', 'true');
+            if (tourBackdrop.parentNode) tourBackdrop.parentNode.removeChild(tourBackdrop);
+            if (tourOverlay.parentNode) tourOverlay.parentNode.removeChild(tourOverlay);
+            if (tooltip.parentNode) tooltip.parentNode.removeChild(tooltip);
+            // Now enable contextual tips
+            _enableContextualTips();
+        }
+
+        document.body.appendChild(tourBackdrop);
+        document.body.appendChild(tourOverlay);
+        document.body.appendChild(tooltip);
+        _showStep(0);
+    };
+
+    // ── Contextual Tips (first time visiting each section) ──
+    function _enableContextualTips() {
+        var shownTips = JSON.parse(localStorage.getItem(TIPS_KEY) || '{}');
+
+        var tips = {
+            'solar': { text: currentLang === 'es' ? '☉ Tip: Desliza entre signos con las flechas. Toca un día para ver aspectos.' : '☉ Tip: Swipe between signs with arrows. Tap a day for aspects.' },
+            'personal': { text: currentLang === 'es' ? '🔮 Tip: Aquí encuentras tu carta natal, tablas, tránsitos de hoy, 2026, sinastría y más. Usa las pestañas.' : '🔮 Tip: Find your natal chart, tables, today\'s transits, 2026, synastry and more. Use the tabs.' },
+            'gregorian': { text: currentLang === 'es' ? '📅 Tip: Calendario mensual estándar con todos los eventos astrológicos integrados.' : '📅 Tip: Standard monthly calendar with all astrological events integrated.' }
+        };
+
+        window._showContextualTip = function(mode) {
+            var tip = tips[mode];
+            if (!tip || shownTips[mode]) return;
+            shownTips[mode] = true;
+            localStorage.setItem(TIPS_KEY, JSON.stringify(shownTips));
+
+            var banner = document.createElement('div');
+            banner.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:5000;max-width:340px;width:90%;padding:12px 16px;background:linear-gradient(135deg,rgba(7,9,42,0.97),rgba(20,15,50,0.97));border:1px solid rgba(201,168,64,0.4);border-radius:12px;box-shadow:0 8px 25px rgba(0,0,0,0.5);font-size:0.82em;color:rgba(255,255,255,0.8);line-height:1.5;display:flex;align-items:center;gap:10px;animation:slideDown 0.3s ease;';
+            banner.innerHTML = '<div style="flex:1;">' + tip.text + '</div>' +
+                '<button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:1.2em;cursor:pointer;flex-shrink:0;">✕</button>';
+            document.body.appendChild(banner);
+            // Auto-remove after 6 seconds
+            setTimeout(function() { if (banner.parentNode) { banner.style.opacity = '0'; banner.style.transition = 'opacity 0.3s'; setTimeout(function() { if (banner.parentNode) banner.remove(); }, 300); } }, 6000);
+        };
+    }
+
+    // ── Hook into mode switches for contextual tips ──
+    var _origSwitchSolar = window.switchToSolarMode;
+    var _origSwitchPersonal = window.switchToPersonalMode;
+    var _origSwitchGregorian = window.switchToGregorianMode;
+
+    if (typeof _origSwitchSolar === 'function') {
+        window.switchToSolarMode = function() {
+            _origSwitchSolar.apply(this, arguments);
+            if (typeof window._showContextualTip === 'function') window._showContextualTip('solar');
+        };
+    }
+    if (typeof _origSwitchPersonal === 'function') {
+        window.switchToPersonalMode = function() {
+            _origSwitchPersonal.apply(this, arguments);
+            if (typeof window._showContextualTip === 'function') window._showContextualTip('personal');
+        };
+    }
+    if (typeof _origSwitchGregorian === 'function') {
+        window.switchToGregorianMode = function() {
+            _origSwitchGregorian.apply(this, arguments);
+            if (typeof window._showContextualTip === 'function') window._showContextualTip('gregorian');
+        };
+    }
+
+    // ── Reset tutorial (for preferences button) ──
+    window.resetOnboardingTutorial = function() {
+        localStorage.removeItem(ONBOARDING_KEY);
+        localStorage.removeItem(ONBOARDING_KEY + '_tour');
+        localStorage.removeItem(TIPS_KEY);
+        // Close preferences
+        var prefModal = document.getElementById('preferencesModal');
+        if (prefModal) prefModal.classList.remove('show');
+        // Start fresh
+        setTimeout(function() { showOnboardingWelcome(true); }, 300);
+    };
+
+    // ── Auto-launch on first visit ──
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
+        // Slight delay to let the app render first
+        setTimeout(function() { showOnboardingWelcome(); }, 800);
+    } else {
+        // Enable contextual tips for returning users who haven't seen all modes
+        _enableContextualTips();
+    }
+
+    // CSS animation keyframes
+    var styleEl = document.createElement('style');
+    styleEl.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes slideDown{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}} @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}';
+    document.head.appendChild(styleEl);
+})();
+
+// ==============================================
 // INICIALIZACIÓN
 // ==============================================
 
@@ -25468,6 +25814,12 @@ function openPreferencesModal() {
             '<button onclick="exportUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(102,187,106,0.15),rgba(102,187,106,0.05));border:1px solid rgba(102,187,106,0.35);border-radius:8px;color:#66bb6a;font-size:0.82em;font-weight:600;cursor:pointer;">📤 ' + (currentLang==='es'?'Exportar Backup':'Export Backup') + '</button>' +
             '<button onclick="importUserData()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(255,183,77,0.15),rgba(255,183,77,0.05));border:1px solid rgba(255,183,77,0.35);border-radius:8px;color:#ffb74d;font-size:0.82em;font-weight:600;cursor:pointer;">📥 ' + (currentLang==='es'?'Restaurar Backup':'Restore Backup') + '</button>' +
         '</div>'
+    );
+
+    // ── Tutorial ──
+    sectionsHtml += _s('🎓', currentLang==='es'?'Tutorial':'Tutorial', '#c9a840',
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Vuelve a ver la presentación de bienvenida y el tour interactivo de la app.':'Replay the welcome presentation and interactive app tour.') + '</div>' +
+        '<button onclick="if(typeof resetOnboardingTutorial===\'function\')resetOnboardingTutorial();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.45);border-radius:8px;color:#c9a840;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Ver Tutorial':'View Tutorial') + '</button>'
     );
 
     // ── Actualización / Update ──
@@ -27149,7 +27501,7 @@ function forceAppUpdate() {
 window.forceAppUpdate = forceAppUpdate;
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v479';
+const APP_VERSION = 'v480';
 var _pendingSW = null;
 
 // What's New removed per user request
