@@ -3181,7 +3181,7 @@ function getPreviousNewMoon(currentNewMoon) {
 function calculateLunarCycle(startDate) {
     const perfections = findLunarPerfections(startDate);
     const weeks = [];
-    
+
     // Find NEXT new moon from our predefined list
     const startDateStr = startDate.toDateString();
     let nextNewMoon = null;
@@ -3191,54 +3191,67 @@ function calculateLunarCycle(startDate) {
             break;
         }
     }
-    
+
     // Fallback to calculated if not found
     if (!nextNewMoon) {
         let nextNewMoonDate = new Date(perfections[3].date);
         nextNewMoonDate.setDate(nextNewMoonDate.getDate() + 1);
         nextNewMoon = findExactPerfection(nextNewMoonDate, 0);
     }
-    
-    let lunarDayCounter = 1;
-    
-    for (let i = 0; i < perfections.length; i++) {
-        const currentPerfection = perfections[i];
-        let nextPerfection;
-        
-        if (i < 3) {
-            nextPerfection = perfections[i + 1];
-        } else {
-            nextPerfection = { date: nextNewMoon };
-        }
-        
-        // startDate: the phase day itself, but if phase was after noon on that day,
-        // the previous week already "owns" that calendar day - so we start the next day
-        const startDate = new Date(currentPerfection.date);
-        const _startHour = startDate.getHours();
-        startDate.setHours(0, 0, 0, 0);
-        // Only advance past the phase day if it was after noon AND this is not week 1
-        // (week 1 always starts on new moon day regardless of hour)
-        if (i > 0 && _startHour >= 12) {
-            startDate.setDate(startDate.getDate() + 1);
-        }
 
-        const endDate = new Date(nextPerfection.date);
-        // Include the phase-transition day in current week if phase happens after noon
-        const _endHour = endDate.getHours();
-        endDate.setHours(0, 0, 0, 0);
-        if (_endHour < 12) {
-            // Phase before noon → that day starts the next week, so end 1 day earlier
-            endDate.setDate(endDate.getDate() - 1);
+    // Find PREVIOUS last quarter for centering the New Moon week
+    let prevLastQuarter = null;
+    for (let i = newMoonsLocal.length - 1; i >= 1; i--) {
+        if (newMoonsLocal[i].toDateString() === startDateStr) {
+            // Get perfections of the PREVIOUS cycle
+            var prevPerfections = findLunarPerfections(newMoonsLocal[i - 1]);
+            if (prevPerfections.length >= 4) prevLastQuarter = prevPerfections[3];
+            break;
         }
-        // Phase after noon → that day still belongs to this week (no subtraction)
-        
-        const days = [];
-        let dayDate = new Date(startDate);
-        
-        while (dayDate <= endDate) {
-            const isPerfectionDay = dayDate.getTime() === new Date(currentPerfection.date).setHours(0,0,0,0);
-            const dayAspects = calculateAspects(dayDate);
-            
+    }
+    // Fallback: estimate ~7 days before new moon
+    if (!prevLastQuarter) {
+        var estPrev = new Date(startDate);
+        estPrev.setDate(estPrev.getDate() - 7);
+        prevLastQuarter = { date: estPrev };
+    }
+
+    // Build 5 phase points: prevLastQuarter, Nueva, Creciente, Llena, Menguante, nextNewMoon
+    // Each week is centered on its phase: starts at midpoint(prev, current), ends at midpoint(current, next)
+    var allPhases = [prevLastQuarter].concat(perfections).concat([{ date: nextNewMoon }]);
+    // allPhases: [0]=prevLQ, [1]=Nueva, [2]=Creciente, [3]=Llena, [4]=Menguante, [5]=nextNewMoon
+
+    // Calculate midpoint date between two dates (as calendar day at midnight)
+    function _midDate(d1, d2) {
+        var t1 = new Date(d1).getTime();
+        var t2 = new Date(d2).getTime();
+        var mid = new Date(Math.round((t1 + t2) / 2));
+        mid.setHours(0, 0, 0, 0);
+        return mid;
+    }
+
+    var lunarDayCounter = 1;
+
+    for (var i = 0; i < 4; i++) {
+        var currentPerfection = perfections[i]; // allPhases[i+1]
+        var prevPhaseDate = allPhases[i].date;       // phase before this one
+        var nextPhaseDate = allPhases[i + 2].date;   // phase after this one
+
+        // Week starts at midpoint between previous phase and current phase
+        var weekStart = _midDate(prevPhaseDate, currentPerfection.date);
+        // Week ends at midpoint between current phase and next phase, minus 1 day
+        // (because the next week starts at that midpoint)
+        var weekEndMid = _midDate(currentPerfection.date, nextPhaseDate);
+        var weekEnd = new Date(weekEndMid);
+        weekEnd.setDate(weekEnd.getDate() - 1);
+
+        var days = [];
+        var dayDate = new Date(weekStart);
+
+        while (dayDate <= weekEnd) {
+            var isPerfectionDay = dayDate.getTime() === new Date(currentPerfection.date).setHours(0,0,0,0);
+            var dayAspects = calculateAspects(dayDate);
+
             days.push({
                 date: new Date(dayDate),
                 dayNumber: dayDate.getDate(),
@@ -3248,22 +3261,22 @@ function calculateLunarCycle(startDate) {
                 lunarDay: lunarDayCounter,
                 aspects: dayAspects
             });
-            
+
             lunarDayCounter++;
             dayDate.setDate(dayDate.getDate() + 1);
         }
-        
+
         weeks.push({
             name: currentPerfection.name,
             emoji: currentPerfection.emoji,
-            startDate: new Date(startDate),
-            endDate: new Date(endDate),
+            startDate: new Date(weekStart),
+            endDate: new Date(weekEnd),
             perfectionDate: currentPerfection.date,
             zodiacSign: currentPerfection.zodiacSign,
             days: days
         });
     }
-    
+
     return weeks;
 }
 
@@ -29827,7 +29840,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v491';
+const APP_VERSION = 'v492';
 var _pendingSW = null;
 
 // What's New removed per user request
