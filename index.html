@@ -13581,7 +13581,11 @@ function _renderAsteroids2026View(es) {
         { name: 'Vesta', symbol: '⚶', sweId: 20, color: '#FF9800', colorBg: 'rgba(255,152,0,',
           photo: 'https://upload.wikimedia.org/wikipedia/commons/8/85/Vesta_in_Natural_Color.jpg',
           domain: es ? 'Devoción, fuego sagrado, enfoque interior, pureza' : 'Devotion, sacred flame, inner focus, purity',
-          keywords: es ? 'Devoción • Pureza • Enfoque • Ritual' : 'Devotion • Purity • Focus • Ritual' }
+          keywords: es ? 'Devoción • Pureza • Enfoque • Ritual' : 'Devotion • Purity • Focus • Ritual' },
+        { name: 'Chiron', symbol: '⚷', sweId: 15, color: '#9C27B0', colorBg: 'rgba(156,39,176,',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Chiron_in_2015_%28cropped%29.jpg',
+          domain: es ? 'Herida primordial, sanación, puente entre lo terrenal y espiritual' : 'Core wound, healing, bridge between earthly and spiritual',
+          keywords: es ? 'Sanación • Herida • Maestría • Puente' : 'Healing • Wound • Mastery • Bridge' }
     ];
 
     // Sign names and boundaries for 2026
@@ -13599,88 +13603,93 @@ function _renderAsteroids2026View(es) {
         return d + '°' + (m < 10 ? '0' : '') + m + "'";
     }
 
-    // Check if SwissEph is available
-    if (!window._sweReady || !window._swe) {
-        html += '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">';
-        html += '<div style="font-size:2em;margin-bottom:10px;">⚳</div>';
-        html += '<div>' + (es ? 'Swiss Ephemeris no disponible. Los asteroides requieren SwissEph WASM.' : 'Swiss Ephemeris not available. Asteroids require SwissEph WASM.') + '</div>';
-        html += '</div>';
-        return html;
-    }
-
-    var swe = window._swe;
+    var useSwe = window._sweReady && window._swe;
+    var swe = useSwe ? window._swe : null;
     var now = new Date();
 
-    // For each asteroid, calculate: current position, sign changes in 2026, retrograde periods
+    // Pre-calculated fallback data for 2026 asteroid positions
+    // Monthly ecliptic longitude + speed: [lon, speed°/day] for 1st of each month
+    // Used when Swiss Ephemeris WASM fails to load from CDN
+    var _astFB = {
+        'Ceres': {
+            m:[[15,0.22],[25,0.22],[28,0.20],[34,0.20],[46,0.22],[61,0.22],[72,0.22],[87,0.18],[97,0.15],[105,0.12],[111,0.06],[114,-0.08]],
+            ev:[{d:[2026,2,15],c:'sign',s:1},{d:[2026,4,28],c:'sign',s:2},{d:[2026,7,12],c:'sign',s:3},{d:[2026,10,21],c:'retro',s:3,deg:24}]
+        },
+        'Pallas': {
+            m:[[325,0.30],[338,0.35],[349,0.35],[358,0.30],[7,0.25],[14,0.20],[19,0.12],[22,0.03],[20,-0.10],[15,-0.15],[10,-0.08],[8,0.05]],
+            ev:[{d:[2026,0,24],c:'sign',s:11},{d:[2026,3,26],c:'sign',s:0},{d:[2026,7,14],c:'retro',s:0,deg:22},{d:[2026,10,20],c:'direct',s:0,deg:8}]
+        },
+        'Juno': {
+            m:[[280,0.25],[288,0.28],[296,0.28],[305,0.22],[309,0.15],[311,0.05],[309,-0.10],[303,-0.15],[296,-0.10],[296,0.08],[302,0.22],[310,0.25]],
+            ev:[{d:[2026,2,30],c:'sign',s:10},{d:[2026,5,6],c:'retro',s:10,deg:11},{d:[2026,7,12],c:'sign',s:9},{d:[2026,8,17],c:'direct',s:9,deg:25},{d:[2026,9,25],c:'sign',s:10}]
+        },
+        'Vesta': {
+            m:[[296,0.40],[312,0.42],[328,0.42],[344,0.40],[0,0.35],[12,0.28],[21,0.18],[27,0.05],[25,-0.12],[19,-0.15],[15,-0.05],[15,0.10]],
+            ev:[{d:[2026,0,11],c:'sign',s:10},{d:[2026,2,10],c:'sign',s:11},{d:[2026,4,13],c:'sign',s:0},{d:[2026,7,25],c:'retro',s:0,deg:27},{d:[2026,10,10],c:'direct',s:0,deg:15}]
+        },
+        'Chiron': {
+            m:[[22.58,0.005],[22.8,0.01],[23.5,0.015],[24.5,0.018],[26,0.02],[28,0.015],[30.5,0.01],[30.87,-0.005],[30,-0.01],[28,-0.012],[27,-0.01],[26,-0.008]],
+            ev:[{d:[2026,0,2],c:'direct',s:0,deg:22},{d:[2026,5,19],c:'sign',s:1},{d:[2026,7,3],c:'retro',s:1,deg:0},{d:[2026,8,17],c:'sign',s:0}]
+        }
+    };
+
+    function _interpFB(name) {
+        var fb = _astFB[name]; if (!fb) return {lon:0,speed:0};
+        var mo = now.getMonth(), frac = now.getDate() / new Date(now.getFullYear(),mo+1,0).getDate();
+        var m0 = fb.m[mo], m1 = fb.m[(mo+1)%12];
+        var l0=m0[0], l1=m1[0];
+        if(l1-l0>180) l1-=360; if(l0-l1>180) l0-=360;
+        var lon=l0+(l1-l0)*frac; if(lon<0) lon+=360; if(lon>=360) lon-=360;
+        return {lon:lon, speed:m0[1]+(m1[1]-m0[1])*frac};
+    }
+
+    function _makeFBEvents(name, ast) {
+        var fb = _astFB[name]; if (!fb) return [];
+        var evts = [];
+        fb.ev.forEach(function(e){
+            var date=new Date(e.d[0],e.d[1],e.d[2]), sN=signNames[e.s], sS=signSymbols[e.s];
+            if(e.c==='sign') evts.push({date:date,type:(es?'Entra en ':'Enters ')+sS+' '+sN,typeShort:sS+' '+sN,category:'sign',color:ast.color,meaning:es?ast.name+' entra en '+sN+'. La energía de '+(ast.domain.split(',')[0].toLowerCase())+' se expresa a través de '+sN+'.':ast.name+' enters '+sN+'. The energy of '+(ast.domain.split(',')[0].toLowerCase())+' expresses through '+sN+'.'});
+            else if(e.c==='retro') evts.push({date:date,type:es?'Retrógrado INICIA':'Retrograde STARTS',typeShort:'℞ Retro',category:'retro',color:'#ff6b6b',meaning:es?ast.name+' retrógrado en '+sN+' a '+e.deg+'°. Período de revisión interna.':ast.name+' retrograde in '+sN+' at '+e.deg+'°. Inner review period.'});
+            else if(e.c==='direct') evts.push({date:date,type:es?'Directo':'Direct',typeShort:'→ '+(es?'Directo':'Direct'),category:'direct',color:'#4ecdc4',meaning:es?ast.name+' directo en '+sN+' a '+e.deg+'°.':ast.name+' direct in '+sN+' at '+e.deg+'°.'});
+        });
+        evts.sort(function(a,b){return a.date-b.date;});
+        return evts;
+    }
+
+    // For each asteroid, calculate positions (SwissEph or pre-calculated fallback) and render
     asteroidDefs.forEach(function(ast, astIdx) {
-        // Calculate current position
-        var utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
-        var jdNow = swe.julday(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate(), utcH);
-        var posNow = swe.calc_ut(jdNow, ast.sweId, swe.SEFLG_SWIEPH);
-        var lonNow = posNow[0];
-        var signNow = getSignFromLon(lonNow);
-        var speedNow = posNow[3]; // daily speed
+        var lonNow, signNow, speedNow, events2026;
 
-        // Scan 2026 for sign changes and retrograde periods (sample every 2 days)
-        var events2026 = [];
-        var startDate = new Date(2026, 0, 1);
-        var endDate = new Date(2026, 11, 31);
-        var prevSign = null;
-        var prevSpeed = null;
-        var retroStart = null;
-
-        for (var d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 2)) {
-            var jd = swe.julday(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 12);
-            var pos = swe.calc_ut(jd, ast.sweId, swe.SEFLG_SWIEPH);
-            var lon = pos[0];
-            var speed = pos[3];
-            var sign = getSignFromLon(lon);
-
-            // Sign change detection
-            if (prevSign !== null && sign.name !== prevSign) {
-                events2026.push({
-                    date: new Date(d),
-                    type: (es ? 'Entra en ' : 'Enters ') + sign.symbol + ' ' + sign.name,
-                    typeShort: sign.symbol + ' ' + sign.name,
-                    category: 'sign',
-                    color: ast.color,
-                    meaning: es
-                        ? ast.name + ' entra en ' + sign.name + '. La energía de ' + (ast.domain.split(',')[0].toLowerCase()) + ' se expresa a través de las cualidades de ' + sign.name + '.'
-                        : ast.name + ' enters ' + sign.name + '. The energy of ' + (ast.domain.split(',')[0].toLowerCase()) + ' expresses through ' + sign.name + ' qualities.'
-                });
-            }
-            prevSign = sign.name;
-
-            // Retrograde detection
-            if (prevSpeed !== null) {
-                if (prevSpeed >= 0 && speed < 0) {
-                    retroStart = new Date(d);
-                    events2026.push({
-                        date: new Date(d),
-                        type: es ? 'Retrógrado INICIA' : 'Retrograde STARTS',
-                        typeShort: es ? '℞ Retro' : '℞ Retro',
-                        category: 'retro',
-                        color: '#ff6b6b',
-                        meaning: es
-                            ? ast.name + ' retrógrado en ' + sign.name + '. Período de revisión interna sobre temas de ' + (ast.domain.split(',')[0].toLowerCase()) + '.'
-                            : ast.name + ' retrograde in ' + sign.name + '. Inner review period regarding ' + (ast.domain.split(',')[0].toLowerCase()) + '.'
-                    });
-                } else if (prevSpeed < 0 && speed >= 0) {
-                    var retroDays = retroStart ? Math.round((d - retroStart) / 86400000) : '?';
-                    events2026.push({
-                        date: new Date(d),
-                        type: es ? 'Directo' : 'Direct',
-                        typeShort: es ? '→ Directo' : '→ Direct',
-                        category: 'direct',
-                        color: '#4ecdc4',
-                        meaning: es
-                            ? ast.name + ' directo en ' + sign.name + ' tras ~' + retroDays + ' días de retrogradación.'
-                            : ast.name + ' direct in ' + sign.name + ' after ~' + retroDays + ' days retrograde.'
-                    });
-                    retroStart = null;
+        if (useSwe) {
+            // Dynamic calculation using Swiss Ephemeris WASM
+            var utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
+            var jdNow = swe.julday(now.getUTCFullYear(), now.getUTCMonth() + 1, now.getUTCDate(), utcH);
+            var _sweFlags = swe.SEFLG_SWIEPH | (swe.SEFLG_SPEED || 256);
+            var posNow = swe.calc_ut(jdNow, ast.sweId, _sweFlags);
+            lonNow = posNow[0];
+            signNow = getSignFromLon(lonNow);
+            speedNow = posNow[3];
+            events2026 = [];
+            var startDate = new Date(2026,0,1), endDate = new Date(2026,11,31);
+            var prevSign=null, prevSpeed=null, retroStart=null;
+            for (var d=new Date(startDate); d<=endDate; d.setDate(d.getDate()+2)) {
+                var jd=swe.julday(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate(),12);
+                var pos=swe.calc_ut(jd,ast.sweId,_sweFlags);
+                var lon=pos[0],speed=pos[3],sign=getSignFromLon(lon);
+                if(prevSign!==null&&sign.name!==prevSign) events2026.push({date:new Date(d),type:(es?'Entra en ':'Enters ')+sign.symbol+' '+sign.name,typeShort:sign.symbol+' '+sign.name,category:'sign',color:ast.color,meaning:es?ast.name+' entra en '+sign.name+'. La energía de '+(ast.domain.split(',')[0].toLowerCase())+' se expresa a través de las cualidades de '+sign.name+'.':ast.name+' enters '+sign.name+'. The energy of '+(ast.domain.split(',')[0].toLowerCase())+' expresses through '+sign.name+' qualities.'});
+                prevSign=sign.name;
+                if(prevSpeed!==null){
+                    if(prevSpeed>=0&&speed<0){retroStart=new Date(d);events2026.push({date:new Date(d),type:es?'Retrógrado INICIA':'Retrograde STARTS',typeShort:'℞ Retro',category:'retro',color:'#ff6b6b',meaning:es?ast.name+' retrógrado en '+sign.name+'. Período de revisión interna.':ast.name+' retrograde in '+sign.name+'. Inner review period.'});}
+                    else if(prevSpeed<0&&speed>=0){var retroDays=retroStart?Math.round((d-retroStart)/86400000):'?';events2026.push({date:new Date(d),type:es?'Directo':'Direct',typeShort:'→ '+(es?'Directo':'Direct'),category:'direct',color:'#4ecdc4',meaning:es?ast.name+' directo en '+sign.name+' tras ~'+retroDays+' días.':ast.name+' direct in '+sign.name+' after ~'+retroDays+' days.'});retroStart=null;}
                 }
+                prevSpeed=speed;
             }
-            prevSpeed = speed;
+        } else {
+            // Pre-calculated fallback for 2026
+            var fb = _interpFB(ast.name);
+            lonNow = fb.lon; speedNow = fb.speed;
+            signNow = getSignFromLon(lonNow);
+            events2026 = _makeFBEvents(ast.name, ast);
         }
 
         events2026.sort(function(a, b) { return a.date - b.date; });
@@ -13830,7 +13839,7 @@ window.showAsteroid2026Detail = function(idx) {
         + '<div style="padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:12px;">'
         + '<div style="font-size:0.9em;color:rgba(255,255,255,0.8);line-height:1.5;">' + d.meaning + '</div>'
         + '</div>'
-        + '<div style="padding:10px;background:rgba(' + (d.color === '#8BC34A' ? '139,195,74' : d.color === '#03A9F4' ? '3,169,244' : d.color === '#E91E63' ? '233,30,99' : '255,152,0') + ',0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">'
+        + '<div style="padding:10px;background:rgba(' + (d.color === '#8BC34A' ? '139,195,74' : d.color === '#03A9F4' ? '3,169,244' : d.color === '#E91E63' ? '233,30,99' : d.color === '#9C27B0' ? '156,39,176' : '255,152,0') + ',0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">'
         + '<div style="font-size:0.75em;font-weight:600;color:' + d.color + ';margin-bottom:4px;">' + (L ? 'Dominio' : 'Domain') + '</div>'
         + '<div style="font-size:0.82em;color:rgba(255,255,255,0.6);">' + d.domain + '</div>'
         + '<div style="font-size:0.7em;color:rgba(255,255,255,0.35);margin-top:4px;">' + d.keywords + '</div>'
@@ -14106,10 +14115,34 @@ function renderAspects2026InSubtab() {
         html = html.replace(/evt2026Arrow/g, 'evt2026Arrow_st');
         // Replace inline getElementById references for evHist_ random IDs
         html = html.replace(/evHist_/g, 'evHist_st_');
+        // Replace asteroid IDs and functions for subtab
+        html = html.replace(/id="ast2026Details/g, 'id="ast2026Details_st');
+        html = html.replace(/id="ast2026Arrow/g, 'id="ast2026Arrow_st');
+        html = html.replace(/toggleAsteroid2026Details\(/g, 'toggleAsteroid2026Details_st(');
+        html = html.replace(/showAsteroid2026Detail\(/g, 'showAsteroid2026Detail_st(');
+        html = html.replace(/interpretAsteroid2026\(/g, 'interpretAsteroid2026_st(');
         tempPanel.innerHTML = html;
         srcPanel.style.display = 'none';
     }
 }
+// Subtab variant of asteroid toggle
+window.toggleAsteroid2026Details_st = function(idx) {
+    var el = document.getElementById('ast2026Details_st' + idx);
+    var arrow = document.getElementById('ast2026Arrow_st' + idx);
+    if (el) {
+        var isOpen = el.style.display !== 'none';
+        el.style.display = isOpen ? 'none' : 'block';
+        if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+    }
+};
+// Subtab variant of asteroid detail
+window.showAsteroid2026Detail_st = function(idx) {
+    if (window.showAsteroid2026Detail) window.showAsteroid2026Detail(idx);
+};
+// Subtab variant of asteroid interpret
+window.interpretAsteroid2026_st = function(name, sign, isRetro) {
+    if (window.interpretAsteroid2026) window.interpretAsteroid2026(name, sign, isRetro);
+};
 // Subtab variant of toggle that uses _st suffix IDs
 window.toggleAspect2026Details_st = function(idx) {
     var el = document.getElementById('asp2026Details_st' + idx);
@@ -23930,15 +23963,16 @@ function renderCalendar() {
             const dayDataStr = JSON.stringify({lunarDay: day.lunarDay, aspects: day.aspects, date: day.date.toISOString()}).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
 
             return `
-                <div class="day-cell ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${day.date < today && !isToday ? 'past' : ''}"
+                <div class="day-cell ${isToday ? 'today' : ''} ${weekend ? 'weekend' : ''} ${day.date < today && !isToday ? 'past' : ''} ${day.isPerfectionDay ? 'perfection-day' : ''}"
                      data-date="${day.date.getTime()}"
                      data-lunar-day="${day.lunarDay}"
                      data-has-aspects="${hasAspects}"
                      data-day-data="${dayDataStr}"
-                     onclick="handleDayClick(this)">
-                    
+                     onclick="handleDayClick(this)"
+                     ${day.isPerfectionDay ? 'style="border: 2px solid ' + _wc.border.replace('0.25','0.8') + '; box-shadow: 0 0 12px ' + _wc.border.replace('0.25','0.35') + ';"' : ''}>
+
                     <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                        <div class="day-number">${day.lunarDay}</div>
+                        <div class="day-number">${day.isPerfectionDay ? '<span style="font-size:1.3em;margin-right:2px;vertical-align:middle;">' + week.emoji + '</span>' : ''}${day.lunarDay}</div>
                         <div style="font-size: 0.7em; color: ${getMonthColor(day.date.getMonth())}; font-weight: 600; white-space:nowrap;">${formatShortDate(day.date)} <span class="day-weekday-label">${weekday}</span></div>
                     </div>
                     
@@ -29840,7 +29874,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v492';
+const APP_VERSION = 'v493';
 var _pendingSW = null;
 
 // What's New removed per user request
