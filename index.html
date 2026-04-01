@@ -3237,13 +3237,14 @@ function calculateLunarCycle(startDate) {
         var prevPhaseDate = allPhases[i].date;       // phase before this one
         var nextPhaseDate = allPhases[i + 2].date;   // phase after this one
 
-        // Week starts at midpoint between previous phase and current phase
+        // Week starts at midpoint between previous phase and current phase, +1 day
+        // so that the perfection (exact phase) lands on day 4 of the week
         var weekStart = _midDate(prevPhaseDate, currentPerfection.date);
-        // Week ends at midpoint between current phase and next phase, minus 1 day
-        // (because the next week starts at that midpoint)
+        weekStart.setDate(weekStart.getDate() + 1);
+        // Week ends at midpoint between current phase and next phase
+        // (no -1 because we shifted start +1)
         var weekEndMid = _midDate(currentPerfection.date, nextPhaseDate);
         var weekEnd = new Date(weekEndMid);
-        weekEnd.setDate(weekEnd.getDate() - 1);
 
         var days = [];
         var dayDate = new Date(weekStart);
@@ -13575,7 +13576,7 @@ function _renderAsteroids2026View(es) {
           domain: es ? 'Sabiduría estratégica, patrones, justicia creativa' : 'Strategic wisdom, pattern recognition, creative justice',
           keywords: es ? 'Estrategia • Patrones • Artesanía • Política' : 'Strategy • Patterns • Craftsmanship • Politics' },
         { name: 'Juno', symbol: '⚵', sweId: 19, color: '#E91E63', colorBg: 'rgba(233,30,99,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/3juno_hst.png/220px-3juno_hst.png',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/3juno_hst.png',
           domain: es ? 'Compromiso, igualdad en relaciones, contratos sagrados' : 'Commitment, equality in partnerships, sacred contracts',
           keywords: es ? 'Matrimonio • Lealtad • Igualdad • Contratos' : 'Marriage • Loyalty • Equality • Contracts' },
         { name: 'Vesta', symbol: '⚶', sweId: 20, color: '#FF9800', colorBg: 'rgba(255,152,0,',
@@ -13583,7 +13584,7 @@ function _renderAsteroids2026View(es) {
           domain: es ? 'Devoción, fuego sagrado, enfoque interior, pureza' : 'Devotion, sacred flame, inner focus, purity',
           keywords: es ? 'Devoción • Pureza • Enfoque • Ritual' : 'Devotion • Purity • Focus • Ritual' },
         { name: 'Chiron', symbol: '⚷', sweId: 15, color: '#9C27B0', colorBg: 'rgba(156,39,176,',
-          photo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Chiron_in_2015_%28cropped%29.jpg/220px-Chiron_in_2015_%28cropped%29.jpg',
+          photo: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Chiron_in_2015_%28cropped%29.jpg',
           domain: es ? 'Herida primordial, sanación, puente entre lo terrenal y espiritual' : 'Core wound, healing, bridge between earthly and spiritual',
           keywords: es ? 'Sanación • Herida • Maestría • Puente' : 'Healing • Wound • Mastery • Bridge' }
     ];
@@ -13707,7 +13708,7 @@ function _renderAsteroids2026View(es) {
         // Header with photo
         html += '<div onclick="toggleAsteroid2026Details(' + astIdx + ')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">'
             + '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid ' + ast.colorBg + '0.4);box-shadow:0 0 12px ' + ast.colorBg + '0.3);flex-shrink:0;">'
-            + '<img src="' + ast.photo + '" alt="' + ast.symbol + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
+            + '<img src="' + ast.photo + '" alt="' + ast.symbol + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
             + '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:radial-gradient(circle,' + ast.colorBg + '0.5),' + ast.colorBg + '0.2));font-size:1.6em;">' + ast.symbol + '</div>'
             + '</div>'
             + '<div style="flex:1;">'
@@ -13845,7 +13846,7 @@ window.showAsteroid2026Detail = function(idx) {
         // Photo + symbol header
         + '<div style="text-align:center;margin-bottom:12px;">'
         + '<div style="width:80px;height:80px;margin:0 auto 8px;border-radius:50%;overflow:hidden;border:2px solid rgba(' + rgbStr + ',0.4);box-shadow:0 0 20px rgba(' + rgbStr + ',0.3);">'
-        + '<img src="' + d.photo + '" alt="' + d.asteroid + '" style="width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div style=\\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:2em;background:radial-gradient(circle,rgba(' + rgbStr + ',0.4),rgba(' + rgbStr + ',0.1));\\\'>' + d.symbol + '</div>\'" />'
+        + '<img src="' + d.photo + '" alt="' + d.asteroid + '" style="width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'<div style=\\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:2em;background:radial-gradient(circle,rgba(' + rgbStr + ',0.4),rgba(' + rgbStr + ',0.1));\\\'>' + d.symbol + '</div>\'" />'
         + '</div>'
         + '<div style="font-size:1.2em;font-weight:700;color:' + d.color + ';font-family:Cinzel,serif;letter-spacing:1px;">' + d.symbol + ' ' + d.asteroid.toUpperCase() + '</div>'
         + catBadge
@@ -13875,7 +13876,7 @@ window.showAsteroid2026Detail = function(idx) {
     document.getElementById('natalDetailBody').innerHTML = body;
     modal.classList.add('show');
 
-    // Generate AI interpretation inline
+    // Auto-trigger AI interpretation for this specific event
     _generateAsteroidInterpretation(d, L);
 };
 
@@ -13883,23 +13884,51 @@ function _generateAsteroidInterpretation(d, L) {
     var el = document.getElementById('astInterpContent');
     if (!el) return;
 
+    // Build a specific prompt for THIS event (not generic)
     var prompt = L
-        ? 'Interpreta brevemente el evento astrológico: ' + d.asteroid + ' — ' + d.type + ' (' + d.date + '). Contexto: dominio de ' + d.asteroid + ': ' + d.domain + '. ' + (d.isRetro ? 'Actualmente retrógrado.' : '') + ' Incluye: 1) Significado energético, 2) Áreas de vida afectadas, 3) Consejo práctico. Responde en español, máximo 150 palabras. No uses encabezados markdown.'
-        : 'Briefly interpret this astrological event: ' + d.asteroid + ' — ' + d.type + ' (' + d.date + '). Context: ' + d.asteroid + ' domain: ' + d.domain + '. ' + (d.isRetro ? 'Currently retrograde.' : '') + ' Include: 1) Energetic meaning, 2) Life areas affected, 3) Practical advice. Max 150 words. No markdown headers.';
+        ? 'Interpreta este evento astrológico específico para mi carta natal: El asteroide ' + d.asteroid + ' — ' + d.type + ' el ' + d.date + '. ' + d.asteroid + ' gobierna: ' + d.domain + '. ' + (d.isRetro ? 'Actualmente retrógrado. ' : '') + (d.category === 'retro' ? 'Este evento es el inicio de su retrogradación. ' : d.category === 'direct' ? 'Este evento es cuando vuelve directo. ' : 'Este es un cambio de signo. ') + 'Significado base: ' + d.meaning + '. Interpreta cómo me afecta personalmente, qué áreas de mi vida impacta, y qué consejo práctico darías. Máximo 200 palabras.'
+        : 'Interpret this specific astrological event for my natal chart: Asteroid ' + d.asteroid + ' — ' + d.type + ' on ' + d.date + '. ' + d.asteroid + ' rules: ' + d.domain + '. ' + (d.isRetro ? 'Currently retrograde. ' : '') + (d.category === 'retro' ? 'This event is the start of its retrograde. ' : d.category === 'direct' ? 'This event is when it goes direct. ' : 'This is a sign change. ') + 'Base meaning: ' + d.meaning + '. Interpret how it affects me personally, what life areas it impacts, and practical advice. Max 200 words.';
 
-    if (typeof askAIChat === 'function') {
-        // Use the AI chatbot function
-        askAIChat(prompt);
-        el.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:0.85em;text-align:center;padding:8px;">💬 ' + (L ? 'Respuesta enviada al chat AI ✨' : 'Response sent to AI chat ✨') + '</div>';
-    } else if (typeof window.askAI === 'function') {
-        window.askAI(prompt);
-        el.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:0.85em;text-align:center;padding:8px;">💬 ' + (L ? 'Respuesta enviada al chat AI ✨' : 'Response sent to AI chat ✨') + '</div>';
+    // Store prompt globally for the chat button
+    window._lastAstInterp = { prompt: prompt, d: d };
+
+    // Open AI chat and send the prompt
+    if (typeof openAIChat === 'function' && typeof sendAIMessage === 'function') {
+        openAIChat();
+        setTimeout(function() {
+            var input = document.getElementById('aiChatInput');
+            if (input) {
+                input.value = prompt;
+                sendAIMessage();
+            }
+        }, 300);
+        el.innerHTML = '<div style="color:rgba(255,255,255,0.5);font-size:0.85em;text-align:center;padding:8px;">'
+            + '✨ ' + (L ? 'Interpretación enviada al chat AI' : 'Interpretation sent to AI chat')
+            + '</div>';
     } else {
-        // Provide a pre-built interpretation based on the event data
+        // Fallback: show static interpretation + button to open AI chat
         var interp = _getStaticAsteroidInterp(d, L);
-        el.innerHTML = interp;
+        el.innerHTML = interp
+            + '<div style="margin-top:10px;text-align:center;">'
+            + '<button onclick="window._astAIChat()" style="padding:8px 16px;background:linear-gradient(135deg,#667eea,#764ba2);border:none;border-radius:8px;color:#fff;font-size:0.82em;font-weight:600;cursor:pointer;">'
+            + '✨ ' + (L ? 'Interpretar con AI' : 'Interpret with AI') + '</button>'
+            + '</div>';
     }
 }
+
+window._astAIChat = function() {
+    if (!window._lastAstInterp) return;
+    if (typeof openAIChat === 'function' && typeof sendAIMessage === 'function') {
+        openAIChat();
+        setTimeout(function() {
+            var input = document.getElementById('aiChatInput');
+            if (input) {
+                input.value = window._lastAstInterp.prompt;
+                sendAIMessage();
+            }
+        }, 300);
+    }
+};
 
 function _getStaticAsteroidInterp(d, L) {
     var interpretations = {
@@ -24002,10 +24031,10 @@ function renderCalendar() {
     weeks.forEach((week, index) => {
         const weekDiv = document.createElement('div');
         weekDiv.className = 'lunar-week' + (index === currentWeekIndex ? ' active' : '');
-        // Apply lunar week background color
+        // Uniform week styling (no color differentiation between phases)
         var _wc = _lunarWeekColors[index] || _lunarWeekColors[0];
-        weekDiv.style.background = _wc.bg;
-        weekDiv.style.borderLeft = '3px solid ' + _wc.border.replace('0.25', '0.6');
+        weekDiv.style.background = 'rgba(10,10,30,0.4)';
+        weekDiv.style.borderLeft = '3px solid rgba(255,255,255,0.08)';
         weekDiv.style.borderRadius = '8px';
         weekDiv.style.marginBottom = '6px';
         weekDiv.style.padding = '2px';
@@ -24051,10 +24080,10 @@ function renderCalendar() {
                      data-has-aspects="${hasAspects}"
                      data-day-data="${dayDataStr}"
                      onclick="handleDayClick(this)"
-                     ${day.isPerfectionDay ? 'style="border: 2px solid ' + _wc.border.replace('0.25','0.8') + '; box-shadow: 0 0 12px ' + _wc.border.replace('0.25','0.35') + ';"' : ''}>
+                     ${day.isPerfectionDay ? 'style="border: 2px solid rgba(232,200,74,0.6); box-shadow: 0 0 12px rgba(232,200,74,0.2);"' : ''}>
 
                     <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
-                        <div class="day-number">${day.isPerfectionDay ? '<span style="font-size:1.3em;margin-right:2px;vertical-align:middle;">' + week.emoji + '</span>' : ''}${day.lunarDay}</div>
+                        <div class="day-number">${day.lunarDay}</div>
                         <div style="font-size: 0.7em; color: ${getMonthColor(day.date.getMonth())}; font-weight: 600; white-space:nowrap;">${formatShortDate(day.date)} <span class="day-weekday-label">${weekday}</span></div>
                     </div>
                     
@@ -24098,10 +24127,10 @@ function renderCalendar() {
         }).join('');
         
         weekDiv.innerHTML = `
-            <div class="week-header" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')" style="cursor:pointer;"` : ''}>
+            <div class="week-header" style="justify-content:center;text-align:center;" ${isClickableWeek ? `onclick="navigateToLunar2026Moon(${week.startDate.getTime()}, '${index === 0 ? 'new' : 'full'}')" style="cursor:pointer;justify-content:center;text-align:center;"` : ''}>
                 <div class="moon-icon">${week.emoji}</div>
-                <div class="week-info">
-                    <div style="display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; font-size: 0.65em; width: 100%; overflow: hidden;">
+                <div class="week-info" style="flex:none;">
+                    <div style="display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; font-size: 0.65em; justify-content:center;">
                         <span style="font-weight: bold; white-space: nowrap; color: #e8c84a;">${week.name}</span>
                         <span style="opacity: 0.4; color: #c9a840;">•</span>
                         <span style="white-space: nowrap; color: #8899cc;">${week.days.length}d</span>
@@ -30061,7 +30090,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v495';
+const APP_VERSION = 'v497';
 var _pendingSW = null;
 
 // What's New removed per user request
