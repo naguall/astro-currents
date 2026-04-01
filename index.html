@@ -22725,6 +22725,69 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
     }
     const closestTimeStr = closestTime.toLocaleTimeString(currentLang==='es'?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false});
 
+    // ── Day/Night Terminator ──
+    const sunDecl = getSunDeclination(now);
+    const subSolarLon = getSubsolarLonDeg(now);
+    const DR = Math.PI / 180;
+    // Build terminator polygon: night side
+    // The terminator is the line where sun altitude = 0
+    // For each longitude, find the latitude where sun is at horizon
+    let terminatorPts = [];
+    for (let lDeg = -180; lDeg <= 180; lDeg += 2) {
+        // At the terminator, sin(alt)=0 → sin(lat)*sin(dec) + cos(lat)*cos(dec)*cos(ha) = 0
+        // ha = (lDeg - subSolarLon) in degrees
+        const ha = (lDeg - subSolarLon) * DR;
+        const tanLat = -Math.cos(ha) * Math.cos(sunDecl * DR) / Math.sin(sunDecl * DR);
+        let latT;
+        if (Math.abs(sunDecl) < 0.001) {
+            // Sun near equator, terminator is at ±90 shifted by ha
+            latT = (Math.cos(ha) >= 0) ? 90 : -90;
+        } else {
+            latT = Math.atan(tanLat) / DR;
+        }
+        terminatorPts.push({ lon: lDeg, lat: latT });
+    }
+    // Determine which side is night: the antipodal point of subsolar is night center
+    const nightCenterLon = subSolarLon > 0 ? subSolarLon - 180 : subSolarLon + 180;
+    // Build SVG path: night polygon from terminator curve to top/bottom edge
+    // If sun declination > 0, night is below terminator on the night side
+    // We need to fill from terminator to the correct pole
+    let nightPath = '';
+    const tPts = terminatorPts.map(p => mx(p.lon).toFixed(1) + ',' + my(p.lat).toFixed(1)).join(' ');
+    // Determine if night is "above" or "below" the terminator at night center longitude
+    const testAlt = getSunAltitude(now, 0, nightCenterLon);
+    if (testAlt < 0) {
+        // Night is toward the bottom at nightCenterLon — go terminator → bottom-right → bottom-left → back
+        nightPath = 'M' + mx(-180).toFixed(1) + ',' + my(terminatorPts[0].lat).toFixed(1);
+        for (let i = 1; i < terminatorPts.length; i++) {
+            nightPath += ' L' + mx(terminatorPts[i].lon).toFixed(1) + ',' + my(terminatorPts[i].lat).toFixed(1);
+        }
+        nightPath += ' L' + W + ',' + H + ' L0,' + H + ' Z';
+    } else {
+        // Night is toward the top
+        nightPath = 'M' + mx(-180).toFixed(1) + ',' + my(terminatorPts[0].lat).toFixed(1);
+        for (let i = 1; i < terminatorPts.length; i++) {
+            nightPath += ' L' + mx(terminatorPts[i].lon).toFixed(1) + ',' + my(terminatorPts[i].lat).toFixed(1);
+        }
+        nightPath += ' L' + W + ',0 L0,0 Z';
+    }
+    const nightSVG = '<path d="' + nightPath + '" fill="rgba(0,0,15,0.45)" stroke="none"/>'
+        + '<path d="' + terminatorPts.map((p,i) => (i===0?'M':'L') + mx(p.lon).toFixed(1) + ',' + my(p.lat).toFixed(1)).join(' ') + '" fill="none" stroke="rgba(255,200,50,0.3)" stroke-width="1.2" stroke-dasharray="4,3"/>';
+
+    // Sun marker on map
+    const sunX = mx(subSolarLon), sunY = my(sunDecl);
+    const sunMarkerSVG = '<circle cx="'+sunX.toFixed(1)+'" cy="'+sunY.toFixed(1)+'" r="14" fill="url(#sg4)"/>'
+        + '<circle cx="'+sunX.toFixed(1)+'" cy="'+sunY.toFixed(1)+'" r="6" fill="#ff9500" opacity="0.85"/>'
+        + '<circle cx="'+sunX.toFixed(1)+'" cy="'+sunY.toFixed(1)+'" r="2.5" fill="#ffe066"/>'
+        + '<text x="'+(sunX+10).toFixed(0)+'" y="'+(sunY-8).toFixed(0)+'" fill="#ff9500" font-size="9" font-family="monospace" font-weight="bold">☉ '+sunDecl.toFixed(1)+'°'+(sunDecl>=0?'N':'S')+'</text>';
+
+    // Sunrise/sunset for user location
+    const sunRiseSet = getSunRiseSet(now, uLat, uLon);
+    const fmtTime = (d) => d ? d.toLocaleTimeString(currentLang==='es'?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '--:--';
+    const sunriseStr = fmtTime(sunRiseSet.rise);
+    const sunsetStr = fmtTime(sunRiseSet.set);
+    const sunInfoSVG = '<text x="'+(ux+10).toFixed(0)+'" y="'+(uy+16).toFixed(0)+'" fill="#ff9500" font-size="8.5" font-family="monospace">☀↑'+sunriseStr+' ☀↓'+sunsetStr+'</text>';
+
     // Natural Earth continent paths - high detail v2
     const landSVG = `<path d="M28.7,43.0 L35.8,45.4 L43.0,47.8 L52.6,45.4 L59.7,45.4 L71.7,47.8 L83.6,50.2 L93.2,47.8 L100.3,50.2 L105.1,52.6 L107.5,57.3 L112.3,71.7 L117.1,81.2 L119.4,83.6 L124.2,90.8 L129.0,95.6 L131.4,97.9 L133.8,105.1 L133.8,112.3 L138.6,119.4 L143.3,129.0 L148.1,133.8 L150.5,136.2 L150.5,138.6 L155.3,140.9 L160.1,145.7 L167.2,150.5 L172.0,155.3 L176.8,160.1 L179.2,164.8 L183.9,169.6 L191.1,172.0 L198.3,174.4 L200.7,176.8 L205.4,176.8 L210.2,179.2 L215.0,176.8 L219.8,174.4 L224.6,176.8 L229.3,181.6 L231.7,186.3 L234.1,191.1 L238.9,193.5 L241.3,193.5 L243.7,193.5 L238.9,186.3 L236.5,179.2 L234.1,172.0 L236.5,162.4 L236.5,155.3 L238.9,152.9 L238.9,148.1 L236.5,143.3 L234.1,140.9 L238.9,138.6 L243.7,133.8 L248.4,131.4 L250.8,126.6 L255.6,121.8 L258.0,117.1 L262.8,114.7 L265.2,112.3 L267.6,109.9 L269.9,107.5 L272.3,102.7 L274.7,100.3 L277.1,102.7 L281.9,105.1 L286.7,102.7 L289.1,100.3 L293.8,95.6 L298.6,102.7 L303.4,102.7 L298.6,95.6 L293.8,90.8 L289.1,88.4 L281.9,83.6 L277.1,78.8 L272.3,76.4 L267.6,71.7 L258.0,69.3 L250.8,66.9 L243.7,64.5 L234.1,62.1 L224.6,59.7 L215.0,54.9 L203.1,50.2 L191.1,45.4 L179.2,43.0 L167.2,40.6 L155.3,40.6 L143.3,40.6 L119.4,43.0 L95.6,43.0 L71.7,43.0 L47.8,43.0 L28.7,43.0 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
         <path d="M238.9,191.1 L243.7,188.7 L248.4,186.3 L253.2,186.3 L258.0,186.3 L262.8,186.3 L267.6,188.7 L274.7,191.1 L279.5,193.5 L286.7,195.9 L291.4,200.7 L298.6,203.1 L305.8,205.4 L310.6,210.2 L312.9,215.0 L315.3,219.8 L317.7,224.6 L320.1,229.3 L324.9,234.1 L329.7,238.9 L334.4,243.7 L339.2,246.1 L341.6,250.8 L344.0,253.2 L339.2,258.0 L334.4,262.8 L332.1,267.6 L327.3,269.9 L324.9,272.3 L320.1,274.7 L315.3,279.5 L312.9,284.3 L310.6,289.1 L308.2,293.8 L303.4,296.2 L298.6,298.6 L293.8,303.4 L289.1,305.8 L281.9,308.2 L277.1,310.6 L274.7,312.9 L272.3,317.7 L269.9,320.1 L272.3,322.5 L267.6,327.3 L265.2,329.7 L260.4,334.4 L258.0,339.2 L253.2,339.2 L250.8,334.4 L253.2,329.7 L255.6,324.9 L258.0,320.1 L258.0,315.3 L260.4,310.6 L260.4,305.8 L260.4,298.6 L262.8,291.4 L262.8,281.9 L262.8,272.3 L262.8,262.8 L262.8,258.0 L258.0,253.2 L253.2,248.4 L248.4,243.7 L246.1,238.9 L243.7,231.7 L241.3,226.9 L238.9,222.2 L238.9,215.0 L241.3,210.2 L243.7,205.4 L246.1,200.7 L243.7,195.9 L241.3,193.5 L238.9,191.1 Z" fill="#1e3d5c" stroke="#2d5a82" stroke-width="0.6" stroke-linejoin="round"/>
@@ -22763,6 +22826,10 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
         + '<line x1="0" y1="'+my(-23.5)+'" x2="'+W+'" y2="'+my(-23.5)+'" stroke="rgba(201,168,64,0.22)" stroke-width="0.7" stroke-dasharray="2,5"/>'
         // Continents
         + landSVG
+        // Day/Night shadow (terminator)
+        + nightSVG
+        // Sun marker
+        + sunMarkerSVG
         // Labels
         + '<text x="5" y="'+(my(0)-4)+'" fill="rgba(74,158,255,0.5)" font-size="9" font-family="monospace">0°</text>'
         + '<text x="5" y="'+(my(23.5)-4)+'" fill="rgba(201,168,64,0.45)" font-size="8" font-family="monospace">23.5°N</text>'
@@ -22774,6 +22841,8 @@ function renderSublunaryMap(latStr, lonDeg, userLat, userLon) {
         + '<circle cx="'+ux.toFixed(1)+'" cy="'+uy.toFixed(1)+'" r="3.5" fill="#4ecdc4"/>'
         + '<circle cx="'+ux.toFixed(1)+'" cy="'+uy.toFixed(1)+'" r="1.5" fill="white"/>'
         + '<text x="'+(ux+10).toFixed(0)+'" y="'+(uy+4).toFixed(0)+'" fill="#4ecdc4" font-size="10" font-family="monospace" font-weight="bold">'+cityLabel+'</text>'
+        // Sunrise/sunset info near user
+        + sunInfoSVG
         // Moon
         + '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="26" fill="url(#mg4)"/>'
         + '<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="9" fill="#e0e0e0" filter="url(#gf4)" opacity="0.95"/>'
@@ -22819,6 +22888,158 @@ function renderSublunaryInfoBox(latStr, lonDeg, userLat, userLon) {
     return '<div style="padding:8px 14px;background:rgba(10,14,30,0.85);border:1px solid rgba(74,158,255,0.15);border-radius:8px;text-align:center;font-family:monospace;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;">'
         + '<span style="font-size:0.95em;font-weight:bold;color:#4ecdc4;">' + cityLabel + ' ↔ Sublunar: ' + Math.round(distToUser).toLocaleString() + ' km</span>'
         + '<span style="font-size:0.95em;font-weight:bold;color:#c9a840;">' + (currentLang==='es'?'Más cerca':'Closest') + ': ' + Math.round(closestDist).toLocaleString() + ' km @ ' + closestTimeStr + '</span>'
+        + '</div>';
+}
+
+// ── Planet & Constellation Rise/Set Times ─────────────────────
+function renderCelestialRiseSetPanel(userLat, userLon) {
+    if (typeof Astronomy === 'undefined') return '';
+    var L = currentLang === 'es';
+    var uLat = userLat || ASTRO_USER_LAT || 9.93;
+    var uLon = userLon || ASTRO_USER_LON || -84;
+    var now = new Date();
+    var observer = new Astronomy.Observer(uLat, uLon, 0);
+    var dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    var t0 = Astronomy.MakeTime(dayStart);
+    var timeFmt = {hour:'2-digit', minute:'2-digit', hour12:false};
+    var locale = L ? 'es' : 'en';
+    var fmtT = function(d) { return d ? d.date.toLocaleTimeString(locale, timeFmt) : '--:--'; };
+
+    // Sun rise/set
+    var sunRS = getSunRiseSet(now, uLat, uLon);
+    var sunRiseStr = sunRS.rise ? sunRS.rise.toLocaleTimeString(locale, timeFmt) : '--:--';
+    var sunSetStr = sunRS.set ? sunRS.set.toLocaleTimeString(locale, timeFmt) : '--:--';
+
+    // Planet rise/set
+    var planets = [
+        { name: 'Mercury', symbol: '☿', label: L ? 'Mercurio' : 'Mercury', color: '#a0a0a0', body: Astronomy.Body.Mercury },
+        { name: 'Venus', symbol: '♀', label: 'Venus', color: '#ffe0b2', body: Astronomy.Body.Venus },
+        { name: 'Mars', symbol: '♂', label: L ? 'Marte' : 'Mars', color: '#ff6b6b', body: Astronomy.Body.Mars },
+        { name: 'Jupiter', symbol: '♃', label: L ? 'Júpiter' : 'Jupiter', color: '#ffcc80', body: Astronomy.Body.Jupiter },
+        { name: 'Saturn', symbol: '♄', label: L ? 'Saturno' : 'Saturn', color: '#ffe082', body: Astronomy.Body.Saturn },
+        { name: 'Uranus', symbol: '♅', label: L ? 'Urano' : 'Uranus', color: '#80deea', body: Astronomy.Body.Uranus },
+        { name: 'Neptune', symbol: '♆', label: L ? 'Neptuno' : 'Neptune', color: '#90caf9', body: Astronomy.Body.Neptune }
+    ];
+
+    var planetRows = '';
+    for (var i = 0; i < planets.length; i++) {
+        var p = planets[i];
+        try {
+            var rise = Astronomy.SearchRiseSet(p.body, observer, +1, t0, 1);
+            var set = Astronomy.SearchRiseSet(p.body, observer, -1, t0, 1);
+            // Current altitude
+            var t = Astronomy.MakeTime(now);
+            var alt = null;
+            try {
+                var equ = Astronomy.Equator(p.body, t, observer, true, true);
+                var hor2 = Astronomy.Horizon(t, observer, equ.ra, equ.dec, 'normal');
+                alt = hor2.altitude;
+            } catch(e2) { alt = null; }
+            var isUp = alt !== null && alt > 0;
+            var statusDot = isUp ? '<span style="color:#4ecdc4;">●</span>' : '<span style="color:rgba(255,255,255,0.2);">○</span>';
+            planetRows += '<div style="display:grid;grid-template-columns:24px 1fr 60px 60px 24px;gap:4px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(74,158,255,0.06);">'
+                + '<span style="color:'+p.color+';font-size:1.1em;text-align:center;">'+p.symbol+'</span>'
+                + '<span style="color:'+p.color+';font-size:0.78em;font-weight:600;">'+p.label+'</span>'
+                + '<span style="color:#7ec8ff;font-size:0.72em;text-align:center;">↑'+fmtT(rise)+'</span>'
+                + '<span style="color:#ff9500;font-size:0.72em;text-align:center;">↓'+fmtT(set)+'</span>'
+                + statusDot
+                + '</div>';
+        } catch(e) {
+            planetRows += '<div style="display:grid;grid-template-columns:24px 1fr 60px 60px 24px;gap:4px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(74,158,255,0.06);">'
+                + '<span style="color:'+p.color+';font-size:1.1em;text-align:center;">'+p.symbol+'</span>'
+                + '<span style="color:'+p.color+';font-size:0.78em;">'+p.label+'</span>'
+                + '<span style="color:#555;font-size:0.72em;text-align:center;">--:--</span>'
+                + '<span style="color:#555;font-size:0.72em;text-align:center;">--:--</span>'
+                + '<span></span></div>';
+        }
+    }
+
+    // Constellation visibility: major constellations with approximate RA/Dec for transit time
+    var constellations = [
+        { name: L ? 'Orión' : 'Orion', symbol: '⭐', ra: 5.6, dec: -1.2, color: '#e8c84a' },
+        { name: L ? 'Escorpio' : 'Scorpius', symbol: '🦂', ra: 16.9, dec: -30.0, color: '#ff6b6b' },
+        { name: L ? 'Osa Mayor' : 'Ursa Major', symbol: '🐻', ra: 11.0, dec: 55.0, color: '#90caf9' },
+        { name: L ? 'Leo' : 'Leo', symbol: '🦁', ra: 10.7, dec: 13.0, color: '#ffcc80' },
+        { name: L ? 'Cruz del Sur' : 'Crux', symbol: '✝', ra: 12.4, dec: -60.0, color: '#80deea' },
+        { name: L ? 'Géminis' : 'Gemini', symbol: '👯', ra: 7.1, dec: 24.0, color: '#ffe082' },
+        { name: 'Virgo', symbol: '♍', ra: 13.4, dec: -3.0, color: '#a5d6a7' },
+        { name: L ? 'Sagitario' : 'Sagittarius', symbol: '♐', ra: 19.0, dec: -28.5, color: '#ce93d8' }
+    ];
+
+    // For each constellation: calculate transit time (when it crosses meridian) and approximate rise/set
+    var constRows = '';
+    var gst = Astronomy.SiderealTime(Astronomy.MakeTime(now));
+    for (var c = 0; c < constellations.length; c++) {
+        var con = constellations[c];
+        // Check if constellation is observable from this latitude
+        // Never rises if dec + 90 < |lat| for southern sky, etc.
+        var maxAlt = 90 - Math.abs(uLat - con.dec);
+        if (maxAlt < 5) {
+            constRows += '<div style="display:grid;grid-template-columns:24px 1fr 80px 24px;gap:4px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(74,158,255,0.06);">'
+                + '<span style="font-size:0.9em;text-align:center;">'+con.symbol+'</span>'
+                + '<span style="color:'+con.color+';font-size:0.72em;">'+con.name+'</span>'
+                + '<span style="color:#555;font-size:0.68em;text-align:center;">'+(L?'No visible':'Not visible')+'</span>'
+                + '<span style="color:rgba(255,255,255,0.2);">○</span></div>';
+            continue;
+        }
+
+        // Transit time: when RA = Local Sidereal Time
+        // LST = GST + lon/15; transit when LST = RA → hours until transit
+        var lst = gst + uLon / 15;
+        var hoursToTransit = ((con.ra - lst) % 24 + 24) % 24;
+        var transitTime = new Date(now.getTime() + hoursToTransit * 3600000);
+
+        // Approximate rise: transit - half of time above horizon
+        // Hour angle at rise: cos(H) = -tan(lat)*tan(dec)  (simplified)
+        var DR = Math.PI / 180;
+        var cosH = -Math.tan(uLat * DR) * Math.tan(con.dec * DR);
+        var halfAbove; // hours above horizon / 2
+        if (cosH < -1) halfAbove = 12; // circumpolar
+        else if (cosH > 1) halfAbove = 0; // never rises
+        else halfAbove = Math.acos(cosH) / (15 * DR) ; // in hours
+
+        var riseTime = new Date(transitTime.getTime() - halfAbove * 3600000);
+        var setTime = new Date(transitTime.getTime() + halfAbove * 3600000);
+        // Normalize to show today's times
+        var riseFmt = riseTime.toLocaleTimeString(locale, timeFmt);
+        var setFmt = setTime.toLocaleTimeString(locale, timeFmt);
+        var transitFmt = transitTime.toLocaleTimeString(locale, timeFmt);
+
+        // Is it currently visible? (above horizon and sun below horizon)
+        var currentHA = (lst - con.ra) * 15; // in degrees
+        var sinAlt = Math.sin(uLat * DR) * Math.sin(con.dec * DR) + Math.cos(uLat * DR) * Math.cos(con.dec * DR) * Math.cos(currentHA * DR);
+        var currentAlt = Math.asin(sinAlt) / DR;
+        var sunAlt = getSunAltitude(now, uLat, uLon);
+        var isVisible = currentAlt > 5 && sunAlt < -6; // above 5° and sun below twilight
+
+        var visDot = isVisible ? '<span style="color:#4ecdc4;">●</span>' : '<span style="color:rgba(255,255,255,0.2);">○</span>';
+
+        constRows += '<div style="display:grid;grid-template-columns:24px 1fr 55px 55px 55px 24px;gap:3px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(74,158,255,0.06);">'
+            + '<span style="font-size:0.85em;text-align:center;">'+con.symbol+'</span>'
+            + '<span style="color:'+con.color+';font-size:0.72em;font-weight:600;">'+con.name+'</span>'
+            + '<span style="color:#7ec8ff;font-size:0.68em;text-align:center;">↑'+riseFmt+'</span>'
+            + '<span style="color:#e8c84a;font-size:0.68em;text-align:center;">⬆'+transitFmt+'</span>'
+            + '<span style="color:#ff9500;font-size:0.68em;text-align:center;">↓'+setFmt+'</span>'
+            + visDot
+            + '</div>';
+    }
+
+    return '<div style="margin-top:8px;padding:10px;background:rgba(5,10,30,0.9);border:1px solid rgba(74,158,255,0.18);border-radius:8px;">'
+        // Sun section
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,149,0,0.2);">'
+        + '<span style="font-size:1.2em;">☀️</span>'
+        + '<span style="color:#ff9500;font-size:0.82em;font-weight:700;">'+(L?'Sol':'Sun')+'</span>'
+        + '<span style="color:#7ec8ff;font-size:0.78em;margin-left:auto;">↑ '+sunRiseStr+'</span>'
+        + '<span style="color:#ff9500;font-size:0.78em;margin-left:12px;">↓ '+sunSetStr+'</span>'
+        + '</div>'
+        // Planets header
+        + '<div style="font-family:\'Cinzel\',serif;color:#7ec8ff;font-size:0.72em;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">'
+        + (L ? 'Planetas — Salida y Puesta' : 'Planets — Rise & Set') + ' <span style="font-size:0.8em;color:#8899cc;font-weight:400;">(● '+(L?'visible ahora':'visible now')+')</span></div>'
+        + planetRows
+        // Constellations header
+        + '<div style="font-family:\'Cinzel\',serif;color:#e8c84a;font-size:0.72em;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:10px;margin-bottom:6px;">'
+        + (L ? 'Constelaciones — Aparición' : 'Constellations — Visibility') + ' <span style="font-size:0.8em;color:#8899cc;font-weight:400;">(● '+(L?'visible ahora':'visible now')+')</span></div>'
+        + constRows
         + '</div>';
 }
 
@@ -23676,6 +23897,10 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
             <!-- Info box separado debajo de ambos mapas -->
             <div id="sublunaryInfoBox" style="margin-top:8px;">
                 ${renderSublunaryInfoBox(astro.sublunarLat, getSublunaryLonDeg(nowRealTime), ASTRO_USER_LAT, ASTRO_USER_LON)}
+            </div>
+            <!-- Planet & Constellation Rise/Set Panel -->
+            <div id="celestialRiseSetPanel" style="margin-top:4px;">
+                ${typeof Astronomy !== 'undefined' ? renderCelestialRiseSetPanel(ASTRO_USER_LAT, ASTRO_USER_LON) : ''}
             </div>
         </div>
 
@@ -30084,7 +30309,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v499';
+const APP_VERSION = 'v500';
 var _pendingSW = null;
 
 // What's New removed per user request
