@@ -9102,6 +9102,7 @@ var _compassDeviceGamma = 0; // device tilt left-right
 var _compassPermissionGranted = false;
 var _compassMapMode = '2d'; // '2d' or '3d'
 var _compassHasAbsolute = false; // true if we have absolute heading (reliable north)
+var _compassCelestialOpen = false; // persistent state for celestial panel in compass
 var _compassCalibrationNeeded = false;
 var _compassMode = 'moon'; // 'moon', 'sun', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', or 'const_<id>'
 
@@ -10068,8 +10069,8 @@ function _renderCompass() {
     // ===== CELESTIAL RISE/SET PANEL (collapsible dropdown) =====
     if (typeof Astronomy !== 'undefined' && typeof ASTRO_USER_LAT !== 'undefined' && ASTRO_USER_LAT !== null) {
         info += '<div style="margin-top:10px;">';
-        info += '<div onclick="var p=this.nextElementSibling;var a=this.querySelector(\'.compass-celestial-arrow\');if(p.style.display===\'none\'){p.style.display=\'block\';a.textContent=\'▾\'}else{p.style.display=\'none\';a.textContent=\'▸\'}" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(5,10,30,0.8);border:1px solid rgba(74,158,255,0.2);border-radius:8px;cursor:pointer;transition:background 0.2s;" onmouseenter="this.style.background=\'rgba(74,158,255,0.08)\'" onmouseleave="this.style.background=\'rgba(5,10,30,0.8)\'">';
-        info += '<span class="compass-celestial-arrow" style="color:#7ec8ff;font-size:0.9em;transition:transform 0.2s;">▸</span>';
+        info += '<div onclick="_compassCelestialOpen=!_compassCelestialOpen;var p=this.nextElementSibling;var a=this.querySelector(\'.compass-celestial-arrow\');if(_compassCelestialOpen){p.style.display=\'block\';a.textContent=\'▾\'}else{p.style.display=\'none\';a.textContent=\'▸\'}" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(5,10,30,0.8);border:1px solid rgba(74,158,255,0.2);border-radius:8px;cursor:pointer;transition:background 0.2s;" onmouseenter="this.style.background=\'rgba(74,158,255,0.08)\'" onmouseleave="this.style.background=\'rgba(5,10,30,0.8)\'">';
+        info += '<span class="compass-celestial-arrow" style="color:#7ec8ff;font-size:0.9em;transition:transform 0.2s;">' + (_compassCelestialOpen ? '▾' : '▸') + '</span>';
         info += '<span style="font-size:0.9em;">🔭</span>';
         info += '<span style="font-family:\'Cinzel\',serif;color:#7ec8ff;font-size:0.75em;font-weight:600;letter-spacing:1px;text-transform:uppercase;">' + (L ? 'Planetas y Constelaciones — Salida y Puesta' : 'Planets & Constellations — Rise & Set') + '</span>';
         info += '<span style="font-size:0.6em;color:rgba(255,255,255,0.25);margin-left:auto;">' + (L ? 'toca' : 'tap') + '</span>';
@@ -10077,7 +10078,7 @@ function _renderCompass() {
         // Get current Gregorian date for header
         var _celestialNow = new Date();
         var _celestialDateStr = _celestialNow.toLocaleDateString(L ? 'es' : 'en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        info += '<div id="compassCelestialPanel" style="display:none;margin-top:2px;">';
+        info += '<div id="compassCelestialPanel" style="display:' + (_compassCelestialOpen ? 'block' : 'none') + ';margin-top:2px;">';
         info += '<div style="text-align:center;padding:6px 0 2px;font-size:0.7em;color:rgba(200,220,255,0.45);font-style:italic;">📅 ' + _celestialDateStr + '</div>';
         info += renderCelestialRiseSetPanel(ASTRO_USER_LAT, ASTRO_USER_LON);
         info += '</div>';
@@ -22022,8 +22023,11 @@ function generateGregorianMonth() {
         
         html += '</div></div></div>';
     }
-    
-    // Planet & Constellation Rise/Set Panel (expanded in Gregorian)
+
+    // Close the grid container before adding the celestial panel
+    html += '</div>';
+
+    // Planet & Constellation Rise/Set Panel (expanded in Gregorian, OUTSIDE the grid)
     if (typeof Astronomy !== 'undefined' && typeof ASTRO_USER_LAT !== 'undefined' && ASTRO_USER_LAT !== null) {
         html += '<div style="margin-top:10px;">';
         html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(5,10,30,0.7);border:1px solid rgba(74,158,255,0.18);border-radius:8px 8px 0 0;">';
@@ -22034,7 +22038,7 @@ function generateGregorianMonth() {
         html += '</div>';
     }
 
-    html += '</div></div>';
+    html += '</div>';
     return html;
 }
 
