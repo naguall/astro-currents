@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v514';
+        var REQUIRED_VER = 'v515';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -5793,13 +5793,24 @@ function handleDayClick(element) {
         const interAspects = getInterPlanetaryAspects(date);
         const eclipse = getEclipseInfo(date);
         const moonEvent = getMoonEventForDate(date);
-        // Detect lunar quarter phases too
+        // Detect lunar quarter phases using findLunarPerfections (consistent with Lunar calendar)
         let _hasQuarter = false;
         if (!moonEvent) {
-            const _el = calculateLunarPhase(date);
-            const _elPrev = calculateLunarPhase(new Date(date.getTime() - 86400000));
-            if ((_elPrev < 90 && _el >= 90) || (Math.abs(_el - 90) < 5 && Math.abs(_elPrev - 90) >= 5)) _hasQuarter = true;
-            if ((_elPrev < 270 && _el >= 270) || (Math.abs(_el - 270) < 5 && Math.abs(_elPrev - 270) >= 5)) _hasQuarter = true;
+            var _qScan = new Date(date);
+            _qScan.setDate(_qScan.getDate() - 15);
+            var _qPerfsOpt = findLunarPerfections(_qScan);
+            if (_qPerfsOpt) {
+                var _qDateStr = date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate();
+                for (var _qoi = 0; _qoi < _qPerfsOpt.length; _qoi++) {
+                    var _qoD = new Date(_qPerfsOpt[_qoi].date);
+                    _qoD.setHours(0,0,0,0);
+                    var _qoStr = _qoD.getFullYear() + '-' + (_qoD.getMonth()+1) + '-' + _qoD.getDate();
+                    if (_qoStr === _qDateStr && (_qPerfsOpt[_qoi].degree === 90 || _qPerfsOpt[_qoi].degree === 270)) {
+                        _hasQuarter = true;
+                        break;
+                    }
+                }
+            }
         }
         const aspectsCount = dayData.aspects ? dayData.aspects.length : 0;
         const allEvents = aspectsCount + signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + (_hasQuarter ? 1 : 0);
@@ -26953,60 +26964,74 @@ window.saveMyMessage = saveMyMessage;
 window.deleteMyMessage = deleteMyMessage;
 
 // Check if today (or yesterday, if missed) is a lunar phase perfection day
+// Uses getMoonEventForDate (UTC) for New/Full and findLunarPerfections for quarters
 function checkLunarPhaseStart(date) {
     var today = new Date(date);
-    today.setHours(12, 0, 0, 0); // noon for stable calculation
-    var targets = [
-        { deg: 0,   es: 'Luna Nueva',        en: 'New Moon',        icon: '🌑', svg: 0   },
-        { deg: 90,  es: 'Cuarto Creciente',   en: 'First Quarter',   icon: '🌓', svg: 90  },
-        { deg: 180, es: 'Luna Llena',         en: 'Full Moon',       icon: '🌕', svg: 180 },
-        { deg: 270, es: 'Cuarto Menguante',   en: 'Last Quarter',    icon: '🌗', svg: 270 }
-    ];
+    today.setHours(0, 0, 0, 0);
     var L = currentLang === 'es';
+    var phaseMap = {
+        0:   { es: 'Luna Nueva',        en: 'New Moon',        icon: '🌑', svg: 0   },
+        90:  { es: 'Cuarto Creciente',   en: 'First Quarter',   icon: '🌓', svg: 90  },
+        180: { es: 'Luna Llena',         en: 'Full Moon',       icon: '🌕', svg: 180 },
+        270: { es: 'Cuarto Menguante',   en: 'Last Quarter',    icon: '🌗', svg: 270 }
+    };
 
     // Check today and yesterday (in case the app wasn't opened on the exact day)
     var daysToCheck = [
-        { d: today, label: L ? 'Hoy' : 'Today', isToday: true },
-        { d: (function(){ var y = new Date(today); y.setDate(y.getDate()-1); return y; })(), label: L ? 'Ayer' : 'Yesterday', isToday: false }
+        { d: today, isToday: true },
+        { d: (function(){ var y = new Date(today); y.setDate(y.getDate()-1); return y; })(), isToday: false }
     ];
 
     for (var ci = 0; ci < daysToCheck.length; ci++) {
         var checkDay = daysToCheck[ci].d;
-        var elong = calculateLunarPhase(checkDay);
+        checkDay.setHours(0, 0, 0, 0);
+        var foundDeg = null;
 
-        for (var i = 0; i < targets.length; i++) {
-            var t = targets[i];
-            var diff = Math.abs(elong - t.deg);
-            if (diff > 180) diff = 360 - diff;
-            if (diff < 8) {
-                // Verify this is the closest day (perfection day)
-                var prevD = new Date(checkDay); prevD.setDate(prevD.getDate() - 1);
-                var nextD = new Date(checkDay); nextD.setDate(nextD.getDate() + 1);
-                var prevElong = calculateLunarPhase(prevD);
-                var nextElong = calculateLunarPhase(nextD);
-                var prevDiff = Math.abs(prevElong - t.deg); if (prevDiff > 180) prevDiff = 360 - prevDiff;
-                var nextDiff = Math.abs(nextElong - t.deg); if (nextDiff > 180) nextDiff = 360 - nextDiff;
-                if (diff <= prevDiff && diff <= nextDiff) {
-                    var phaseKey = getDateKey(checkDay);
-                    var notifKey = 'notified-lunarphase-' + phaseKey;
-                    if (!localStorage.getItem(notifKey)) {
-                        var phaseName = L ? t.es : t.en;
-                        var bodyText = daysToCheck[ci].isToday
-                            ? (L ? 'Hoy se perfecciona la ' + phaseName + '. Observa cómo influye en tu energía y emociones.'
-                                 : 'Today the ' + phaseName + ' is exact. Notice how it influences your energy and emotions.')
-                            : (L ? 'Ayer se perfeccionó la ' + phaseName + '. Aún puedes sentir su influencia en tu energía.'
-                                 : 'Yesterday the ' + phaseName + ' was exact. You can still feel its influence on your energy.');
-                        sendNotif(t.icon + ' ' + phaseName, {
-                            body: bodyText,
-                            icon: 'data:image/svg+xml,' + encodeURIComponent(getMoonSVG(t.svg, 64)),
-                            tag: 'lunar-phase-' + phaseKey,
-                            requireInteraction: true
-                        });
-                        localStorage.setItem(notifKey, 'true');
-                        console.log('🌙 Lunar phase notification sent:', phaseName, daysToCheck[ci].isToday ? '(today)' : '(yesterday, missed)');
-                        return true;
+        // Check New/Full via getMoonEventForDate (UTC-based)
+        var moonEv = getMoonEventForDate(checkDay);
+        if (moonEv) {
+            foundDeg = moonEv.type === 'new' ? 0 : (moonEv.type === 'full' ? 180 : null);
+        }
+
+        // Check quarters via findLunarPerfections (consistent with Lunar calendar)
+        if (foundDeg === null) {
+            var _scanStart = new Date(checkDay);
+            _scanStart.setDate(_scanStart.getDate() - 15);
+            var _perfs = findLunarPerfections(_scanStart);
+            if (_perfs) {
+                var _dStr = checkDay.getFullYear() + '-' + (checkDay.getMonth()+1) + '-' + checkDay.getDate();
+                for (var _pi = 0; _pi < _perfs.length; _pi++) {
+                    var _pD = new Date(_perfs[_pi].date);
+                    _pD.setHours(0,0,0,0);
+                    var _pStr = _pD.getFullYear() + '-' + (_pD.getMonth()+1) + '-' + _pD.getDate();
+                    if (_pStr === _dStr && (_perfs[_pi].degree === 90 || _perfs[_pi].degree === 270)) {
+                        foundDeg = _perfs[_pi].degree;
+                        break;
                     }
                 }
+            }
+        }
+
+        if (foundDeg !== null && phaseMap[foundDeg]) {
+            var t = phaseMap[foundDeg];
+            var phaseKey = getDateKey(checkDay);
+            var notifKey = 'notified-lunarphase-' + phaseKey;
+            if (!localStorage.getItem(notifKey)) {
+                var phaseName = L ? t.es : t.en;
+                var bodyText = daysToCheck[ci].isToday
+                    ? (L ? 'Hoy se perfecciona la ' + phaseName + '. Observa cómo influye en tu energía y emociones.'
+                         : 'Today the ' + phaseName + ' is exact. Notice how it influences your energy and emotions.')
+                    : (L ? 'Ayer se perfeccionó la ' + phaseName + '. Aún puedes sentir su influencia en tu energía.'
+                         : 'Yesterday the ' + phaseName + ' was exact. You can still feel its influence on your energy.');
+                sendNotif(t.icon + ' ' + phaseName, {
+                    body: bodyText,
+                    icon: 'data:image/svg+xml,' + encodeURIComponent(getMoonSVG(t.svg, 64)),
+                    tag: 'lunar-phase-' + phaseKey,
+                    requireInteraction: true
+                });
+                localStorage.setItem(notifKey, 'true');
+                console.log('🌙 Lunar phase notification sent:', phaseName, daysToCheck[ci].isToday ? '(today)' : '(yesterday, missed)');
+                return true;
             }
         }
     }
@@ -27280,8 +27305,8 @@ function _getMoonRelated(date) {
         for (let y = currentYear-1; y <= currentYear+1; y++)
             for (let m = 0; m < 12; m++) { const fm = findFullMoonApprox(y, m); if (fm) fullMoonsPool.push(fm); }
     }
-    const thisPhase = calculateLunarPhase(date);
-    const thisType  = (thisPhase < 45 || thisPhase > 315) ? 'new' : 'full';
+    var _relMoonEv = getMoonEventForDate(date);
+    const thisType  = _relMoonEv ? _relMoonEv.type : ((calculateLunarPhase(date) < 45 || calculateLunarPhase(date) > 315) ? 'new' : 'full');
     const thisSign  = getZodiacSignFromLongitude(getMoonPosition(date));
 
     const pool = [
@@ -30853,7 +30878,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v514';
+const APP_VERSION = 'v515';
 var _pendingSW = null;
 
 // What's New removed per user request
@@ -32482,12 +32507,28 @@ window.askCartoLocation = function() {
 };
 
 function getLunarPhaseSVG(date) {
-    var phase = calculateLunarPhase(date);
-    // Only show on exact phase days (within ~6 degrees)
-    if (phase < 6 || phase >= 354) return getMoonSVG(0, 14);       // Nueva
-    if (phase > 84 && phase < 96) return getMoonSVG(90, 14);       // Creciente
-    if (phase > 174 && phase < 186) return getMoonSVG(180, 14);    // Llena
-    if (phase > 264 && phase < 276) return getMoonSVG(270, 14);    // Menguante
+    // Use exact UTC data (getMoonEventForDate) for New/Full moons
+    var moonEv = getMoonEventForDate(date);
+    if (moonEv) {
+        if (moonEv.type === 'new') return getMoonSVG(0, 14);
+        if (moonEv.type === 'full') return getMoonSVG(180, 14);
+    }
+    // Use findLunarPerfections for quarter detection (consistent with Lunar calendar)
+    var _scanStart = new Date(date);
+    _scanStart.setDate(_scanStart.getDate() - 15);
+    var _perfs = findLunarPerfections(_scanStart);
+    if (_perfs) {
+        var _dStr = date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate();
+        for (var _pi = 0; _pi < _perfs.length; _pi++) {
+            var _pD = new Date(_perfs[_pi].date);
+            _pD.setHours(0,0,0,0);
+            var _pStr = _pD.getFullYear() + '-' + (_pD.getMonth()+1) + '-' + _pD.getDate();
+            if (_pStr === _dStr) {
+                if (_perfs[_pi].degree === 90) return getMoonSVG(90, 14);
+                if (_perfs[_pi].degree === 270) return getMoonSVG(270, 14);
+            }
+        }
+    }
     return '';
 }
 
