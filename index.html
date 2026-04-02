@@ -2051,19 +2051,45 @@ function findLunarPerfections(startDate) {
         { name: currentLang==='es'?'Llena':'Full', degree: 180, emoji: getMoonSVG(180, 16) },
         { name: currentLang==='es'?'Menguante':'Last Quarter', degree: 270, emoji: getMoonSVG(270, 16) }
     ];
-    
+
     let searchDate = new Date(startDate);
-    
+
     for (let i = 0; i < phases.length; i++) {
         const phase = phases[i];
-        const perfectionDate = findExactPerfection(searchDate, phase.degree);
+        let perfectionDate = null;
+
+        // For New Moon (0°) and Full Moon (180°), use exact UTC data from lunar-data.js
+        // This ensures the date matches the user's local timezone correctly
+        if (phase.degree === 0 && window.LUNAR_NEW_MOONS_UTC) {
+            for (let ni = 0; ni < window.LUNAR_NEW_MOONS_UTC.length; ni++) {
+                var nmD = new Date(window.LUNAR_NEW_MOONS_UTC[ni]);
+                if (nmD >= searchDate && nmD.getTime() - searchDate.getTime() < 15 * 86400000) {
+                    perfectionDate = nmD;
+                    break;
+                }
+            }
+        } else if (phase.degree === 180 && window.LUNAR_FULL_MOONS_UTC) {
+            for (let fi = 0; fi < window.LUNAR_FULL_MOONS_UTC.length; fi++) {
+                var fmD = new Date(window.LUNAR_FULL_MOONS_UTC[fi]);
+                if (fmD >= searchDate && fmD.getTime() - searchDate.getTime() < 20 * 86400000) {
+                    perfectionDate = fmD;
+                    break;
+                }
+            }
+        }
+
+        // Fallback to elongation calculation for quarters or if exact data not found
+        if (!perfectionDate) {
+            perfectionDate = findExactPerfection(searchDate, phase.degree);
+        }
+
         const zodiacSign = getMoonZodiacSign(perfectionDate);
-        
+
         let fullName = phase.name;
         if (phase.name === (currentLang==='es'?'Llena':'Full')) {
             fullName = getFullMoonName(perfectionDate);
         }
-        
+
         perfections.push({
             name: fullName,
             emoji: phase.emoji,
@@ -2071,11 +2097,11 @@ function findLunarPerfections(startDate) {
             degree: phase.degree,
             zodiacSign: zodiacSign
         });
-        
+
         searchDate = new Date(perfectionDate);
         searchDate.setDate(searchDate.getDate() + 1);
     }
-    
+
     return perfections;
 }
 
