@@ -18501,19 +18501,16 @@ function renderNatalLunarCal() {
                 + '</div></div>';
         }).join('');
 
-        weekDiv.innerHTML = '<div class="week-header">'
-            + '<div class="moon-icon">' + week.emoji + '</div>'
-            + '<div class="week-info">'
-            + '<div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;font-size:0.65em;width:100%;overflow:hidden;">'
-            + '<span style="font-weight:bold;white-space:nowrap;color:#e8c84a;">' + week.name + '</span>'
-            + '<span style="opacity:0.4;color:#c9a840;">•</span>'
-            + '<span style="white-space:nowrap;color:#8899cc;">' + week.days.length + 'd</span>'
-            + '<span style="opacity:0.4;color:#c9a840;">•</span>'
-            + '<span style="white-space:nowrap;font-size:0.95em;color:#8899cc;">' + formatDate(week.startDate) + ' - ' + formatDate(week.endDate) + '</span>'
-            + '<span style="opacity:0.4;color:#c9a840;">•</span>'
-            + '<span style="color:#c9a840;white-space:nowrap;font-size:0.95em;">' + week.zodiacSign + '</span>'
-            + '</div></div></div>'
-            + '<div class="days-container">' + daysHTML + '</div>';
+        var _nDays = week.days.length || 7;
+        weekDiv.innerHTML = '<div class="week-header" style="display:grid;grid-template-columns:repeat(' + _nDays + ',1fr);gap:var(--day-cell-gap,3px);align-items:center;padding:4px 0;">'
+            + '<div style="grid-column:1/3;font-size:0.6em;color:#8899cc;white-space:nowrap;padding-left:4px;overflow:hidden;">' + week.days.length + 'd <span style="opacity:0.5;">•</span> ' + formatDate(week.startDate) + ' - ' + formatDate(week.endDate) + '</div>'
+            + '<div style="grid-column:3/' + Math.min(Math.ceil(_nDays/2)+2, _nDays) + ';display:flex;align-items:center;justify-content:center;gap:3px;">'
+            + '<div class="moon-icon" style="margin:0;">' + week.emoji + '</div>'
+            + '<span style="font-weight:bold;white-space:nowrap;color:#e8c84a;font-size:0.65em;">' + week.name + '</span>'
+            + '</div>'
+            + '<div style="grid-column:' + Math.min(Math.ceil(_nDays/2)+2, _nDays) + '/' + (_nDays+1) + ';font-size:0.65em;color:#c9a840;white-space:nowrap;text-align:right;padding-right:4px;overflow:hidden;">' + week.zodiacSign + '</div>'
+            + '</div>'
+            + '<div class="days-container" style="grid-template-columns:repeat(' + _nDays + ',1fr);">' + daysHTML + '</div>';
 
         wrapDiv.appendChild(weekDiv);
     });
@@ -24696,23 +24693,132 @@ function goToCurrentCycle() {
         openAstroCourse();
     };
 
+    // ── Tutor Memory System ──
+    var TUTOR_STORAGE_KEY = 'tutorSessions';
+    var TUTOR_ACTIVE_KEY = 'tutorActiveSession';
+    var TUTOR_PROFILE_KEY = 'tutorLearnerProfile';
+
+    function _tutorLoadSessions() {
+        try { return JSON.parse(localStorage.getItem(TUTOR_STORAGE_KEY)) || []; } catch(e) { return []; }
+    }
+    function _tutorSaveSessions(sessions) {
+        try {
+            // Keep max 50 sessions, remove oldest
+            if (sessions.length > 50) sessions = sessions.slice(-50);
+            localStorage.setItem(TUTOR_STORAGE_KEY, JSON.stringify(sessions));
+        } catch(e) {}
+    }
+    function _tutorGetActiveSession() {
+        try { return JSON.parse(localStorage.getItem(TUTOR_ACTIVE_KEY)); } catch(e) { return null; }
+    }
+    function _tutorSaveActiveSession(session) {
+        try { localStorage.setItem(TUTOR_ACTIVE_KEY, JSON.stringify(session)); } catch(e) {}
+    }
+    function _tutorGetProfile() {
+        try { return JSON.parse(localStorage.getItem(TUTOR_PROFILE_KEY)) || {topics:[], level:'beginner'}; } catch(e) { return {topics:[], level:'beginner'}; }
+    }
+    function _tutorSaveProfile(profile) {
+        try { localStorage.setItem(TUTOR_PROFILE_KEY, JSON.stringify(profile)); } catch(e) {}
+    }
+    // Save current chat to active session
+    function _tutorPersistChat(history, htmlContent) {
+        if (!history || history.length === 0) return;
+        var active = _tutorGetActiveSession() || {id: Date.now(), date: new Date().toISOString(), messages: [], topics: [], html: ''};
+        active.messages = history;
+        active.html = htmlContent || '';
+        active.lastUpdate = new Date().toISOString();
+        // Extract topics from last AI response
+        if (history.length >= 2) {
+            var lastUser = '';
+            for (var i = history.length -1; i >= 0; i--) { if (history[i].role === 'user') { lastUser = history[i].parts[0].text; break; } }
+            if (lastUser && active.topics.indexOf(lastUser.substring(0,60)) === -1) {
+                active.topics.push(lastUser.substring(0,60));
+                if (active.topics.length > 20) active.topics = active.topics.slice(-20);
+            }
+        }
+        _tutorSaveActiveSession(active);
+    }
+    // Archive current session and start new
+    function _tutorArchiveSession() {
+        var active = _tutorGetActiveSession();
+        if (active && active.messages && active.messages.length > 0) {
+            var sessions = _tutorLoadSessions();
+            // Generate title from first user message
+            var title = '';
+            for (var i = 0; i < active.messages.length; i++) {
+                if (active.messages[i].role === 'user') { title = active.messages[i].parts[0].text.substring(0,80); break; }
+            }
+            active.title = title || (L() ? 'Sesión' : 'Session');
+            active.msgCount = active.messages.length;
+            // Don't store full html in archive, too big
+            delete active.html;
+            sessions.push(active);
+            _tutorSaveSessions(sessions);
+        }
+        localStorage.removeItem(TUTOR_ACTIVE_KEY);
+    }
+    // Build profile context for system prompt
+    function _tutorBuildProfileContext() {
+        var profile = _tutorGetProfile();
+        var sessions = _tutorLoadSessions();
+        var allTopics = profile.topics.slice();
+        sessions.forEach(function(s) { if (s.topics) s.topics.forEach(function(t) { if (allTopics.indexOf(t) === -1) allTopics.push(t); }); });
+        if (allTopics.length === 0) return '';
+        var isES = L();
+        return (isES
+            ? '\n\nPERFIL DEL ESTUDIANTE: Ha explorado estos temas en sesiones previas: ' + allTopics.slice(-15).join(', ') + '. Construye sobre lo que ya sabe, profundiza progresivamente, y sugiere temas relacionados que aún no ha cubierto. Al final de cada respuesta, sugiere 1-2 preguntas de seguimiento para expandir su comprensión.'
+            : '\n\nSTUDENT PROFILE: Has explored these topics in previous sessions: ' + allTopics.slice(-15).join(', ') + '. Build on what they know, deepen progressively, and suggest related topics not yet covered. At the end of each response, suggest 1-2 follow-up questions.');
+    }
+
     // ── Render Tutor AI inside Astro sub-tab ──
     window.renderTutorInTab = function() {
         var tab = document.getElementById('natalTabTutor');
         if (!tab) return;
         if (tab.querySelector('#tutorAIChatArea')) return; // Already rendered
         var isES = L();
-        var _tutorHistory = [];
-        // Seed with astro context
-        var sysCtx = isES
-            ? 'Eres un tutor profesional de astrología dentro de Moon Sync. El estudiante tiene acceso a su carta natal, tránsitos, aspectos, calendarios lunar/solar y más. Ayúdalo a aprender y profundizar en cualquier tema astrológico. Responde en español, de forma didáctica y profunda. Si pregunta sobre su carta, usa los datos disponibles en la app.'
-            : 'You are a professional astrology tutor inside Moon Sync. The student has access to their natal chart, transits, aspects, lunar/solar calendars and more. Help them learn and deepen any astrological topic. Answer didactically and in depth.';
+        // Build system prompt with learner profile
+        var sysCtx = (isES
+            ? 'Eres un tutor profesional de astrología dentro de Moon Sync. El estudiante tiene acceso a su carta natal, tránsitos, aspectos, calendarios lunar/solar y más. Ayúdalo a aprender y profundizar en cualquier tema astrológico. Responde en español, de forma didáctica y profunda. Si pregunta sobre su carta, usa los datos disponibles en la app. IMPORTANTE: Al final de cada respuesta, sugiere 1-2 preguntas de seguimiento para expandir la comprensión del estudiante.'
+            : 'You are a professional astrology tutor inside Moon Sync. The student has access to their natal chart, transits, aspects, lunar/solar calendars and more. Help them learn and deepen any astrological topic. Answer didactically and in depth. IMPORTANT: At the end of each response, suggest 1-2 follow-up questions to expand understanding.')
+            + _tutorBuildProfileContext();
+
+        // Check for active (ongoing) session to restore
+        var activeSession = _tutorGetActiveSession();
+        var restoredHistory = (activeSession && activeSession.messages && activeSession.messages.length > 0) ? activeSession.messages : [];
+        var restoredHTML = (activeSession && activeSession.html) ? activeSession.html : '';
+        var prevSessions = _tutorLoadSessions();
+
+        // History panel HTML
+        var historyHTML = '';
+        if (prevSessions.length > 0) {
+            historyHTML = '<div id="tutorHistoryPanel" style="display:none;max-height:45vh;overflow-y:auto;padding:8px;background:rgba(0,0,0,0.2);border:1px solid rgba(102,126,234,0.15);border-radius:12px;margin-bottom:10px;">';
+            historyHTML += '<div style="font-weight:600;color:#667eea;font-size:0.8em;margin-bottom:8px;">' + (isES ? 'Sesiones anteriores' : 'Previous sessions') + ' (' + prevSessions.length + ')</div>';
+            for (var si = prevSessions.length - 1; si >= 0; si--) {
+                var s = prevSessions[si];
+                var sDate = s.date ? new Date(s.date).toLocaleDateString(isES?'es':'en',{day:'numeric',month:'short',year:'numeric'}) : '?';
+                var sTitle = (s.title || (isES?'Sesión':'Session')).substring(0,70);
+                var sTopics = (s.topics && s.topics.length > 0) ? s.topics.slice(0,3).map(function(t){return t.substring(0,35)}).join(', ') : '';
+                historyHTML += '<div onclick="_tutorLoadPrevSession(' + si + ')" style="padding:8px;margin-bottom:4px;background:rgba(102,126,234,0.06);border:1px solid rgba(102,126,234,0.12);border-radius:8px;cursor:pointer;">';
+                historyHTML += '<div style="font-size:0.75em;color:rgba(255,255,255,0.7);font-weight:600;">' + sTitle + '</div>';
+                historyHTML += '<div style="display:flex;justify-content:space-between;font-size:0.65em;color:rgba(255,255,255,0.35);margin-top:2px;"><span>' + sDate + '</span><span>' + (s.msgCount || 0) + ' msgs</span></div>';
+                if (sTopics) historyHTML += '<div style="font-size:0.6em;color:rgba(102,126,234,0.6);margin-top:2px;">' + sTopics + '</div>';
+                historyHTML += '</div>';
+            }
+            historyHTML += '</div>';
+        }
 
         tab.innerHTML = '<div style="padding:16px;">' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><span style="font-size:1.5em;">🤖</span><div><div style="font-weight:700;color:#667eea;font-size:1em;">' + (isES ? 'Tutor de Astrología' : 'Astrology Tutor') + '</div>' +
-            '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);">' + (isES ? 'Pregunta cualquier tema, pide ejemplos, profundiza conceptos' : 'Ask any topic, request examples, deepen concepts') + '</div></div></div>' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="font-size:1.5em;">🤖</span><div style="flex:1;"><div style="font-weight:700;color:#667eea;font-size:1em;">' + (isES ? 'Tutor de Astrología' : 'Astrology Tutor') + '</div>' +
+            '<div style="font-size:0.7em;color:rgba(255,255,255,0.4);">' + (isES ? 'Tu conversación se guarda para continuar donde la dejaste' : 'Your conversation is saved to continue where you left off') + '</div></div>' +
+            // Action buttons: New session + History
+            '<div style="display:flex;gap:4px;">' +
+            (prevSessions.length > 0 ? '<button onclick="_tutorToggleHistory()" id="tutorHistBtn" style="padding:4px 8px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:8px;color:#667eea;font-size:0.65em;cursor:pointer;" title="' + (isES?'Ver historial':'View history') + '">' + (isES?'Historial':'History') + '</button>' : '') +
+            '<button onclick="_tutorNewSession()" style="padding:4px 8px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:8px;color:#667eea;font-size:0.65em;cursor:pointer;" title="' + (isES?'Nueva conversación':'New conversation') + '">+ ' + (isES?'Nuevo':'New') + '</button>' +
+            '</div></div>' +
+            // Restored session indicator
+            (restoredHistory.length > 0 ? '<div style="font-size:0.65em;color:rgba(102,126,234,0.6);margin-bottom:6px;text-align:center;">' + (isES ? 'Conversación anterior restaurada (' + restoredHistory.length + ' mensajes)' : 'Previous conversation restored (' + restoredHistory.length + ' messages)') + '</div>' : '') +
             // Quick topic buttons
-            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
             (isES ? [
                 {t:'Mi carta natal',q:'Explícame los aspectos más importantes de mi carta natal y qué significan para mi vida'},
                 {t:'Tránsitos de hoy',q:'¿Cuáles son los tránsitos más importantes de hoy y cómo me afectan?'},
@@ -24731,9 +24837,12 @@ function goToCurrentCycle() {
                 return '<button onclick="document.getElementById(\'tutorInput\').value=\'' + b.q.replace(/'/g, "\\'") + '\';sendTutorAIMsg();" style="padding:6px 12px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:20px;color:#667eea;font-size:0.72em;cursor:pointer;white-space:nowrap;">' + b.t + '</button>';
             }).join('') +
             '</div>' +
-            // Chat area
+            // History panel (hidden by default)
+            historyHTML +
+            // Chat area - restore previous HTML if available
             '<div id="tutorAIChatArea" style="min-height:200px;max-height:50vh;overflow-y:auto;padding:8px;background:rgba(0,0,0,0.15);border:1px solid rgba(102,126,234,0.15);border-radius:12px;margin-bottom:10px;">' +
-            '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-size:0.8em;">' + (isES ? 'Escribe tu pregunta o toca un tema rápido' : 'Type your question or tap a quick topic') + '</div></div>' +
+            (restoredHTML || ('<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.3);font-size:0.8em;">' + (isES ? 'Escribe tu pregunta o toca un tema rápido' : 'Type your question or tap a quick topic') + '</div>')) +
+            '</div>' +
             // Input area with voice buttons
             '<div style="display:flex;gap:6px;align-items:flex-end;">' +
             '<button onclick="startGenericVoice(\'tutorInput\',\'sendTutorAIMsg()\',\'tutorVoiceBtn\')" id="tutorVoiceBtn" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1.1em;cursor:pointer;flex-shrink:0;" title="' + (isES ? 'Dictar por voz' : 'Voice dictation') + '">🎙️</button>' +
@@ -24742,11 +24851,79 @@ function goToCurrentCycle() {
             '<button onclick="sendTutorAIMsg()" style="background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#667eea;padding:8px 14px;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>' +
             '</div></div>';
 
-        // Store history on the tab element
-        tab._tutorHistory = [];
+        // Store/restore history on the tab element
+        tab._tutorHistory = restoredHistory;
         tab._tutorSysPrompt = sysCtx;
         tab._tutorTyping = false;
         tab._tutorVoiceConvo = false;
+
+        // Scroll to bottom if restored
+        if (restoredHTML) {
+            var area = document.getElementById('tutorAIChatArea');
+            if (area) setTimeout(function(){ area.scrollTop = area.scrollHeight; }, 100);
+        }
+    };
+
+    // Toggle history panel
+    window._tutorToggleHistory = function() {
+        var panel = document.getElementById('tutorHistoryPanel');
+        if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    };
+
+    // Start new session (archive current)
+    window._tutorNewSession = function() {
+        var tab = document.getElementById('natalTabTutor');
+        if (!tab) return;
+        _tutorArchiveSession();
+        // Force re-render
+        tab.innerHTML = '';
+        renderTutorInTab();
+    };
+
+    // Load a previous session (read-only view)
+    window._tutorLoadPrevSession = function(idx) {
+        var sessions = _tutorLoadSessions();
+        var s = sessions[idx];
+        if (!s || !s.messages) return;
+        var isES = L();
+        var area = document.getElementById('tutorAIChatArea');
+        if (!area) return;
+        // Build HTML from messages
+        var html = '<div style="text-align:center;padding:6px;margin-bottom:8px;"><span style="font-size:0.7em;background:rgba(102,126,234,0.15);color:#667eea;padding:3px 10px;border-radius:12px;">' + (isES ? 'Sesión del ' : 'Session from ') + new Date(s.date).toLocaleDateString(isES?'es':'en',{day:'numeric',month:'long',year:'numeric'}) + '</span></div>';
+        s.messages.forEach(function(m) {
+            var txt = m.parts[0].text.replace(/</g,'&lt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+            if (m.role === 'user') {
+                html += '<div style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:12px 12px 4px 12px;font-size:0.82em;color:rgba(255,255,255,0.85);text-align:left;">' + txt + '</div></div>';
+            } else {
+                html += '<div style="margin-bottom:8px;"><div style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;"><p>' + txt + '</p></div></div>';
+            }
+        });
+        html += '<div style="text-align:center;padding:8px;"><button onclick="_tutorContinuePrevSession(' + idx + ')" style="padding:6px 14px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:20px;color:#667eea;font-size:0.75em;cursor:pointer;">' + (isES ? 'Continuar esta conversación' : 'Continue this conversation') + '</button></div>';
+        area.innerHTML = html;
+        area.scrollTop = 0;
+        // Hide history panel
+        var panel = document.getElementById('tutorHistoryPanel');
+        if (panel) panel.style.display = 'none';
+    };
+
+    // Continue from a previous session
+    window._tutorContinuePrevSession = function(idx) {
+        var sessions = _tutorLoadSessions();
+        var s = sessions[idx];
+        if (!s || !s.messages) return;
+        var tab = document.getElementById('natalTabTutor');
+        if (!tab) return;
+        // Set this as active session
+        _tutorSaveActiveSession({id: Date.now(), date: new Date().toISOString(), messages: s.messages, topics: s.topics || [], html: ''});
+        // Re-render will pick it up
+        tab.innerHTML = '';
+        renderTutorInTab();
+        // Update the html cache after render
+        var area = document.getElementById('tutorAIChatArea');
+        if (area) {
+            var active = _tutorGetActiveSession();
+            if (active) { active.html = area.innerHTML; _tutorSaveActiveSession(active); }
+        }
     };
 
     // ── Tutor AI Send Message ──
@@ -24823,6 +25000,8 @@ function goToCurrentCycle() {
         }
         tab._tutorTyping = false;
         area.scrollTop = area.scrollHeight;
+        // Persist chat to localStorage
+        try { _tutorPersistChat(tab._tutorHistory, area.innerHTML); } catch(e) {}
     };
 
     // Voice conversation toggle for tutor
@@ -26617,7 +26796,7 @@ window.openAstroModal = openAstroModal;
 
         // Don't swipe inside modals, AI chat, or scrollable tables
         const target = e.target;
-        if (target.closest && (target.closest('.modal-content') || target.closest('#aiChatPanel') || target.closest('.preferences-modal') || target.closest('input') || target.closest('textarea') || target.closest('.table-scroll-container') || target.closest('.natal-data-table') || target.closest('#natalTabTables'))) return;
+        if (target.closest && (target.closest('.modal-content') || target.closest('#aiChatPanel') || target.closest('.preferences-modal') || target.closest('input') || target.closest('textarea') || target.closest('.table-scroll-container') || target.closest('.natal-data-table') || target.closest('#natalTabTables') || target.closest('#natalTabTutor') || target.closest('#natalTabCurso'))) return;
 
         if (dx < 0) {
             // Swipe LEFT → next
@@ -30361,7 +30540,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v505';
+const APP_VERSION = 'v506';
 var _pendingSW = null;
 
 // What's New removed per user request
