@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v509';
+        var REQUIRED_VER = 'v510';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -12334,6 +12334,10 @@ function switchToSolarMode() {
     localStorage.setItem('calendarMode', 'solar');
     currentSignIndex = getCurrentSign();
 
+    // Restore Gemini FAB if it was hidden by tutor
+    var _fab = document.getElementById('aiChatFab');
+    if (_fab && !document.getElementById('aiChatModal').classList.contains('show')) _fab.style.display = 'flex';
+
     // Apply solar theme
     document.body.classList.add('solar-mode');
     document.body.classList.remove('gregorian-mode');
@@ -12361,6 +12365,10 @@ function switchToSolarMode() {
 function switchToGregorianMode() {
     calendarMode = 'gregorian';
     localStorage.setItem('calendarMode', 'gregorian');
+
+    // Restore Gemini FAB if it was hidden by tutor
+    var _fab = document.getElementById('aiChatFab');
+    if (_fab && !document.getElementById('aiChatModal').classList.contains('show')) _fab.style.display = 'flex';
 
     // Apply gregorian theme
     document.body.classList.add('gregorian-mode');
@@ -12400,6 +12408,10 @@ function switchToGregorianMode() {
 function switchToEarthMode() {
     calendarMode = 'earth';
     localStorage.setItem('calendarMode', 'earth');
+
+    // Restore Gemini FAB if it was hidden by tutor
+    var _fab = document.getElementById('aiChatFab');
+    if (_fab && !document.getElementById('aiChatModal').classList.contains('show')) _fab.style.display = 'flex';
 
     document.body.classList.remove('solar-mode');
     document.body.classList.remove('gregorian-mode');
@@ -12447,6 +12459,10 @@ function switchToEarthMode() {
 function switchToLunarMode() {
     calendarMode = 'lunar';
     localStorage.setItem('calendarMode', 'lunar');
+
+    // Restore Gemini FAB if it was hidden by tutor
+    var _fab = document.getElementById('aiChatFab');
+    if (_fab && !document.getElementById('aiChatModal').classList.contains('show')) _fab.style.display = 'flex';
 
     // Remove solar, gregorian, and personal themes
     document.body.classList.remove('solar-mode');
@@ -18478,6 +18494,11 @@ function switchNatalTab(tabName, btn) {
     }
     if (tabName === 'tutor') {
         setTimeout(function() { if (typeof renderTutorInTab === 'function') renderTutorInTab(); }, 100);
+    }
+    // Hide Gemini FAB when tutor chat is active to avoid overlap with tutor send button
+    var fab = document.getElementById('aiChatFab');
+    if (fab) {
+        fab.style.display = (tabName === 'tutor') ? 'none' : 'flex';
     }
 }
 
@@ -30723,7 +30744,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v509';
+const APP_VERSION = 'v510';
 var _pendingSW = null;
 
 // What's New removed per user request
