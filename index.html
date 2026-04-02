@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v510';
+        var REQUIRED_VER = 'v511';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -24982,8 +24982,6 @@ function goToCurrentCycle() {
             // Action buttons: New session + History
             '<div style="display:flex;gap:4px;">' +
             (prevSessions.length > 0 ? '<button onclick="_tutorToggleHistory()" id="tutorHistBtn" style="padding:4px 8px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:8px;color:#667eea;font-size:0.65em;cursor:pointer;" title="' + (isES?'Ver historial':'View history') + '">' + (isES?'Historial':'History') + '</button>' : '') +
-            '<button onclick="_tutorClearChat()" style="padding:4px 8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:8px;color:#ff6b6b;font-size:0.65em;cursor:pointer;" title="' + (isES?'Borrar conversación':'Clear conversation') + '">🗑️</button>' +
-            '<button onclick="_tutorSaveChat()" style="padding:4px 8px;background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.25);border-radius:8px;color:#4ecdc4;font-size:0.65em;cursor:pointer;" title="' + (isES?'Guardar conversación':'Save conversation') + '">💾</button>' +
             '<button onclick="_tutorNewSession()" style="padding:4px 8px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:8px;color:#667eea;font-size:0.65em;cursor:pointer;" title="' + (isES?'Nueva conversación':'New conversation') + '">+ ' + (isES?'Nuevo':'New') + '</button>' +
             '</div></div>' +
             // Restored session indicator
@@ -25021,7 +25019,14 @@ function goToCurrentCycle() {
             '<button onclick="_toggleTutorVoiceConvo()" id="tutorConvoBtn" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1.1em;cursor:pointer;flex-shrink:0;" title="' + (isES ? 'Conversación por voz' : 'Voice conversation') + '">🗣️</button>' +
             '<textarea id="tutorInput" rows="1" placeholder="' + (isES ? 'Pregúntale al tutor...' : 'Ask the tutor...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);border-radius:10px;color:white;padding:8px 10px;font-size:0.85em;resize:none;outline:none;font-family:inherit;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendTutorAIMsg();}"></textarea>' +
             '<button onclick="sendTutorAIMsg()" style="background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#667eea;padding:8px 14px;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>' +
-            '</div></div>';
+            '</div>' +
+            // Action buttons below input (like other chats)
+            '<div style="display:flex;justify-content:center;gap:8px;margin-top:8px;">' +
+            '<button onclick="_tutorSaveChat()" style="padding:5px 12px;background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.25);border-radius:16px;color:#4ecdc4;font-size:0.68em;cursor:pointer;">💾 ' + (isES?'Guardar':'Save') + '</button>' +
+            '<button onclick="_tutorShareChat()" style="padding:5px 12px;background:rgba(102,126,234,0.1);border:1px solid rgba(102,126,234,0.25);border-radius:16px;color:#667eea;font-size:0.68em;cursor:pointer;">📤 ' + (isES?'Compartir':'Share') + '</button>' +
+            '<button onclick="_tutorClearChat()" style="padding:5px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);border-radius:16px;color:#ff6b6b;font-size:0.68em;cursor:pointer;">🗑️ ' + (isES?'Borrar':'Delete') + '</button>' +
+            '</div>' +
+            '</div>';
 
         // Store/restore history on the tab element
         tab._tutorHistory = restoredHistory;
@@ -25068,6 +25073,30 @@ function goToCurrentCycle() {
         // Re-render to show updated history button
         tab.innerHTML = '';
         renderTutorInTab();
+    };
+
+    // Share tutor chat (copy text to clipboard or native share)
+    window._tutorShareChat = function() {
+        var tab = document.getElementById('natalTabTutor');
+        if (!tab || !tab._tutorHistory || tab._tutorHistory.length === 0) {
+            var isES = L();
+            alert(isES ? 'No hay conversación para compartir.' : 'No conversation to share.');
+            return;
+        }
+        var isES = L();
+        var text = (isES ? '🤖 Conversación con Tutor de Astrología — Moon Sync\n\n' : '🤖 Astrology Tutor Conversation — Moon Sync\n\n');
+        tab._tutorHistory.forEach(function(msg) {
+            var role = msg.role === 'user' ? (isES ? '👤 Yo' : '👤 Me') : '🤖 Tutor';
+            var content = (msg.parts && msg.parts[0]) ? msg.parts[0].text : '';
+            text += role + ': ' + content.substring(0, 2000) + '\n\n';
+        });
+        if (navigator.share) {
+            navigator.share({title: isES ? 'Tutor de Astrología' : 'Astrology Tutor', text: text}).catch(function(){});
+        } else if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert(isES ? 'Conversación copiada al portapapeles.' : 'Conversation copied to clipboard.');
+            });
+        }
     };
 
     // Start new session (archive current)
@@ -25178,17 +25207,21 @@ function goToCurrentCycle() {
                 var reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : (isES ? 'Sin respuesta' : 'No response');
                 tab._tutorHistory.push({role: 'model', parts: [{text: reply}]});
                 var fmt = reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-                area.innerHTML += '<div class="tutorAIReply" style="margin-bottom:8px;"><div style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;"><p>' + fmt + '</p></div></div>';
+                var _tutorMsgId = 'aiMsg_tutor_' + Date.now();
+                area.innerHTML += '<div class="tutorAIReply" style="margin-bottom:8px;"><div id="' + _tutorMsgId + '" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" onclick="var sel=window.getSelection();if(sel&&sel.toString().trim().length>3)return;window.readAloud(\'' + _tutorMsgId + '\')"><p>' + fmt + '</p></div></div>';
                 // Scroll last reply into view smoothly (karaoke-style follow)
                 setTimeout(function() {
                     var lastReply = area.querySelector('.tutorAIReply:last-child');
                     if (lastReply) lastReply.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 50);
-                // Voice conversation: read aloud then re-activate mic
+                // Voice conversation: read aloud with karaoke, then re-activate mic
                 if (tab._tutorVoiceConvo && typeof window.speechSynthesis !== 'undefined') {
+                    var _tutorVoice = (typeof window._getTTSVoice === 'function') ? window._getTTSVoice(isES ? 'es' : 'en') : null;
+                    var _tutorRate = parseFloat(localStorage.getItem('ttsRate') || '1.0');
                     var utt = new SpeechSynthesisUtterance(reply.replace(/\*+/g, '').replace(/<[^>]+>/g, '').substring(0, 3000));
-                    utt.lang = isES ? 'es-ES' : 'en-US';
-                    utt.rate = 1.0;
+                    utt.lang = isES ? 'es-MX' : 'en-US';
+                    utt.rate = _tutorRate;
+                    if (_tutorVoice) utt.voice = _tutorVoice;
                     utt.onend = function() {
                         if (tab._tutorVoiceConvo) {
                             setTimeout(function() { startGenericVoice('tutorInput','sendTutorAIMsg()','tutorVoiceBtn'); }, 500);
@@ -30744,7 +30777,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v510';
+const APP_VERSION = 'v511';
 var _pendingSW = null;
 
 // What's New removed per user request
