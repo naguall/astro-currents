@@ -22414,13 +22414,39 @@ const _fullMoonDates2026 = [
 const fullMoonsLocal = _fullMoonDates2026.map(s => new Date(s));
 
 // Check if a date is a new moon or full moon
-// Uses dynamic elongation check to match lunar calendar's findExactPerfection logic
+// PRIMARY: Uses exact UTC dates from lunar-data.js, converted to local time
+// FALLBACK: Uses elongation check for dates outside the data range
 function getMoonEventForDate(checkDate) {
-    var checkNoon = new Date(checkDate.getFullYear(), checkDate.getMonth(), checkDate.getDate(), 12, 0, 0);
+    var checkY = checkDate.getFullYear();
+    var checkM = checkDate.getMonth();
+    var checkD = checkDate.getDate();
+
+    // ── PRIMARY: Check exact UTC dates converted to LOCAL day ──
+    // Full Moons: check if exact UTC moment falls on this LOCAL day
+    if (window.LUNAR_FULL_MOONS_UTC && window.LUNAR_FULL_MOONS_UTC.length > 0) {
+        for (var fi = 0; fi < window.LUNAR_FULL_MOONS_UTC.length; fi++) {
+            var fmUTC = new Date(window.LUNAR_FULL_MOONS_UTC[fi]);
+            // Compare using LOCAL date (browser auto-converts UTC to user's timezone)
+            if (fmUTC.getFullYear() === checkY && fmUTC.getMonth() === checkM && fmUTC.getDate() === checkD) {
+                return {type: 'full', icon: '🌕', label: currentLang==='es'?'Llena':'Full'};
+            }
+        }
+    }
+    // New Moons: same approach
+    if (window.LUNAR_NEW_MOONS_UTC && window.LUNAR_NEW_MOONS_UTC.length > 0) {
+        for (var ni = 0; ni < window.LUNAR_NEW_MOONS_UTC.length; ni++) {
+            var nmUTC = new Date(window.LUNAR_NEW_MOONS_UTC[ni]);
+            if (nmUTC.getFullYear() === checkY && nmUTC.getMonth() === checkM && nmUTC.getDate() === checkD) {
+                return {type: 'new', icon: '<svg width="10" height="10" viewBox="0 0 14 14" style="display:inline;vertical-align:middle;"><circle cx="7" cy="7" r="6" fill="#222" stroke="rgba(255,255,255,0.45)" stroke-width="0.8"/><circle cx="7" cy="7" r="6.5" fill="none" stroke="rgba(200,180,100,0.25)" stroke-width="1"/></svg>', label: currentLang==='es'?'Nueva':'New'};
+            }
+        }
+    }
+
+    // ── FALLBACK: elongation check for dates outside data range ──
+    var checkNoon = new Date(checkY, checkM, checkD, 12, 0, 0);
     var elongNoon = (typeof calculateLunarPhase === 'function') ? calculateLunarPhase(checkNoon) : -1;
     if (elongNoon < 0) return null;
 
-    // Check previous and next day at noon for comparison
     var prevNoon = new Date(checkNoon.getTime() - 86400000);
     var nextNoon = new Date(checkNoon.getTime() + 86400000);
     var elongPrev = calculateLunarPhase(prevNoon);
@@ -27089,7 +27115,7 @@ function _getMoonRelated(date) {
     }
     if (window.LUNAR_FULL_MOONS_UTC && window.LUNAR_FULL_MOONS_UTC.length) {
         window.LUNAR_FULL_MOONS_UTC.forEach(s => {
-            const d = new Date(s); d.setHours(d.getHours() - 6); fullMoonsPool.push(d);
+            const d = new Date(s); fullMoonsPool.push(d);
         });
     } else {
         for (let y = currentYear-1; y <= currentYear+1; y++)
@@ -27982,14 +28008,12 @@ function openLunarCalendar2026(scrollToTimestamp) {
     // Use exact full moon dates from external file if available
     const fullMoonsPool = [];
     if (window.LUNAR_FULL_MOONS_UTC && window.LUNAR_FULL_MOONS_UTC.length > 0) {
-        // Use exact dates from lunar-data.js, convert UTC → local (CR UTC-6)
+        // Use exact dates from lunar-data.js — new Date() auto-converts UTC to user's local timezone
         window.LUNAR_FULL_MOONS_UTC.forEach(s => {
             const d = new Date(s);
-            const localD = new Date(d);
-            localD.setHours(localD.getHours() - 6);
-            const y = localD.getFullYear(), m = localD.getMonth();
+            const y = d.getFullYear(), m = d.getMonth();
             if ((y === currentYear - 1 && m >= 6) || y === currentYear || (y === currentYear + 1 && m <= 5)) {
-                fullMoonsPool.push(localD);
+                fullMoonsPool.push(d);
             }
         });
     } else {
