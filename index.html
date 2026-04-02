@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v513';
+        var REQUIRED_VER = 'v514';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -2518,39 +2518,37 @@ async function openTideCycleModal() {
     }
     html += '</div>';
 
-    // Pre-compute all phase perfection days for the entire range
-    // A perfection day is the day closest to elongation 0° (new), 90° (first quarter), 180° (full), 270° (last quarter)
+    // Pre-compute all phase perfection days using findLunarPerfections() — same source as Lunar calendar
+    // This ensures dates match exactly between Mareas and Lunar views
     var phaseLabels = L ? {0:'Luna Nueva', 1:'Cuarto Creciente', 2:'Luna Llena', 3:'Cuarto Menguante'} : {0:'New Moon', 1:'First Quarter', 2:'Full Moon', 3:'Last Quarter'};
     var phaseColors = {0:'#a0a0a0', 1:'#c9a840', 2:'#fffbe6', 3:'#7ec8ff'};
     var phaseElongations = {0: 0, 1: 90, 2: 180, 3: 270};
-    var targets = [0, 90, 180, 270];
 
-    // Build map of perfection days: dateKey -> phaseIndex
+    // Build perfectionMap by iterating through lunar cycles using findLunarPerfections()
+    // Same function used by the Lunar calendar, which uses exact UTC data for new/full moons
     var perfectionMap = {};
-    for (var d = 0; d < totalDays; d++) {
-        var scanDate = new Date(startDate);
-        scanDate.setDate(scanDate.getDate() + d);
-        scanDate.setHours(0,0,0,0);
-        var elong = calculateLunarPhase(scanDate);
-
-        for (var ti = 0; ti < targets.length; ti++) {
-            var target = targets[ti];
-            var diff = Math.abs(elong - target);
-            if (diff > 180) diff = 360 - diff;
-            if (diff < 8) {
-                // Check if this day is closer than neighbors
-                var prevD = new Date(scanDate); prevD.setDate(prevD.getDate() - 1);
-                var nextD = new Date(scanDate); nextD.setDate(nextD.getDate() + 1);
-                var prevElong = calculateLunarPhase(prevD);
-                var nextElong = calculateLunarPhase(nextD);
-                var prevDiff = Math.abs(prevElong - target); if (prevDiff > 180) prevDiff = 360 - prevDiff;
-                var nextDiff = Math.abs(nextElong - target); if (nextDiff > 180) nextDiff = 360 - nextDiff;
-                if (diff <= prevDiff && diff <= nextDiff) {
-                    var key = scanDate.getFullYear() + '-' + (scanDate.getMonth()+1) + '-' + scanDate.getDate();
-                    perfectionMap[key] = ti; // 0=new, 1=first quarter, 2=full, 3=last quarter
-                }
+    var _perfScanDate = new Date(startDate);
+    _perfScanDate.setHours(0,0,0,0);
+    var _perfSafetyCount = 0;
+    while (_perfScanDate < endDate && _perfSafetyCount < 60) {
+        _perfSafetyCount++;
+        var _perfs = findLunarPerfections(_perfScanDate);
+        if (!_perfs || _perfs.length === 0) break;
+        for (var _pi = 0; _pi < _perfs.length; _pi++) {
+            var _pDate = new Date(_perfs[_pi].date);
+            _pDate.setHours(0,0,0,0);
+            if (_pDate >= startDate && _pDate <= endDate) {
+                var _pKey = _pDate.getFullYear() + '-' + (_pDate.getMonth()+1) + '-' + _pDate.getDate();
+                // Map degree to phase index: 0°=0(new), 90°=1(Q1), 180°=2(full), 270°=3(Q4)
+                var _phaseIdx = _perfs[_pi].degree === 0 ? 0 : _perfs[_pi].degree === 90 ? 1 : _perfs[_pi].degree === 180 ? 2 : 3;
+                perfectionMap[_pKey] = _phaseIdx;
             }
         }
+        // Move to next cycle: start from last perfection + 1 day
+        var _lastPerf = _perfs[_perfs.length - 1];
+        _perfScanDate = new Date(_lastPerf.date);
+        _perfScanDate.setDate(_perfScanDate.getDate() + 1);
+        _perfScanDate.setHours(0,0,0,0);
     }
 
     // Generate 15-day rolling window centered around today
@@ -4854,14 +4852,17 @@ async function gcalExportAstroEvents(btn) {
 
             const weeks = calculateLunarCycle(nm);
             weeks.forEach((week, wIdx) => {
+                // Use perfectionDate (exact phase date) instead of startDate (3 days before)
+                var _evDate = week.perfectionDate ? new Date(week.perfectionDate) : week.startDate;
+                _evDate.setHours(0,0,0,0);
                 if (wIdx === 0) {
-                    astroEvents.push({ date: week.startDate, title: L?'Luna Nueva':'New Moon', description: week.zodiacSign || '' });
+                    astroEvents.push({ date: _evDate, title: L?'Luna Nueva':'New Moon', description: week.zodiacSign || '' });
                 } else if (wIdx === 1) {
-                    astroEvents.push({ date: week.startDate, title: L?'Cuarto Creciente':'First Quarter', description: '' });
+                    astroEvents.push({ date: _evDate, title: L?'Cuarto Creciente':'First Quarter', description: '' });
                 } else if (wIdx === 2) {
-                    astroEvents.push({ date: week.startDate, title: L?'Luna Llena':'Full Moon', description: week.zodiacSign || '' });
+                    astroEvents.push({ date: _evDate, title: L?'Luna Llena':'Full Moon', description: week.zodiacSign || '' });
                 } else if (wIdx === 3) {
-                    astroEvents.push({ date: week.startDate, title: L?'Cuarto Menguante':'Last Quarter', description: '' });
+                    astroEvents.push({ date: _evDate, title: L?'Cuarto Menguante':'Last Quarter', description: '' });
                 }
             });
         }
@@ -5521,30 +5522,41 @@ function openAspectsModal(date, lunarDay, dayData) {
             };
         }
     } else {
-        // Check for quarters (First Quarter ~90°, Last Quarter ~270°)
-        const _prevElong = calculateLunarPhase(new Date(date.getTime() - 86400000));
-        if ((_prevElong < 90 && _phaseElong >= 90) || (Math.abs(_phaseElong - 90) < 5 && Math.abs(_prevElong - 90) >= 5)) {
-            const moonLon = getMoonPosition(date);
-            const moonSign = getZodiacSignFromLongitude(moonLon);
-            const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
-            _lunarPhaseEvent = {
-                icon: '🌓',
-                name: currentLang==='es' ? 'Cuarto Creciente' : 'First Quarter',
-                detail: currentLang==='es' ? 'Cuarto Creciente en ' + moonSignName : 'First Quarter in ' + moonSignName,
-                color: '#7ec8ff',
-                sign: moonSignName
-            };
-        } else if ((_prevElong < 270 && _phaseElong >= 270) || (Math.abs(_phaseElong - 270) < 5 && Math.abs(_prevElong - 270) >= 5)) {
-            const moonLon = getMoonPosition(date);
-            const moonSign = getZodiacSignFromLongitude(moonLon);
-            const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
-            _lunarPhaseEvent = {
-                icon: '🌗',
-                name: currentLang==='es' ? 'Cuarto Menguante' : 'Last Quarter',
-                detail: currentLang==='es' ? 'Cuarto Menguante en ' + moonSignName : 'Last Quarter in ' + moonSignName,
-                color: '#a8b2d1',
-                sign: moonSignName
-            };
+        // Check for quarters using findLunarPerfections (consistent with Lunar calendar)
+        // Scan from ~15 days before to find the cycle that might include this date
+        var _qScanStart = new Date(date);
+        _qScanStart.setDate(_qScanStart.getDate() - 15);
+        var _qPerfs = findLunarPerfections(_qScanStart);
+        if (_qPerfs && _qPerfs.length > 0) {
+            var _checkDateStr = date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate();
+            for (var _qi = 0; _qi < _qPerfs.length; _qi++) {
+                var _qpDate = new Date(_qPerfs[_qi].date);
+                _qpDate.setHours(0,0,0,0);
+                var _qpDateStr = _qpDate.getFullYear() + '-' + (_qpDate.getMonth()+1) + '-' + _qpDate.getDate();
+                if (_qpDateStr === _checkDateStr && (_qPerfs[_qi].degree === 90 || _qPerfs[_qi].degree === 270)) {
+                    const moonLon = getMoonPosition(date);
+                    const moonSign = getZodiacSignFromLongitude(moonLon);
+                    const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
+                    if (_qPerfs[_qi].degree === 90) {
+                        _lunarPhaseEvent = {
+                            icon: '🌓',
+                            name: currentLang==='es' ? 'Cuarto Creciente' : 'First Quarter',
+                            detail: currentLang==='es' ? 'Cuarto Creciente en ' + moonSignName : 'First Quarter in ' + moonSignName,
+                            color: '#7ec8ff',
+                            sign: moonSignName
+                        };
+                    } else {
+                        _lunarPhaseEvent = {
+                            icon: '🌗',
+                            name: currentLang==='es' ? 'Cuarto Menguante' : 'Last Quarter',
+                            detail: currentLang==='es' ? 'Cuarto Menguante en ' + moonSignName : 'Last Quarter in ' + moonSignName,
+                            color: '#a8b2d1',
+                            sign: moonSignName
+                        };
+                    }
+                    break;
+                }
+            }
         }
     }
 
@@ -5954,12 +5966,20 @@ function openDayInterpretationModal(date, lunarDay, dayData) {
     var moonEvent = getMoonEventForDate(date);
 
     // Build summary of the day's astro data
+    // Use getMoonEventForDate (UTC-based) for exact phase events, then elongation for general description
     var phaseName = '';
-    if (elong < 45) phaseName = L ? 'Luna Nueva' : 'New Moon';
-    else if (elong < 135) phaseName = L ? 'Cuarto Creciente' : 'First Quarter';
-    else if (elong < 225) phaseName = L ? 'Luna Llena' : 'Full Moon';
-    else if (elong < 315) phaseName = L ? 'Cuarto Menguante' : 'Last Quarter';
-    else phaseName = L ? 'Luna Nueva' : 'New Moon';
+    if (moonEvent) {
+        if (moonEvent.type === 'new') phaseName = L ? 'Luna Nueva (exacta)' : 'New Moon (exact)';
+        else if (moonEvent.type === 'full') phaseName = L ? 'Luna Llena (exacta)' : 'Full Moon (exact)';
+    }
+    if (!phaseName) {
+        // General phase description from elongation — not an exact event day
+        if (elong < 45) phaseName = L ? 'Luna Nueva' : 'New Moon';
+        else if (elong < 135) phaseName = L ? 'Cuarto Creciente' : 'First Quarter';
+        else if (elong < 225) phaseName = L ? 'Luna Llena' : 'Full Moon';
+        else if (elong < 315) phaseName = L ? 'Cuarto Menguante' : 'Last Quarter';
+        else phaseName = L ? 'Luna Nueva' : 'New Moon';
+    }
 
     var lines = [];
     lines.push((L ? 'Fecha: ' : 'Date: ') + dateStr);
@@ -30833,7 +30853,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v513';
+const APP_VERSION = 'v514';
 var _pendingSW = null;
 
 // What's New removed per user request
