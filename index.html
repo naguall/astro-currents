@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v520';
+        var REQUIRED_VER = 'v521';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -24272,8 +24272,11 @@ function renderCalendar() {
     }
     const cycleTotalDays = _nextNM ? Math.round((_nextNM.getTime() - _thisNM.getTime()) / 86400000) : 30;
     document.getElementById('cycleNumber').textContent = currentLang==='es'?'Ciclo Lunar Completo':'Full Lunar Cycle';
+    // Show New Moon to New Moon dates (not week start/end which include overlap days)
+    var _nmEndDisplay = _nextNM ? new Date(_nextNM) : cycleEnd;
+    _nmEndDisplay.setDate(_nmEndDisplay.getDate() - 1); // last day of this cycle
     document.getElementById('cycleDates').textContent =
-        `${formatDate(weeks[0].startDate)} - ${formatDate(cycleEnd)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}`;
+        `${formatDate(_thisNM)} - ${formatDate(_nmEndDisplay)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}`;
     
     // SIEMPRE mostrar información del día actual, independiente del ciclo mostrado
     const todayNewMoon = findNearestNewMoon(today);
@@ -24331,7 +24334,7 @@ function renderCalendar() {
             displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
             displayEmoji = emoji;
             displayDay = currentDayInCycle.lunarDay;
-            displayInfo = formatDate(weeks[0].startDate) + ' - ' + formatDate(cycleEnd) + ' · ' + cycleTotalDays + (currentLang==='es'?' días':' days');
+            displayInfo = formatDate(_thisNM) + ' - ' + formatDate(_nmEndDisplay) + ' · ' + cycleTotalDays + (currentLang==='es'?' días':' days');
         } else if (calendarMode === 'solar') {
             // Modo Solar: mostrar signo solar
             const sunLongitude = getPlanetPosition('sun', today);
@@ -24469,7 +24472,7 @@ function renderCalendar() {
                             return getMoonSVG(calculateLunarPhase(today), 16);
                         }
                     })() : (displayEmoji || '☉')}</div>
-                    <div style="font-size: 0.55em; color: #ffffff; opacity: 0.85;">${formatDate(weeks[0].startDate)} - ${formatDate(cycleEnd)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}</div>
+                    <div style="font-size: 0.55em; color: #ffffff; opacity: 0.85;">${formatDate(_thisNM)} - ${formatDate(_nmEndDisplay)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}</div>
                     <div style="margin-top:auto;font-size: 1.1em; color: ${getMonthColor(today.getMonth())}; font-weight: 800; letter-spacing: 0.5px;">${currentLang === 'es' ? today.getDate() + ' ' + t('monthsLong')[today.getMonth()] : t('monthsLong')[today.getMonth()] + ' ' + today.getDate()}</div>
                 </div>
 
@@ -30950,7 +30953,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v520';
+const APP_VERSION = 'v521';
 var _pendingSW = null;
 
 // What's New removed per user request
