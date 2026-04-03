@@ -11,7 +11,7 @@
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
-        var REQUIRED_VER = 'v518';
+        var REQUIRED_VER = 'v519';
         var lastVer = localStorage.getItem('app_version');
         if (lastVer !== REQUIRED_VER) {
             // New version detected — nuke everything
@@ -3283,6 +3283,10 @@ function calculateLunarCycle(startDate) {
         // Week ends at midpoint between current phase and next phase
         var weekEndMid = _midDate(currentPerfection.date, nextPhaseDate);
         var weekEnd = new Date(weekEndMid);
+        // Cap at 8 days max (perfection on day 4 + max 4 after)
+        var _maxEnd = new Date(weekStart);
+        _maxEnd.setDate(_maxEnd.getDate() + 7); // 8 days = index 0-7
+        if (weekEnd > _maxEnd) weekEnd = _maxEnd;
 
         var days = [];
         var dayDate = new Date(weekStart);
@@ -18591,13 +18595,14 @@ function renderNatalLunarCal() {
     if (!weeks || weeks.length === 0) return;
 
     var cycleEnd = weeks[weeks.length - 1].endDate;
-    // Count unique days (avoid double-counting overlapping week boundaries)
-    var _uDays = {};
-    weeks.forEach(function(w) { w.days.forEach(function(d) {
-        var _dk2 = d.date.getFullYear() + '-' + (d.date.getMonth()+1) + '-' + d.date.getDate();
-        _uDays[_dk2] = true;
-    }); });
-    var cycleTotalDays = Object.keys(_uDays).length;
+    // Real lunar month length = days from this New Moon to next New Moon
+    var _csNM = new Date(cycleStart); _csNM.setHours(0,0,0,0);
+    var _csNextNM = null;
+    for (var _cni = 0; _cni < newMoonsLocal.length; _cni++) {
+        var _cnmd = new Date(newMoonsLocal[_cni]); _cnmd.setHours(0,0,0,0);
+        if (_cnmd.getTime() > _csNM.getTime()) { _csNextNM = _cnmd; break; }
+    }
+    var cycleTotalDays = _csNextNM ? Math.round((_csNextNM.getTime() - _csNM.getTime()) / 86400000) : 30;
 
     // Render using the same lunar-week structure as the main calendar
     container.innerHTML = '';
@@ -24228,13 +24233,14 @@ function renderCalendar() {
     today.setHours(0, 0, 0, 0);
     
     const cycleEnd = weeks[weeks.length - 1].endDate;
-    // Count unique days in cycle (avoid double-counting overlapping week boundaries)
-    var _uniqueDays = {};
-    weeks.forEach(function(w) { w.days.forEach(function(d) {
-        var _dk = d.date.getFullYear() + '-' + (d.date.getMonth()+1) + '-' + d.date.getDate();
-        _uniqueDays[_dk] = true;
-    }); });
-    const cycleTotalDays = Object.keys(_uniqueDays).length;
+    // Real lunar month length = days from this New Moon to next New Moon
+    var _thisNM = new Date(currentCycleStart); _thisNM.setHours(0,0,0,0);
+    var _nextNM = null;
+    for (var _ni = 0; _ni < newMoonsLocal.length; _ni++) {
+        var _nmd = new Date(newMoonsLocal[_ni]); _nmd.setHours(0,0,0,0);
+        if (_nmd.getTime() > _thisNM.getTime()) { _nextNM = _nmd; break; }
+    }
+    const cycleTotalDays = _nextNM ? Math.round((_nextNM.getTime() - _thisNM.getTime()) / 86400000) : 30;
     document.getElementById('cycleNumber').textContent = currentLang==='es'?'Ciclo Lunar Completo':'Full Lunar Cycle';
     document.getElementById('cycleDates').textContent =
         `${formatDate(weeks[0].startDate)} - ${formatDate(cycleEnd)} · ${cycleTotalDays} ${currentLang==='es'?'días':'days'}`;
@@ -30914,7 +30920,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v518';
+const APP_VERSION = 'v519';
 var _pendingSW = null;
 
 // What's New removed per user request
