@@ -25975,40 +25975,46 @@ function goToCurrentCycle() {
             {
                 icon: '🌑',
                 title: L ? 'Calendario Lunar' : 'Lunar Calendar',
-                text: L ? 'Navega ciclos lunares completos con semanas por fase. Cada día muestra aspectos y eventos. Toca cualquier día para ver detalles, escribir en tu diario, agregar eventos por voz, o preguntar a la AI sobre los tránsitos del día.' : 'Navigate full lunar cycles with phase weeks. Each day shows aspects and events. Tap any day for details, write in your diary, add events by voice, or ask AI about the day\'s transits.',
+                text: L ? 'Navega ciclos lunares completos con semanas por fase. Cada día muestra aspectos, eclipses, retrogradaciones y stelliums. Toca cualquier día para ver detalles, escribir en tu diario, agregar eventos por voz, o preguntar a la AI sobre los tránsitos.' : 'Navigate full lunar cycles with phase weeks. Each day shows aspects, eclipses, retrogrades and stelliums. Tap any day for details, write in your diary, add events by voice, or ask AI about transits.',
                 color: '#7ec8ff',
                 highlight: '#lunarModeBtn'
             },
             {
                 icon: '☉',
                 title: L ? 'Calendario Solar' : 'Solar Calendar',
-                text: L ? 'Sigue los tránsitos del Sol por cada signo zodiacal. Ve cambios de signo, retrógrados y aspectos interplanetarios. Las mareas lunares, horas planetarias y brújula celeste complementan la visión cósmica.' : 'Follow the Sun through each zodiac sign. See sign changes, retrogrades and aspects. Lunar tides, planetary hours and the celestial compass complement the cosmic view.',
+                text: L ? 'Sigue los tránsitos del Sol por cada signo. Ve cambios de signo, retrógrados, aspectos históricos y eventos astronómicos. Incluye numerología del día para complementar la visión cósmica.' : 'Follow the Sun through each zodiac sign. See sign changes, retrogrades, historic aspects and astronomical events. Includes daily numerology to complement the cosmic view.',
                 color: '#e8c84a',
                 highlight: '#solarModeBtn'
             },
             {
                 icon: '🔮',
                 title: L ? 'Tu Carta Natal' : 'Your Natal Chart',
-                text: L ? 'Crea múltiples perfiles natales. Accede a carta visual, tablas, tránsitos personales, ciclos, sinastría (compatibilidad), carta compuesta, Davison y astro-cartografía mundial. Cada interpretación tiene chat AI para profundizar.' : 'Create multiple natal profiles. Access visual chart, tables, personal transits, cycles, synastry (compatibility), composite chart, Davison and world astro-cartography. Each interpretation has AI chat to go deeper.',
+                text: L ? 'Crea múltiples perfiles natales. Accede a carta visual, tablas, tránsitos personales, ciclos, sinastría, carta compuesta, Davison y astro-cartografía mundial. Cada interpretación tiene chat AI para profundizar.' : 'Create multiple natal profiles. Access visual chart, tables, personal transits, cycles, synastry, composite chart, Davison and world astro-cartography. Each interpretation has AI chat to go deeper.',
                 color: '#c39bd3',
                 highlight: '#personalModeBtn'
             },
             {
                 icon: '✨',
                 title: L ? 'Todo es Interactivo' : 'Everything is Interactive',
-                text: L ? 'Toca CUALQUIER aspecto, tránsito o planeta para una interpretación AI personalizada. Cada chat se puede guardar, compartir, y volver a abrir para seguir preguntando. Cuando guardas algo, puedes darle el nombre que quieras.' : 'Tap ANY aspect, transit or planet for a personalized AI interpretation. Each chat can be saved, shared, and reopened to keep asking. When you save, you can give it any name you want.',
+                text: L ? 'Toca CUALQUIER aspecto, tránsito o planeta para una interpretación AI personalizada. Cada chat se puede guardar con nombre propio, compartir, exportar, y volver a abrir para seguir preguntando. Busca en tu biblioteca de lecturas guardadas.' : 'Tap ANY aspect, transit or planet for a personalized AI interpretation. Each chat can be saved with a custom name, shared, exported, and reopened to keep asking. Search your saved readings library.',
                 color: '#ffd54f'
+            },
+            {
+                icon: '🎭',
+                title: L ? 'AI Personalizable' : 'Customizable AI',
+                text: L ? 'Elige la personalidad de tu intérprete astrológico: místico, científico, poético, directo y más. Cada estilo da un tono único a las interpretaciones. Cambia en ⚙️ Preferencias. La AI se adapta a tu nivel de conocimiento.' : 'Choose your astrological interpreter personality: mystic, scientific, poetic, direct and more. Each style gives a unique tone. Change in ⚙️ Preferences. AI adapts to your knowledge level.',
+                color: '#ba68c8'
             },
             {
                 icon: '🎙️',
                 title: L ? 'Voz en Toda la App' : 'Voice Throughout the App',
-                text: L ? 'Dicta en tu diario, habla con el tutor, pregunta sobre tus tránsitos, graba sueños, agrega eventos a la agenda — todo por voz. La AI lee las respuestas en voz alta. Modo conversación por voz disponible en cada chat.' : 'Dictate diary entries, talk to the tutor, ask about transits, record dreams, add calendar events — all by voice. AI reads responses aloud. Voice conversation mode available in every chat.',
+                text: L ? 'Dicta en tu diario, habla con el tutor, pregunta sobre tránsitos, graba sueños, agrega eventos — todo por voz. La AI lee respuestas en voz alta. Modo conversación por voz en cada chat. Configura dialecto y velocidad en Preferencias.' : 'Dictate diary entries, talk to the tutor, ask about transits, record dreams, add events — all by voice. AI reads responses aloud. Voice conversation mode in every chat. Set dialect and speed in Preferences.',
                 color: '#e040fb'
             },
             {
                 icon: '📔',
                 title: L ? 'Diario, Sueños y Lecturas' : 'Diary, Dreams & Readings',
-                text: L ? 'Escribe sueños y reflexiones por voz o texto. La AI los interpreta según los tránsitos del día. Todo se guarda y al volver a leerlo aparece un chat para preguntar más, pedir resumen, o conectar con otra información de tu carta.' : 'Write dreams and reflections by voice or text. AI interprets them based on the day\'s transits. Everything is saved and when you reopen it, a chat appears to ask more, get a summary, or connect with other chart info.',
+                text: L ? 'Escribe sueños y reflexiones por voz o texto. La AI los interpreta según los tránsitos del día. Usa la alarma de sueños para grabar al despertar. Todo se guarda y al releerlo aparece chat AI para expandir y conectar.' : 'Write dreams and reflections by voice or text. AI interprets them based on the day\'s transits. Use the dream alarm to record upon waking. Everything is saved and when rereading, AI chat appears to expand and connect.',
                 color: '#4ecdc4'
             },
             {
@@ -26020,19 +26026,13 @@ function goToCurrentCycle() {
             {
                 icon: '📅',
                 title: L ? 'Agenda y Google Calendar' : 'Agenda & Google Calendar',
-                text: L ? 'Crea eventos por voz o texto en cualquier día. Sincroniza con Google Calendar. Pregúntale a la AI qué eventos tienes esta semana o qué días son mejores para actividades según los aspectos planetarios.' : 'Create events by voice or text on any day. Sync with Google Calendar. Ask AI what events you have this week or which days are best for activities based on planetary aspects.',
+                text: L ? 'Crea eventos por voz o texto en cualquier día. Sincroniza con Google Calendar. Pregúntale a la AI qué eventos tienes esta semana o qué días son mejores según los aspectos. Recibe notificaciones con recordatorios múltiples.' : 'Create events by voice or text on any day. Sync with Google Calendar. Ask AI what events you have this week or which days are best per aspects. Get notifications with multiple reminders.',
                 color: '#4285f4'
-            },
-            {
-                icon: '💾',
-                title: L ? 'Guarda Todo con tu Nombre' : 'Save Everything with Your Name',
-                text: L ? 'Cuando guardas cualquier interpretación, chat o lectura, aparece un diálogo donde puedes cambiar el nombre antes de guardar. Luego todo se organiza en la biblioteca de lecturas para volver a consultarlo con chat AI.' : 'When you save any interpretation, chat or reading, a dialog appears where you can change the name before saving. Then everything is organized in the readings library to revisit with AI chat.',
-                color: '#4ecdc4'
             },
             {
                 icon: '🧭',
                 title: L ? 'Herramientas Cósmicas' : 'Cosmic Tools',
-                text: L ? 'Brújula celeste con Luna y planetas en 2D/3D, mareas lunares con pronóstico de 15 días, horas planetarias para elegir el mejor momento, retorno solar y lunar, y vista del sistema solar orbital.' : 'Celestial compass with Moon and planets in 2D/3D, lunar tides with 15-day forecast, planetary hours to choose the best timing, solar and lunar returns, and orbital solar system view.',
+                text: L ? 'Brújula celeste con Luna y planetas en 2D/3D, mareas lunares con pronóstico de 15 días, horas planetarias, numerología, retorno solar y lunar, vista del sistema solar orbital, y globo terráqueo con puntos subsolar/sublunary.' : 'Celestial compass with Moon and planets in 2D/3D, lunar tides with 15-day forecast, planetary hours, numerology, solar and lunar returns, orbital solar system view, and Earth globe with subsolar/sublunary points.',
                 color: '#78909c'
             },
             {
@@ -26043,9 +26043,15 @@ function goToCurrentCycle() {
                 highlight: '#socialModeBtn'
             },
             {
+                icon: '⚙️',
+                title: L ? 'Preferencias y Datos' : 'Preferences & Data',
+                text: L ? 'Idioma ES/EN, tamaño del calendario, personalidad AI, configuración de voz, tema visual. Haz backup completo de todos tus datos y restáuralos en cualquier dispositivo. Tus datos siempre están seguros en tu teléfono.' : 'Language ES/EN, calendar size, AI personality, voice settings, visual theme. Full backup of all your data and restore on any device. Your data is always safe on your phone.',
+                color: '#78909c'
+            },
+            {
                 icon: '🚀',
                 title: L ? '¡Listo para explorar!' : 'Ready to explore!',
-                text: L ? 'Puedes ver este tutorial de nuevo en ⚙️ Preferencias → Tutorial. Recuerda: todo es interactivo, todo se puede guardar, chatear y expandir. ¡Explora los ciclos del cosmos!' : 'Replay this tutorial in ⚙️ Preferences → Tutorial. Remember: everything is interactive, everything can be saved, chatted and expanded. Explore the cycles of the cosmos!',
+                text: L ? 'Recuerda: todo es interactivo, todo se puede guardar, chatear y expandir. ¡Explora los ciclos del cosmos!' : 'Remember: everything is interactive, everything can be saved, chatted and expanded. Explore the cycles of the cosmos!',
                 color: '#c9a840'
             }
         ];
@@ -26053,7 +26059,8 @@ function goToCurrentCycle() {
 
     // ── Render welcome splash ──
     window.showOnboardingWelcome = function(forceReplay) {
-        if (!forceReplay && localStorage.getItem(ONBOARDING_KEY)) return;
+        // Only skip if user explicitly checked "don't show again" AND this is not a forced replay
+        if (!forceReplay && localStorage.getItem(ONBOARDING_KEY + '_hideForever')) return;
 
         var L = currentLang === 'es';
         var slides = _getSlides();
@@ -26081,6 +26088,8 @@ function goToCurrentCycle() {
                 '<h2 style="font-family:\'Cinzel\',serif;font-size:1.3em;color:' + s.color + ';margin:0 0 12px;letter-spacing:1px;">' + s.title + '</h2>' +
                 // Text
                 '<p style="font-size:0.9em;color:rgba(255,255,255,0.75);line-height:1.6;margin:0 0 28px;padding:0 10px;">' + s.text + '</p>' +
+                // Last slide: "Don't show again" checkbox
+                (isLast ? '<label style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;cursor:pointer;"><input type="checkbox" id="onbHideForever" style="width:18px;height:18px;accent-color:' + s.color + ';cursor:pointer;"><span style="font-size:0.8em;color:rgba(255,255,255,0.45);">' + (L ? 'No mostrar más al abrir la app' : 'Don\'t show again when opening the app') + '</span></label>' : '') +
                 // Buttons
                 '<div style="display:flex;gap:12px;justify-content:center;align-items:center;">' +
                     (!isFirst ? '<button onclick="window._onbPrev()" style="padding:10px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:25px;color:rgba(255,255,255,0.5);font-size:0.85em;cursor:pointer;">◀ ' + (L ? 'Anterior' : 'Back') + '</button>' : '') +
@@ -26088,7 +26097,7 @@ function goToCurrentCycle() {
                         (isLast ? (L ? '🚀 Comenzar' : '🚀 Start') : (L ? 'Siguiente ▶' : 'Next ▶')) +
                     '</button>' +
                 '</div>' +
-                // Skip
+                // Skip (only on non-last slides) — does NOT disable tutorial permanently
                 (!isLast ? '<div onclick="window._onbSkip()" style="margin-top:16px;font-size:0.72em;color:rgba(255,255,255,0.25);cursor:pointer;">' + (L ? 'Saltar tutorial' : 'Skip tutorial') + '</div>' : '') +
             '</div>';
         }
@@ -26098,7 +26107,12 @@ function goToCurrentCycle() {
                 currentSlide++;
                 renderSlide(currentSlide);
             } else {
-                _closeOnboarding();
+                // On last slide "Comenzar" — check if "don't show again" is checked
+                var cb = document.getElementById('onbHideForever');
+                if (cb && cb.checked) {
+                    localStorage.setItem(ONBOARDING_KEY + '_hideForever', 'true');
+                }
+                _closeOnboarding(true);
             }
         };
 
@@ -26109,17 +26123,21 @@ function goToCurrentCycle() {
             }
         };
 
+        // Skip just closes — does NOT set hideForever, so tutorial shows again next time
         window._onbSkip = function() {
-            _closeOnboarding();
+            _closeOnboarding(false);
         };
 
-        function _closeOnboarding() {
+        function _closeOnboarding(completedFully) {
+            // Mark as seen for legacy/tour purposes
             localStorage.setItem(ONBOARDING_KEY, 'true');
             overlay.style.opacity = '0';
             setTimeout(function() {
                 if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-                // Start interactive tour after welcome
-                setTimeout(function() { showInteractiveTour(); }, 500);
+                // Start interactive tour only if completed fully
+                if (completedFully) {
+                    setTimeout(function() { showInteractiveTour(); }, 500);
+                }
             }, 300);
         }
 
@@ -26329,6 +26347,7 @@ function goToCurrentCycle() {
     // ── Reset tutorial (for preferences button) ──
     window.resetOnboardingTutorial = function() {
         localStorage.removeItem(ONBOARDING_KEY);
+        localStorage.removeItem(ONBOARDING_KEY + '_hideForever');
         localStorage.removeItem(ONBOARDING_KEY + '_tour');
         localStorage.removeItem(TIPS_KEY);
         // Close preferences
@@ -26338,14 +26357,11 @@ function goToCurrentCycle() {
         setTimeout(function() { showOnboardingWelcome(true); }, 300);
     };
 
-    // ── Auto-launch on first visit ──
-    if (!localStorage.getItem(ONBOARDING_KEY)) {
-        // Slight delay to let the app render first
-        setTimeout(function() { showOnboardingWelcome(); }, 800);
-    } else {
-        // Enable contextual tips for returning users who haven't seen all modes
-        _enableContextualTips();
-    }
+    // ── Auto-launch on every app open (unless user checked "don't show again") ──
+    // Slight delay to let the app render first
+    setTimeout(function() { showOnboardingWelcome(); }, 800);
+    // Always enable contextual tips
+    _enableContextualTips();
 
     // CSS animation keyframes
     var styleEl = document.createElement('style');
