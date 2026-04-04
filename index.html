@@ -27167,12 +27167,17 @@ function openMyMessagesEditor() {
     var msgs = JSON.parse(localStorage.getItem('myCustomMessages') || '{}');
     var sortedDates = Object.keys(msgs).sort();
 
-    // Default to today
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
 
     var html = '';
-    // New message form
+
+    // ── Info banner ──
+    html += '<div style="padding:8px 10px;margin-bottom:10px;background:rgba(102,204,255,0.06);border:1px solid rgba(102,204,255,0.15);border-radius:8px;font-size:0.72em;color:rgba(255,255,255,0.45);line-height:1.5;">';
+    html += L ? '💡 Los mensajes se envían como notificación a todos los usuarios en la fecha y hora programada. Después de crear o borrar mensajes, toca <b style="color:#4ecdc4;">Publicar</b> para aplicar los cambios.' : '💡 Messages are sent as notifications to all users at the scheduled date and time. After creating or deleting messages, tap <b style="color:#4ecdc4;">Publish</b> to apply changes.';
+    html += '</div>';
+
+    // ── New message form ──
     html += '<div style="margin-bottom:14px;padding:12px;background:rgba(102,204,255,0.06);border:1px solid rgba(102,204,255,0.2);border-radius:10px;">';
     html += '<div style="font-size:0.82em;font-weight:700;color:#66CCFF;margin-bottom:10px;">' + (L?'Nuevo mensaje':'New message') + '</div>';
     html += '<div style="display:flex;gap:8px;margin-bottom:8px;">';
@@ -27186,13 +27191,22 @@ function openMyMessagesEditor() {
     html += '<div style="margin-bottom:10px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (L?'Mensaje':'Message') + '</label>';
     html += '<textarea id="msgText" rows="3" placeholder="' + (L?'Escribe tu mensaje...':'Write your message...') + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;resize:vertical;box-sizing:border-box;"></textarea></div>';
     html += '<button onclick="saveMyMessage()" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.2),rgba(102,204,255,0.08));border:1px solid rgba(102,204,255,0.4);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:700;cursor:pointer;">';
-    html += (L?'Guardar mensaje':'Save message') + '</button>';
+    html += '+ ' + (L?'Agregar mensaje':'Add message') + '</button>';
     html += '</div>';
 
-    // List existing messages
+    // ── PUBLISH button (generates custom-messages.js and copies to clipboard) ──
+    html += '<div style="display:flex;gap:6px;margin-bottom:14px;">';
+    html += '<button onclick="publishMyMessages()" style="flex:1;padding:10px;background:linear-gradient(135deg,rgba(78,205,196,0.25),rgba(78,205,196,0.08));border:1px solid rgba(78,205,196,0.5);border-radius:8px;color:#4ecdc4;font-size:0.85em;font-weight:700;cursor:pointer;">';
+    html += '📤 ' + (L?'Publicar (copiar código)':'Publish (copy code)') + '</button>';
+    html += '<button onclick="loadFromCustomMessages()" style="padding:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:rgba(255,255,255,0.5);font-size:0.78em;cursor:pointer;">';
+    html += '📥 ' + (L?'Importar':'Import') + '</button>';
+    html += '</div>';
+
+    // ── List existing messages ──
     if (sortedDates.length > 0) {
         html += '<div style="font-size:0.78em;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">';
-        html += (L?'Mensajes programados':'Scheduled messages') + '</div>';
+        html += (L?'Mensajes programados':'Scheduled messages') + ' (' + sortedDates.reduce(function(c,k){ var e=msgs[k]; return c+(Array.isArray(e)?e.length:1); },0) + ')';
+        html += '</div>';
 
         for (var i = 0; i < sortedDates.length; i++) {
             var dateKey = sortedDates[i];
@@ -27211,7 +27225,7 @@ function openMyMessagesEditor() {
                 if (m.title && m.title !== 'Moon Sync') html += '<div style="font-size:0.75em;color:#66CCFF;font-weight:600;">' + m.title + '</div>';
                 html += '<div style="font-size:0.82em;color:#e8eaf6;margin-top:2px;">' + m.message + '</div>';
                 html += '</div>';
-                html += '<button onclick="deleteMyMessage(\'' + dateKey + '\',' + j + ')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:1.1em;padding:2px 6px;flex-shrink:0;" title="' + (L?'Eliminar':'Delete') + '">X</button>';
+                html += '<button onclick="deleteMyMessage(\'' + dateKey + '\',' + j + ')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:1.1em;padding:2px 6px;flex-shrink:0;" title="' + (L?'Eliminar':'Delete') + '">✕</button>';
                 html += '</div>';
             }
         }
@@ -27238,7 +27252,7 @@ function saveMyMessage() {
 
     if (!dateVal || !textVal) {
         var L = currentLang === 'es';
-        alert(L ? 'Escribe una fecha y un mensaje.' : 'Enter a date and message.');
+        _showToast(L ? 'Escribe una fecha y un mensaje.' : 'Enter a date and message.', '#ff6b6b');
         return;
     }
 
@@ -27253,8 +27267,20 @@ function saveMyMessage() {
     }
 
     localStorage.setItem('myCustomMessages', JSON.stringify(msgs));
+
+    // Also inject into window.CUSTOM_MESSAGES so it fires immediately on this device
+    if (!window.CUSTOM_MESSAGES) window.CUSTOM_MESSAGES = {};
+    if (window.CUSTOM_MESSAGES[dateVal]) {
+        if (!Array.isArray(window.CUSTOM_MESSAGES[dateVal])) window.CUSTOM_MESSAGES[dateVal] = [window.CUSTOM_MESSAGES[dateVal]];
+        window.CUSTOM_MESSAGES[dateVal].push(entry);
+    } else {
+        window.CUSTOM_MESSAGES[dateVal] = entry;
+    }
+
     document.getElementById('msgText').value = '';
     document.getElementById('msgTitle').value = '';
+    var L = currentLang === 'es';
+    _showToast(L ? 'Mensaje guardado. Toca Publicar para enviarlo a todos.' : 'Message saved. Tap Publish to send to all.', '#4ecdc4');
     openMyMessagesEditor(); // Refresh list
 }
 
@@ -27274,30 +27300,109 @@ function deleteMyMessage(dateKey, idx) {
     openMyMessagesEditor(); // Refresh
 }
 
-// Check personal messages (from localStorage) in the notification loop
-function checkMyPersonalMessages(now, todayKey) {
+// Generate custom-messages.js code and copy to clipboard
+function publishMyMessages() {
+    var L = currentLang === 'es';
     var msgs = JSON.parse(localStorage.getItem('myCustomMessages') || '{}');
-    var allKeys = Object.keys(msgs);
-    console.log('📬 checkMyPersonalMessages: todayKey=' + todayKey + ', stored keys=' + allKeys.join(','));
+    var sortedDates = Object.keys(msgs).sort();
 
-    var entry = msgs[todayKey];
-    if (!entry) {
-        console.log('📬 No messages for today');
+    if (sortedDates.length === 0) {
+        _showToast(L ? 'No hay mensajes para publicar.' : 'No messages to publish.', '#ff6b6b');
         return;
     }
 
+    var now = new Date();
+    var timestamp = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+    var totalCount = sortedDates.reduce(function(c,k){ var e=msgs[k]; return c+(Array.isArray(e)?e.length:1); }, 0);
+
+    var code = '// =============================================================\n';
+    code += '// custom-messages.js — Generado desde Mis Mensajes\n';
+    code += '// Ultima actualizacion: ' + timestamp + '\n';
+    code += '// Total mensajes: ' + totalCount + '\n';
+    code += '// =============================================================\n\n';
+    code += 'window.CUSTOM_MESSAGES = {\n';
+
+    for (var i = 0; i < sortedDates.length; i++) {
+        var dk = sortedDates[i];
+        var entries = Array.isArray(msgs[dk]) ? msgs[dk] : [msgs[dk]];
+        if (entries.length === 1) {
+            var e = entries[0];
+            code += '    "' + dk + '": { message: ' + JSON.stringify(e.message) + ', title: ' + JSON.stringify(e.title || 'Moon Sync') + ', time: "' + (e.time || '08:00') + '" }';
+        } else {
+            code += '    "' + dk + '": [\n';
+            for (var j = 0; j < entries.length; j++) {
+                var e2 = entries[j];
+                code += '        { message: ' + JSON.stringify(e2.message) + ', title: ' + JSON.stringify(e2.title || 'Moon Sync') + ', time: "' + (e2.time || '08:00') + '" }';
+                if (j < entries.length - 1) code += ',';
+                code += '\n';
+            }
+            code += '    ]';
+        }
+        if (i < sortedDates.length - 1) code += ',';
+        code += '\n';
+    }
+
+    code += '};\n\n';
+    code += "console.log('custom-messages.js cargado —', Object.keys(window.CUSTOM_MESSAGES).length, 'mensajes programados');\n";
+
+    // Copy to clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(function() {
+            _showToast(L ? '✅ Código copiado al portapapeles. Pégalo en custom-messages.js y haz push.' : '✅ Code copied to clipboard. Paste into custom-messages.js and push.', '#4ecdc4');
+        }).catch(function() {
+            _fallbackCopyMsg(code, L);
+        });
+    } else {
+        _fallbackCopyMsg(code, L);
+    }
+
+    // Also update window.CUSTOM_MESSAGES live on this device
+    window.CUSTOM_MESSAGES = msgs;
+}
+
+function _fallbackCopyMsg(code, L) {
+    // Fallback: show code in a textarea for manual copy
+    var ta = document.createElement('textarea');
+    ta.value = code;
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:50%;z-index:99999;font-size:12px;background:#1a1a2e;color:#4ecdc4;padding:10px;';
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = L ? 'Cerrar (ya copié)' : 'Close (copied)';
+    closeBtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;padding:12px 24px;background:#4ecdc4;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;';
+    closeBtn.onclick = function() { ta.remove(); closeBtn.remove(); };
+    document.body.appendChild(ta);
+    document.body.appendChild(closeBtn);
+    ta.select();
+    try { document.execCommand('copy'); _showToast(L ? '✅ Código copiado' : '✅ Code copied', '#4ecdc4'); } catch(e) {}
+}
+
+// Import messages from the current custom-messages.js into the editor
+function loadFromCustomMessages() {
+    var L = currentLang === 'es';
+    if (!window.CUSTOM_MESSAGES || Object.keys(window.CUSTOM_MESSAGES).length === 0) {
+        _showToast(L ? 'No hay mensajes en custom-messages.js para importar.' : 'No messages in custom-messages.js to import.', '#ff6b6b');
+        return;
+    }
+    localStorage.setItem('myCustomMessages', JSON.stringify(window.CUSTOM_MESSAGES));
+    _showToast(L ? '✅ Mensajes importados de custom-messages.js' : '✅ Messages imported from custom-messages.js', '#4ecdc4');
+    openMyMessagesEditor();
+}
+
+// Check personal messages (from localStorage) in the notification loop
+function checkMyPersonalMessages(now, todayKey) {
+    var msgs = JSON.parse(localStorage.getItem('myCustomMessages') || '{}');
+
+    var entry = msgs[todayKey];
+    if (!entry) return;
+
     var messages = Array.isArray(entry) ? entry : [entry];
-    console.log('📬 Found ' + messages.length + ' message(s) for today');
 
     for (var i = 0; i < messages.length; i++) {
         var msg = messages[i];
         if (!msg || !msg.message) continue;
 
         var notifKey = 'notif-my-msg-' + todayKey + '-' + i;
-        if (localStorage.getItem(notifKey)) {
-            console.log('📬 Message [' + i + '] already sent (key: ' + notifKey + ')');
-            continue;
-        }
+        if (localStorage.getItem(notifKey)) continue;
 
         var sendTime = msg.time || '08:00';
         var parts = sendTime.split(':');
@@ -27307,8 +27412,6 @@ function checkMyPersonalMessages(now, todayKey) {
         var scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), sendHour, sendMin, 0, 0);
         var diff = now.getTime() - scheduledTime.getTime();
 
-        console.log('📬 Message [' + i + ']: scheduled=' + sendTime + ', diff=' + Math.round(diff/1000) + 's, title=' + (msg.title || 'Moon Sync'));
-
         if (diff >= 0 && diff < 24 * 60 * 60 * 1000) {
             var title = msg.title || 'Moon Sync';
             sendNotif(title, {
@@ -27317,9 +27420,6 @@ function checkMyPersonalMessages(now, todayKey) {
                 requireInteraction: true
             });
             localStorage.setItem(notifKey, 'true');
-            console.log('📬 ✅ Personal message SENT for', todayKey, '[' + i + ']:', msg.message.substring(0, 50));
-        } else {
-            console.log('📬 ⏳ Message [' + i + '] not yet due (diff=' + Math.round(diff/1000) + 's)');
         }
     }
 }
@@ -27328,6 +27428,8 @@ window.openMyMessagesEditor = openMyMessagesEditor;
 window.closeMyMessagesEditor = closeMyMessagesEditor;
 window.saveMyMessage = saveMyMessage;
 window.deleteMyMessage = deleteMyMessage;
+window.publishMyMessages = publishMyMessages;
+window.loadFromCustomMessages = loadFromCustomMessages;
 
 // Check if today (or yesterday, if missed) is a lunar phase perfection day
 // Uses getMoonEventForDate (UTC) for New/Full and findLunarPerfections for quarters
