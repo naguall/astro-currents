@@ -1055,7 +1055,7 @@
                 </div>
                 <span class="close" onclick="closeMoonCompass()" style="position:static;font-size:1.5em;">&times;</span>
             </div>
-            <div id="moonCompassBody" style="padding:16px;text-align:center;">
+            <div id="moonCompassBody" style="padding:8px 10px;text-align:center;">
                 <!-- Filled by JS -->
             </div>
         </div>
@@ -9783,9 +9783,9 @@ function _renderCompass() {
     var targetCardinal = cardinals[cardIdx];
 
     // ===== COMPASS SVG =====
-    var size = 280;
+    var size = 220;
     var cx = size / 2, cy = size / 2;
-    var outerR = 120, innerR = 36;
+    var outerR = 95, innerR = 28;
 
     var svg = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">';
     svg += '<defs>';
@@ -9883,14 +9883,14 @@ function _renderCompass() {
     svg += '</svg>';
 
     // ===== INTERACTIVE ALTITUDE BAR (responds to phone tilt) =====
-    var info = '<div style="margin-top:10px;font-size:0.85em;color:rgba(255,255,255,0.7);text-align:center;">';
+    var info = '<div style="margin-top:4px;font-size:0.85em;color:rgba(255,255,255,0.7);text-align:center;">';
 
     // ── ALTITUDE BAR ──
     var smoothBeta = _compassDeviceBetaSmooth;
     var phoneTilt = Math.max(-90, Math.min(90, smoothBeta));
     var targetAltClamped = Math.max(-90, Math.min(90, targetAlt));
 
-    var altBarWidth = 260;
+    var altBarWidth = 220;
     var phonePct = Math.max(0, Math.min(100, (phoneTilt + 90) / 180 * 100));
     var targetPct = Math.max(0, Math.min(100, (targetAltClamped + 90) / 180 * 100));
     var phoneElevation = 90 - phoneTilt;
@@ -9916,44 +9916,110 @@ function _renderCompass() {
     }
     info += '</div>';
 
-    // ===== MOONRISE / MOONSET (only for Moon mode) =====
-    if (isMoonMode) {
-        var riseSet = _getMoonRiseSet(now, lat, lon);
-        info += '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">';
-        info += '<div style="background:rgba(255,213,79,0.06);border:1px solid rgba(255,213,79,0.15);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌅 ' + (L ? 'Sale' : 'Rise') + '</div>';
-        info += '<div style="font-weight:700;color:#ffd54f;font-size:0.95em;">' + (riseSet.rise ? riseSet.rise.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—') + '</div></div>';
-        info += '<div style="background:rgba(126,200,255,0.06);border:1px solid rgba(126,200,255,0.15);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-        info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌇 ' + (L ? 'Pone' : 'Set') + '</div>';
-        info += '<div style="font-weight:700;color:#7ec8ff;font-size:0.95em;">' + (riseSet.set ? riseSet.set.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—') + '</div></div>';
+    // ===== RISE / SET BOXES (all bodies, not just Moon) =====
+    if (!isConstellation) {
+        var _riseTime = null, _setTime = null;
+        var _riseColor = targetColor, _setColor = '#7ec8ff';
+        if (isMoonMode) {
+            var riseSet = _getMoonRiseSet(now, lat, lon);
+            _riseTime = riseSet.rise; _setTime = riseSet.set;
+        } else if (isSunMode) {
+            try { var _srrs = getSunRiseSet(now, lat, lon); _riseTime = _srrs.rise; _setTime = _srrs.set; _riseColor = '#ff9800'; _setColor = '#9c27b0'; } catch(e) {}
+        } else {
+            // Planet rise/set using Astronomy library
+            try {
+                var _bodyMap = {'mercury':'Mercury','venus':'Venus','mars':'Mars','jupiter':'Jupiter','saturn':'Saturn','uranus':'Uranus','neptune':'Neptune','pluto':'Pluto'};
+                var _astBody = Astronomy.Body[_bodyMap[_compassMode]];
+                var _obs = new Astronomy.Observer(lat, lon, 0);
+                var _tNow = Astronomy.MakeTime(now);
+                var _riseEvt = Astronomy.SearchRiseSet(_astBody, _obs, +1, _tNow, 1);
+                var _setEvt = Astronomy.SearchRiseSet(_astBody, _obs, -1, _tNow, 1);
+                if (_riseEvt) _riseTime = _riseEvt.date;
+                if (_setEvt) _setTime = _setEvt.date;
+            } catch(e) {}
+        }
+        var _tFmt = function(d) { return d ? d.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '—'; };
+        info += '<div style="display:flex;gap:4px;margin-top:6px;justify-content:center;">';
+        info += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px 10px;flex:1;max-width:110px;">';
+        info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌅 ' + (L ? 'Sale' : 'Rise') + '</div>';
+        info += '<div style="font-weight:700;color:' + _riseColor + ';font-size:0.88em;">' + _tFmt(_riseTime) + '</div></div>';
+        info += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px 10px;flex:1;max-width:110px;">';
+        info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌇 ' + (L ? 'Pone' : 'Set') + '</div>';
+        info += '<div style="font-weight:700;color:' + _setColor + ';font-size:0.88em;">' + _tFmt(_setTime) + '</div></div>';
         info += '</div>';
 
-        // ===== LUNAR DAY & WEEK =====
-        var _compassLunarDay = (typeof getLunarDayForDate === 'function') ? getLunarDayForDate(now) : 0;
-        var _compassLunarWeek = _compassLunarDay > 0 ? Math.ceil(_compassLunarDay / 7) : 0;
-        if (_compassLunarDay > 0) {
-            var _lunarPhaseName = '';
-            if (_compassLunarWeek === 1) _lunarPhaseName = L ? 'Luna Nueva → Cuarto Creciente' : 'New Moon → First Quarter';
-            else if (_compassLunarWeek === 2) _lunarPhaseName = L ? 'Cuarto Creciente → Luna Llena' : 'First Quarter → Full Moon';
-            else if (_compassLunarWeek === 3) _lunarPhaseName = L ? 'Luna Llena → Cuarto Menguante' : 'Full Moon → Last Quarter';
-            else _lunarPhaseName = L ? 'Cuarto Menguante → Luna Nueva' : 'Last Quarter → New Moon';
-
-            info += '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">';
-            info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-            info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">📅 ' + (L ? 'Día Lunar' : 'Lunar Day') + '</div>';
-            info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarDay + ' / 29</div></div>';
-            info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:6px 12px;flex:1;max-width:130px;">';
-            info += '<div style="font-size:0.65em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🔄 ' + (L ? 'Semana' : 'Week') + '</div>';
-            info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.95em;">' + _compassLunarWeek + ' / 4</div></div>';
-            info += '</div>';
-            info += '<div style="text-align:center;margin-top:4px;font-size:0.72em;color:rgba(224,176,255,0.55);font-style:italic;">' + _lunarPhaseName + '</div>';
+        // ===== PLANET-SPECIFIC INFO BOXES =====
+        if (isMoonMode) {
+            // Lunar Day & Week
+            var _compassLunarDay = (typeof getLunarDayForDate === 'function') ? getLunarDayForDate(now) : 0;
+            var _compassLunarWeek = _compassLunarDay > 0 ? Math.ceil(_compassLunarDay / 7) : 0;
+            if (_compassLunarDay > 0) {
+                var _lunarPhaseName = '';
+                if (_compassLunarWeek === 1) _lunarPhaseName = L ? 'Luna Nueva → Cuarto Creciente' : 'New Moon → First Quarter';
+                else if (_compassLunarWeek === 2) _lunarPhaseName = L ? 'Cuarto Creciente → Luna Llena' : 'First Quarter → Full Moon';
+                else if (_compassLunarWeek === 3) _lunarPhaseName = L ? 'Luna Llena → Cuarto Menguante' : 'Full Moon → Last Quarter';
+                else _lunarPhaseName = L ? 'Cuarto Menguante → Luna Nueva' : 'Last Quarter → New Moon';
+                info += '<div style="display:flex;gap:4px;margin-top:4px;justify-content:center;">';
+                info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:4px 10px;flex:1;max-width:110px;">';
+                info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;">📅 ' + (L ? 'Día Lunar' : 'Lunar Day') + '</div>';
+                info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.88em;">' + _compassLunarDay + ' / 29</div></div>';
+                info += '<div style="background:rgba(224,176,255,0.06);border:1px solid rgba(224,176,255,0.18);border-radius:8px;padding:4px 10px;flex:1;max-width:110px;">';
+                info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;">🔄 ' + (L ? 'Semana' : 'Week') + '</div>';
+                info += '<div style="font-weight:700;color:#e0b0ff;font-size:0.88em;">' + _compassLunarWeek + ' / 4</div></div>';
+                info += '</div>';
+                info += '<div style="text-align:center;margin-top:2px;font-size:0.68em;color:rgba(224,176,255,0.5);font-style:italic;">' + _lunarPhaseName + '</div>';
+            }
+        } else if (!isSunMode) {
+            // Planet info: zodiac sign + retrograde status
+            try {
+                var _pBodyMap2 = {'mercury':'Mercury','venus':'Venus','mars':'Mars','jupiter':'Jupiter','saturn':'Saturn','uranus':'Uranus','neptune':'Neptune','pluto':'Pluto'};
+                var _pBody = Astronomy.Body[_pBodyMap2[_compassMode]];
+                var _pTime = Astronomy.MakeTime(now);
+                var _pEcl = Astronomy.EclipticGeoMoon ? null : null;
+                var _pEqj = Astronomy.Equator(_pBody, _pTime, new Astronomy.Observer(0,0,0), true, true);
+                // Get ecliptic longitude for zodiac sign
+                var _pEclLon = 0;
+                try {
+                    var _pEcl2 = Astronomy.Ecliptic(_pEqj.vec);
+                    _pEclLon = _pEcl2.elon;
+                } catch(e2) {
+                    // Fallback: approximate from RA
+                    _pEclLon = (_pEqj.ra / 24 * 360);
+                }
+                var _zodiacSigns = L
+                    ? ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis']
+                    : ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+                var _zodiacSymbols = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+                var _zIdx = Math.floor(_pEclLon / 30) % 12;
+                var _zDeg = (_pEclLon % 30).toFixed(1);
+                // Check retrograde
+                var _isRetro = false;
+                try {
+                    var _pElon1 = Astronomy.EclipticLongitude(_pBody, _pTime);
+                    var _pTimeFut = Astronomy.MakeTime(new Date(now.getTime() + 86400000));
+                    var _pElon2 = Astronomy.EclipticLongitude(_pBody, _pTimeFut);
+                    var _diff = _pElon2 - _pElon1;
+                    if (_diff > 180) _diff -= 360;
+                    if (_diff < -180) _diff += 360;
+                    _isRetro = _diff < 0;
+                } catch(e3) {}
+                info += '<div style="display:flex;gap:4px;margin-top:4px;justify-content:center;">';
+                info += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px 10px;flex:1;max-width:110px;">';
+                info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;">' + (L ? 'Signo' : 'Sign') + '</div>';
+                info += '<div style="font-weight:700;color:' + targetColor + ';font-size:0.88em;">' + _zodiacSymbols[_zIdx] + ' ' + _zodiacSigns[_zIdx] + '</div>';
+                info += '<div style="font-size:0.62em;color:rgba(255,255,255,0.3);">' + _zDeg + '°</div></div>';
+                info += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:4px 10px;flex:1;max-width:110px;">';
+                info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;">' + (L ? 'Estado' : 'Status') + '</div>';
+                info += '<div style="font-weight:700;color:' + (_isRetro ? '#ff6b6b' : '#4ecdc4') + ';font-size:0.88em;">' + (_isRetro ? '℞ ' + (L ? 'Retrógrado' : 'Retrograde') : '→ ' + (L ? 'Directo' : 'Direct')) + '</div></div>';
+                info += '</div>';
+            } catch(e) {}
         }
     }
 
     // ===== DATA GRID =====
     var compassQuality = _compassHasAbsolute ? (L ? '● Precisa' : '● Accurate') : (L ? '○ Sin norte' : '○ No north');
     var compassQColor = _compassHasAbsolute ? '#4ecdc4' : '#ff6b6b';
-    info += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:8px;text-align:center;">';
+    info += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;margin-top:4px;text-align:center;">';
     var cells = [
         { label: L?'Azimut':'Azimuth', val: targetAz.toFixed(1) + '° ' + targetCardinal, color: targetColor },
         { label: L?'Altitud':'Altitude', val: (targetAlt >= 0 ? '+' : '') + targetAlt.toFixed(1) + '°', color: targetBelowHorizon ? '#616161' : '#b0bec5' },
@@ -9975,9 +10041,9 @@ function _renderCompass() {
         (L ? 'PUNTO SUB-' + targetName.toUpperCase() : 'SUB-' + targetName.toUpperCase() + ' POINT');
     if (subPoint) {
         // 2D/3D toggle
-        info += '<div style="margin-top:10px;">';
-        info += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">';
-        info += '<div style="font-size:0.72em;color:rgba(255,255,255,0.35);letter-spacing:1px;text-transform:uppercase;">' + subPointLabel + '</div>';
+        info += '<div style="margin-top:6px;">';
+        info += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">';
+        info += '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);letter-spacing:1px;text-transform:uppercase;">' + subPointLabel + '</div>';
         info += '<div style="display:flex;gap:4px;">';
         info += '<button onclick="_compassMapMode=\'2d\';_renderCompass();" style="padding:2px 8px;font-size:0.7em;border-radius:4px;cursor:pointer;border:1px solid ' + (_compassMapMode === '2d' ? 'rgba(255,213,79,0.5)' : 'rgba(255,255,255,0.15)') + ';background:' + (_compassMapMode === '2d' ? 'rgba(255,213,79,0.15)' : 'rgba(255,255,255,0.03)') + ';color:' + (_compassMapMode === '2d' ? '#ffd54f' : 'rgba(255,255,255,0.4)') + ';">2D</button>';
         info += '<button onclick="_compassMapMode=\'3d\';_renderCompass();" style="padding:2px 8px;font-size:0.7em;border-radius:4px;cursor:pointer;border:1px solid ' + (_compassMapMode === '3d' ? 'rgba(255,213,79,0.5)' : 'rgba(255,255,255,0.15)') + ';background:' + (_compassMapMode === '3d' ? 'rgba(255,213,79,0.15)' : 'rgba(255,255,255,0.03)') + ';color:' + (_compassMapMode === '3d' ? '#ffd54f' : 'rgba(255,255,255,0.4)') + ';">3D</button>';
@@ -9987,7 +10053,7 @@ function _renderCompass() {
 
         if (_compassMapMode === '2d') {
             // 2D equirectangular map
-            var mW = 280, mH = 140, mPad = 0;
+            var mW = 240, mH = 120, mPad = 0;
             var mapSvg = '<svg width="' + mW + '" height="' + mH + '" viewBox="0 0 ' + mW + ' ' + mH + '" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">';
             // NASA satellite background
             mapSvg += '<image href="https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Blue_Marble_2002.png/1280px-Blue_Marble_2002.png" x="0" y="0" width="' + mW + '" height="' + mH + '" preserveAspectRatio="none" opacity="0.5"/>';
@@ -10057,22 +10123,9 @@ function _renderCompass() {
             mapSvg += '<line x1="' + uX + '" y1="' + uY + '" x2="' + slX + '" y2="' + slY + '" stroke="rgba(' + _spColorRgb + ',0.2)" stroke-width="0.5" stroke-dasharray="3,3"/>';
             mapSvg += '</svg>';
             info += mapSvg;
-            // ── Sunrise / Sunset times ──
-            try {
-                var _srss = getSunRiseSet(now, lat, lon);
-                var _srFmt = function(d) { return d ? d.toLocaleTimeString(L?'es':'en', {hour:'2-digit',minute:'2-digit',hour12:false}) : '--:--'; };
-                info += '<div style="display:flex;gap:6px;margin-top:6px;justify-content:center;">';
-                info += '<div style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.2);border-radius:8px;padding:4px 10px;flex:1;max-width:120px;text-align:center;">';
-                info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌅 ' + (L ? 'Amanecer' : 'Sunrise') + '</div>';
-                info += '<div style="font-weight:700;color:#ff9800;font-size:0.88em;">' + _srFmt(_srss.rise) + '</div></div>';
-                info += '<div style="background:rgba(156,39,176,0.08);border:1px solid rgba(156,39,176,0.2);border-radius:8px;padding:4px 10px;flex:1;max-width:120px;text-align:center;">';
-                info += '<div style="font-size:0.6em;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;">🌇 ' + (L ? 'Atardecer' : 'Sunset') + '</div>';
-                info += '<div style="font-weight:700;color:#9c27b0;font-size:0.88em;">' + _srFmt(_srss.set) + '</div></div>';
-                info += '</div>';
-            } catch(e) {}
         } else {
             // 3D globe view
-            var gSize = 220, gCx = gSize/2, gCy = gSize/2, gR = 90;
+            var gSize = 180, gCx = gSize/2, gCy = gSize/2, gR = 75;
             var globeSvg = '<svg width="' + gSize + '" height="' + gSize + '" viewBox="0 0 ' + gSize + ' ' + gSize + '" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">';
             // Rotate globe so sub-body point faces us
             var rotLon = subPoint.lon;
