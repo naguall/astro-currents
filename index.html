@@ -26930,6 +26930,9 @@ function goToCurrentCycle() {
             document.body.appendChild(backdrop);
             document.body.appendChild(tooltip);
 
+            // Track ancestors whose z-index we elevated
+            var _elevatedAncestors = [];
+
             // Restore previous highlighted element to normal
             function _unhighlightPrev() {
                 if (_prevHighlightEl) {
@@ -26945,6 +26948,11 @@ function goToCurrentCycle() {
                     _prevHighlightEl.style.filter = _prevHighlightStyles.filter || '';
                     _prevHighlightEl = null;
                 }
+                // Restore ancestor z-indexes
+                _elevatedAncestors.forEach(function(item) {
+                    item.el.style.zIndex = item.origZ;
+                });
+                _elevatedAncestors = [];
             }
 
             function _showStep(idx) {
@@ -26989,6 +26997,21 @@ function goToCurrentCycle() {
                     el.style.animation = 'spotlightPulse 1.5s ease-in-out infinite';
                     el.style.transform = 'scale(1.15)';
                     el.style.filter = 'brightness(1.8)';
+
+                    // Walk up ancestors and elevate any that create stacking contexts
+                    // so the highlighted element can appear ABOVE the backdrop (z-index 9990)
+                    var ancestor = el.parentElement;
+                    while (ancestor && ancestor !== document.body) {
+                        var cs = window.getComputedStyle(ancestor);
+                        var zVal = cs.zIndex;
+                        var pos = cs.position;
+                        // If ancestor has a z-index and creates a stacking context, elevate it
+                        if (zVal !== 'auto' && pos !== 'static') {
+                            _elevatedAncestors.push({ el: ancestor, origZ: ancestor.style.zIndex });
+                            ancestor.style.zIndex = '9993';
+                        }
+                        ancestor = ancestor.parentElement;
+                    }
 
                     var rect = el.getBoundingClientRect();
 
