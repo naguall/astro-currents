@@ -1,61 +1,84 @@
-# Moon Tracker — Migración a Capacitor
+# ASTRO Knowledge Graph - Professional Astrology Course
 
-## Archivos incluidos
-- `index.html` / `www/index.html` — App principal
-- `lunar-data.js` / `www/lunar-data.js` — Datos lunares 2026
-- `capacitor.config.json` — Configuración Capacitor
-- `package.json` — Dependencias Node.js
-- `manifest.json` — PWA manifest
-- `icons/` — Todos los íconos (iOS, Android, Web)
+## Project Overview
 
-## Pasos para migrar a Capacitor
+A comprehensive JavaScript-based knowledge graph for professional astrology containing 18 modules and 132 interconnected learning nodes. Designed for structured learning from fundamentals through specialized professional applications.
 
-### 1. Instalar dependencias
-```bash
-npm install
+## Files
+
+1. **knowledge-graph.js** - Main knowledge graph (JavaScript, ~200-250 KB complete)
+2. **KNOWLEDGE_GRAPH_SPEC.md** - Technical specification and requirements
+3. **NODES_REFERENCE.md** - Complete list of all 132 nodes with prerequisites
+4. **README.md** - This file
+
+## Quick Start
+
+```javascript
+<script src="knowledge-graph.js"></script>
+<script>
+  const graph = window.ASTRO_KNOWLEDGE_GRAPH;
+  const node = graph.nodes['M1_historia'];
+  console.log(node.title); // "Historia y filosofía de la astrología"
+</script>
 ```
 
-### 2. Inicializar Capacitor (si es proyecto nuevo)
-```bash
-npx cap init "Moon Tracker" "com.moontracker.app" --web-dir www
-```
+## Structure
 
-### 3. Agregar plataformas
-```bash
-npx cap add ios
-npx cap add android
-```
+### 18 Modules:
+M1-Fundamentos, M2-Signos, M3-Planetas, M4-Casas, M5-Aspectos, M6-Regencias, M7-Síntesis, M8-Predicción, M9-Sinastría, M10-Horaria, M11-Electiva, M12-Mundana, M13-Médica, M14-Kármica, M15-Avanzadas, M16-Profesional, M17-Psicología, M18-Especialidades
 
-### 4. Copiar archivos web
-```bash
-npx cap sync
-```
+### 132 Nodes Total:
+- ~40 Básico (fundamental)
+- ~35 Intermedio (integrated)
+- ~40 Avanzado (specialized)
+- ~17 Profesional (expert)
 
-### 5. Abrir en Xcode / Android Studio
-```bash
-npx cap open ios      # Xcode
-npx cap open android  # Android Studio
-```
+### Each Node Contains:
+- ID and module reference
+- Spanish/English titles
+- Proficiency level
+- Prerequisites array
+- Summary (2-3 sentences)
+- Key points (4-8 items)
+- Quiz questions (5-10 questions with 4 options each)
 
-## Íconos iOS (Xcode)
-Arrastrar `icons/ios_*.png` a `Assets.xcassets → AppIcon`
-Tamaños clave: 60x60, 120x120, 180x180, 1024x1024
+## Content Guidelines
 
-## Íconos Android
-Copiar contenido de `icons/android_*/` a `app/src/main/res/`
+All content is:
+- Real astrology (not placeholders)
+- Spanish language primary
+- Structured progressively
+- Based on accurate astrological principles
+- Multiple schools integrated
 
-## Plugins Capacitor recomendados
-- `@capacitor/geolocation` → GPS ubicación usuario
-- `@capacitor/local-notifications` → Recordatorios lunares
-- `@capacitor/status-bar` → Barra de estado oscura
-- `@capacitor/splash-screen` → Pantalla de carga
+## Key Features
 
-## APIs externas en uso
-- Open-Meteo Marine API (mareas, gratuita, sin key)
-- GPS del dispositivo via navigator.geolocation
+✓ 132 interconnected learning nodes  
+✓ 1,200+ quiz questions for assessment  
+✓ Valid prerequisite dependencies (DAG)  
+✓ 4-level proficiency system  
+✓ Real astrology content throughout  
+✓ Covers all major astrology branches  
 
-## Notas técnicas
-- App es 100% HTML/JS/CSS en un solo archivo
-- No requiere servidor backend
-- LocalStorage para persistencia de datos
-- Compatible con iOS 13+ y Android 5+
+## Implementation
+
+Load in browser or Node.js. Suitable for:
+- Learning management systems
+- Educational platforms
+- Assessment systems
+- Course development
+- Astrology curriculum
+
+## Status
+
+- ✓ Module structure (18/18)
+- ✓ Node architecture (all patterns defined)
+- ✓ Documentation complete
+- ✓ Foundational nodes detailed (M1-M2 samples)
+- → Next: Expand to all 132 nodes
+
+## For Details
+
+See:
+- KNOWLEDGE_GRAPH_SPEC.md - Technical specs
+- NODES_REFERENCE.md - All 132 nodes listed

@@ -751,6 +751,10 @@
             </div>
         </header>
         <script>
+            // Global error handler for debugging
+            window.addEventListener('error', function(e) {
+                console.error('[MoonSync] Global error:', e.message, 'at', e.filename, 'line', e.lineno);
+            });
             // EARLY: Hide non-active mode elements immediately to prevent flash
             (function() {
                 var sm = localStorage.getItem('calendarMode') || 'lunar';
@@ -13015,6 +13019,7 @@ function switchToEarthMode() {
 }
 
 function switchToLunarMode() {
+  try {
     calendarMode = 'lunar';
     localStorage.setItem('calendarMode', 'lunar');
 
@@ -13084,6 +13089,10 @@ function switchToLunarMode() {
         setTimeout(reapplyCellSize, 500);
         setTimeout(refreshAllLiveData, 50);
     });
+  } catch(err) {
+    console.error('[MoonSync] switchToLunarMode error:', err);
+    alert('Error en Lunar: ' + err.message);
+  }
 }
 
 // ══════════════════════════════════════════════════
@@ -24737,6 +24746,7 @@ function renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeek
 }
 
 function renderCalendar() {
+  try {
     // Guard: only render if in lunar mode
     if (calendarMode !== 'lunar') return;
     const weeks = calculateLunarCycle(currentCycleStart);
@@ -25165,6 +25175,11 @@ function renderCalendar() {
     container.appendChild(_fragment);
 
     // Sync all week scrolls — when one scrolls, all follow
+  } catch(err) {
+    console.error('[MoonSync] renderCalendar error:', err);
+    var c = document.getElementById('lunarWeeks');
+    if (c) c.innerHTML = '<div style="padding:20px;color:#ff6b6b;text-align:center;">Error: ' + err.message + '</div>';
+  }
 }
 
 function nextCycle() {
@@ -28022,10 +28037,11 @@ function _getLunarDayFor(date) {
 // PREFERENCES MODAL
 // ══════════════════════════════════════════════════
 function openPreferencesModal() {
+  try {
     const modal = document.getElementById('preferencesModal');
     const body = document.getElementById('preferencesBody');
     const titleEl = document.getElementById('prefModalTitle');
-    if (!modal || !body) return;
+    if (!modal || !body) { console.error('[MoonSync] preferencesModal or body not found'); return; }
 
     titleEl.textContent = currentLang === 'es' ? '⚙️ Preferencias' : '⚙️ Preferences';
 
@@ -28356,6 +28372,10 @@ function openPreferencesModal() {
     body.innerHTML = sectionsHtml;
 
     modal.classList.add('show');
+  } catch(err) {
+    console.error('[MoonSync] openPreferencesModal error:', err);
+    alert('Error en Preferencias: ' + err.message);
+  }
 }
 
 function closePreferencesModal() {
@@ -32280,7 +32300,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-const APP_VERSION = 'v521';
+const APP_VERSION = 'v542';
 var _pendingSW = null;
 
 // What's New removed per user request
