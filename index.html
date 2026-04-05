@@ -5625,15 +5625,15 @@ function openAspectsModal(date, lunarDay, dayData) {
     if (eclipse) {
         const eclipseIcon = eclipse.type === 'solar' ? '☀️' : '🌒';
         const timeStr = eclipse.time ? `<span style="color: #f0e68c; font-weight: bold;">${eclipse.time}</span> - ` : '';
-        const eclClickText = (eclipseIcon + ' ' + eclipse.name + ' ' + (eclipse.degree||'')).replace(/'/g, "\\'");
+        const eclClickText = (eclipseIcon + ' ' + translateMeaning(eclipse.name) + ' ' + (eclipse.degree||'')).replace(/'/g, "\\'");
         htmlContent += `
         <div class="aspect-detail" style="border-left-color: #FFD700; background: rgba(255,215,0,0.1); cursor:pointer;" onclick="showBannerAspectDetail('${eclClickText}')">
             <div class="aspect-planets">
-                ${timeStr}${eclipseIcon} ${eclipse.name}
+                ${timeStr}${eclipseIcon} ${translateMeaning(eclipse.name)}
             </div>
             <div class="aspect-description">
                 ${eclipse.degree}<br>
-                <span style="font-size: 0.85em; opacity: 0.8;">${eclipse.visibility}</span>
+                <span style="font-size: 0.85em; opacity: 0.8;">${translateMeaning(eclipse.visibility)}</span>
             </div>
         </div>
         `;
@@ -5747,12 +5747,12 @@ function openAspectsModal(date, lunarDay, dayData) {
             const retLabel = retro.isStart ? (currentLang === 'es' ? 'Retrógrado INICIA' : 'Retrograde STARTS') : (currentLang === 'es' ? 'Directo' : 'Direct');
             const retDays = Math.round((new Date(retro.end) - new Date(retro.start)) / 86400000);
             const retDaysStr = `<span style="color:#ff6b6b;font-size:0.82em;font-weight:bold;">(${retDays} ${currentLang==='es'?'días':'days'})</span>`;
-            const retClickText = (retro.planet + ' ' + retLabel + ' en ' + (retro.sign || '') + ' (' + retDays + ' días)').replace(/'/g, "\\'");
-            const retLastTime = retro.lastTime ? `<div style="font-size:0.8em;color:rgba(255,255,255,0.45);margin-top:3px;">🔄 ${currentLang==='es'?'Última vez':'Last time'}: ${retro.lastTime}</div>` : '';
+            const retClickText = (tp(retro.planet) + ' ' + retLabel + ' ' + (currentLang==='es'?'en':'in') + ' ' + (translateMeaning(retro.sign) || '') + ' (' + retDays + ' ' + (currentLang==='es'?'días':'days') + ')').replace(/'/g, "\\'");
+            const retLastTime = retro.lastTime ? `<div style="font-size:0.8em;color:rgba(255,255,255,0.45);margin-top:3px;">🔄 ${currentLang==='es'?'Última vez':'Last time'}: ${translateMeaning(retro.lastTime)}</div>` : '';
             return `
             <div class="aspect-detail" style="border-left-color: #ff6b6b; cursor:pointer;" onclick="showBannerAspectDetail('${retClickText}')">
                 <div class="aspect-planets">
-                    ${retro.planet} ${retLabel}${retro.sign ? ` <span style="color:rgba(255,255,255,0.5);font-size:0.85em;">en ${retro.sign}</span>` : ''} ${retDaysStr}
+                    ${tp(retro.planet)} ${retLabel}${retro.sign ? ` <span style="color:rgba(255,255,255,0.5);font-size:0.85em;">${currentLang==='es'?'en':'in'} ${translateMeaning(retro.sign)}</span>` : ''} ${retDaysStr}
                 </div>
                 <div class="aspect-description">
                     ${translateMeaning(retro.meaning)}${retLastTime}
@@ -10861,20 +10861,20 @@ function showEclipseModal(type, name, dateTime) {
         <!-- Visibilidad -->
         <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
             <p style="font-size: 0.9em; color: rgba(255,255,255,0.7);">
-                <strong>📍 ${t('visibility')}:</strong> ${eclipseData.visibility}
+                <strong>📍 ${t('visibility')}:</strong> ${translateMeaning(eclipseData.visibility)}
             </p>
         </div>
-        
+
         <!-- Aspectos planetarios -->
         ${eclipseData.aspects && eclipseData.aspects.length > 0 ? `
         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
             <h4 style="margin-top: 0; color: #f0e68c; font-size: 1em;">⭐ ${t('planetaryAspectsLabel')}</h4>
             ${eclipseData.aspects.map(asp => {
-                const eclAspClick = (asp.planet + ' ' + asp.aspect).replace(/'/g, "\\'");
+                const eclAspClick = (translateMeaning(asp.planet) + ' ' + translateMeaning(asp.aspect)).replace(/'/g, "\\'");
                 return `
                 <div style="padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 8px; border-left: 2px solid rgba(240,230,140,0.5); cursor:pointer;" onclick="showBannerAspectDetail('${eclAspClick}')">
-                    <div style="font-weight: bold; margin-bottom: 4px;">${asp.planet} - ${asp.aspect}</div>
-                    <div style="font-size: 0.9em; color: rgba(255,255,255,0.7);">${asp.description}</div>
+                    <div style="font-weight: bold; margin-bottom: 4px;">${translateMeaning(asp.planet)} - ${translateMeaning(asp.aspect)}</div>
+                    <div style="font-size: 0.9em; color: rgba(255,255,255,0.7);">${translateMeaning(asp.description)}</div>
                 </div>
             `}).join('')}
         </div>
@@ -10939,7 +10939,7 @@ function showRetrogradeModal(planet, symbol, isStart, dateStr) {
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 0.9em; color: rgba(255,255,255,0.7);">${inLabel}</span>
-                <span style="font-weight: bold; color: #f0e68c;">${retroData.sign}</span>
+                <span style="font-weight: bold; color: #f0e68c;">${translateMeaning(retroData.sign)}</span>
             </div>
         </div>
         
@@ -10964,7 +10964,7 @@ function showRetrogradeModal(planet, symbol, isStart, dateStr) {
             </p>
         </div>
 
-        ${retroData.lastTime ? '<div style="background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.2);padding:10px 12px;border-radius:8px;margin-bottom:15px;font-size:0.85em;color:rgba(255,255,255,0.6);">🔄 ' + (currentLang==='es'?'Última vez':'Last time') + ': ' + retroData.lastTime + '</div>' : ''}
+        ${retroData.lastTime ? '<div style="background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.2);padding:10px 12px;border-radius:8px;margin-bottom:15px;font-size:0.85em;color:rgba(255,255,255,0.6);">🔄 ' + (currentLang==='es'?'Última vez':'Last time') + ': ' + translateMeaning(retroData.lastTime) + '</div>' : ''}
     `;
 
     // Make whole modal clickable for AI interpretation
@@ -11088,10 +11088,237 @@ function translateMeaning(spanishText) {
         'Revisión de vínculos y valores. Tensión entre afirmación relacional y disolución empática. Reconsideración de deseos.':
             'Review of bonds and values. Tension between relational assertion and empathic dissolution. Reconsideration of desires.',
         'Relaciones, autoestima, finanzas, receptividad, límites':
-            'Relationships, self-esteem, finances, receptivity, boundaries'
+            'Relationships, self-esteem, finances, receptivity, boundaries',
+
+        // ── Mercury Retrogrades ──
+        'Revisión de estructuras mentales. Retrasos funcionales en comunicación. Reconsideración de compromisos.':
+            'Review of mental structures. Functional delays in communication. Reconsideration of commitments.',
+        'Planes profesionales, autoridad, responsabilidad pragmática':
+            'Professional plans, authority, pragmatic responsibility',
+        'Ago-Sep 2025 en Virgo/Leo': 'Aug-Sep 2025 in Virgo/Leo',
+        'Pensamiento entre versatilidad y concreción. Necesidad de aterrizar ideas. Comunicación requiere revisión.':
+            'Thought between versatility and concreteness. Need to ground ideas. Communication requires review.',
+        'Intercambios, valores materiales, posesiones, aprendizaje':
+            'Exchanges, material values, possessions, learning',
+        'Ene 2026 en Capricornio': 'Jan 2026 in Capricorn',
+        'Análisis relacional. Perfeccionismo vs diplomacia. Reexamen de acuerdos y procesos.':
+            'Relational analysis. Perfectionism vs diplomacy. Re-examination of agreements and processes.',
+        'Vínculos, salud, trabajo detallado, crítica constructiva':
+            'Relationships, health, detailed work, constructive criticism',
+        'May-Jun 2026 en Géminis/Tauro': 'May-Jun 2026 in Gemini/Taurus',
+
+        // ── Mars Retrograde ──
+        'Energía entre expresión dramática y protección emocional. Acción requiere reconsideración. Voluntad vs necesidades afectivas.':
+            'Energy between dramatic expression and emotional protection. Action requires reconsideration. Will vs emotional needs.',
+        'Iniciativa, hogar, familia, creatividad, seguridad':
+            'Initiative, home, family, creativity, security',
+        'Dic 2024-Feb 2025 en Leo/Cáncer': 'Dec 2024-Feb 2025 in Leo/Cancer',
+
+        // ── Jupiter Retrogrades ──
+        'Expansión emocional interna. Revisión de creencias sobre hogar, familia y seguridad. Crecimiento requiere pausa reflexiva antes de avanzar.':
+            'Internal emotional expansion. Review of beliefs about home, family and security. Growth requires reflective pause before advancing.',
+        'Familia, hogar, seguridad emocional, fe, abundancia interna':
+            'Family, home, emotional security, faith, internal abundance',
+        'Jul-Nov 2025 en Géminis/Cáncer': 'Jul-Nov 2025 in Gemini/Cancer',
+        'Revisión de expresión creativa y generosidad. Tensión entre expansión dramática y humildad. Liderazgo requiere introspección.':
+            'Review of creative expression and generosity. Tension between dramatic expansion and humility. Leadership requires introspection.',
+        'Creatividad, liderazgo, autoexpresión, generosidad, reconocimiento':
+            'Creativity, leadership, self-expression, generosity, recognition',
+        'Nov 2025-Mar 2026 en Cáncer': 'Nov 2025-Mar 2026 in Cancer',
+
+        // ── Saturn Retrograde ──
+        'Límites del yo requieren revisión. Tensión entre estructuración de identidad y disolución de fronteras. Responsabilidad vs rendición.':
+            'Limits of the self require review. Tension between identity structuring and dissolution of boundaries. Responsibility vs surrender.',
+        'Identidad, límites personales, espiritualidad, sacrificio':
+            'Identity, personal boundaries, spirituality, sacrifice',
+        'Jun-Nov 2025 en Piscis': 'Jun-Nov 2025 in Pisces',
+
+        // ── Uranus Retrograde ──
+        'Innovación comunicacional revisada. Tensión entre cambio mental y estabilidad material. Revolución introspectiva.':
+            'Communication innovation reviewed. Tension between mental change and material stability. Introspective revolution.',
+        'Tecnología, pensamiento, valores, recursos, seguridad':
+            'Technology, thought, values, resources, security',
+        'Sep 2025-Ene 2026 en Tauro': 'Sep 2025-Jan 2026 in Taurus',
+
+        // ── Neptune Retrograde ──
+        'Idealismo entre afirmación y rendición. Confusión sobre dónde dirigir inspiración. Espiritualidad requiere reconsideración.':
+            'Idealism between assertion and surrender. Confusion about where to direct inspiration. Spirituality requires reconsideration.',
+        'Inspiración, compasión, acción consciente, entrega':
+            'Inspiration, compassion, conscious action, surrender',
+        'Jul-Dic 2025 en Piscis': 'Jul-Dec 2025 in Pisces',
+
+        // ── Pluto Retrograde ──
+        'Transformación entre futurismo colectivo y estructuras de poder establecidas. Revisión profunda de sistemas de control.':
+            'Transformation between collective futurism and established power structures. Deep review of control systems.',
+        'Poder institucional, revolución, estructuras sociales':
+            'Institutional power, revolution, social structures',
+        'May-Oct 2025 en Acuario/Capricornio': 'May-Oct 2025 in Aquarius/Capricorn',
+
+        // ── Sun sign changes (Solar Calendar) ──
+        'Énfasis colectivo. Distancia necesaria para perspectiva. Pensamiento sistémico activado.':
+            'Collective emphasis. Distance necessary for perspective. Systems thinking activated.',
+        'Disolución de límites del yo. Mayor porosidad emocional. Necesidad de retiro o contemplación.':
+            'Dissolution of self boundaries. Greater emotional porosity. Need for retreat or contemplation.',
+        'EQUINOCCIO PRIMAVERA (14:46 UTC). Impulso hacia lo nuevo. Energía de iniciación. Foco en identidad individual.':
+            'SPRING EQUINOX (14:46 UTC). Impulse toward the new. Energy of initiation. Focus on individual identity.',
+        'Anclaje en lo material. Ritmo más lento. Necesidad de estabilidad y tangibilidad.':
+            'Anchoring in the material. Slower rhythm. Need for stability and tangibility.',
+        'Activación mental. Curiosidad incrementada. Multiplicidad de intereses simultáneos.':
+            'Mental activation. Increased curiosity. Multiplicity of simultaneous interests.',
+        'SOLSTICIO VERANO (08:25 UTC). Énfasis emocional. Retorno a lo familiar. Sensibilidad al entorno aumentada.':
+            'SUMMER SOLSTICE (08:25 UTC). Emotional emphasis. Return to the familiar. Heightened sensitivity to surroundings.',
+        'Impulso expresivo. Necesidad de ser visto. Centralidad del yo. Creatividad activada.':
+            'Expressive impulse. Need to be seen. Centrality of the self. Creativity activated.',
+        'Análisis de sistemas. Perfeccionamiento de procesos. Foco en utilidad práctica.':
+            'Systems analysis. Process refinement. Focus on practical utility.',
+        'EQUINOCCIO OTOÑO (00:06 UTC). Énfasis relacional. Búsqueda de equilibrio entre opuestos. Diplomacia necesaria.':
+            'AUTUMN EQUINOX (00:06 UTC). Relational emphasis. Search for balance between opposites. Diplomacy necessary.',
+        'Intensificación psíquica. Necesidad de profundizar. Confrontación con lo oculto.':
+            'Psychic intensification. Need to go deeper. Confrontation with the hidden.',
+        'Expansión de perspectiva. Búsqueda de significado. Inquietud filosófica o física.':
+            'Expansion of perspective. Search for meaning. Philosophical or physical restlessness.',
+        'SOLSTICIO INVIERNO (15:03 UTC). Estructuración necesaria. Enfrentamiento con límites. Ambición activada.':
+            'WINTER SOLSTICE (15:03 UTC). Structuring necessary. Confrontation with limits. Ambition activated.',
+
+        // ── Mercury sign changes ──
+        'Comunicación práctica, enfoque profesional': 'Practical communication, professional focus',
+        'Percepción innovadora, mente colectiva': 'Innovative perception, collective mind',
+        'Mente intuitiva, pensamiento sutil': 'Intuitive mind, subtle thinking',
+        'Comunicación directa, pensamiento rápido': 'Direct communication, quick thinking',
+        'Mente pragmática, concentración material': 'Pragmatic mind, material concentration',
+        'Comunicación versátil, curiosidad multiplicada': 'Versatile communication, multiplied curiosity',
+        'Comunicación emotiva, pensamiento protector': 'Emotive communication, protective thinking',
+        'Expresión creativa mental, comunicación dramática': 'Creative mental expression, dramatic communication',
+        'Análisis detallado, comunicación precisa': 'Detailed analysis, precise communication',
+        'Diplomacia mental, comunicación equilibrada': 'Mental diplomacy, balanced communication',
+        'Mente penetrante, comunicación transformadora': 'Penetrating mind, transformative communication',
+        'Mente expansiva, comunicación filosófica': 'Expansive mind, philosophical communication',
+        'Mente práctica revisitada, cierre de año comunicativo': 'Revisited practical mind, communicative year-end',
+
+        // ── Venus sign changes ──
+        'Amor colectivo, valores humanitarios': 'Collective love, humanitarian values',
+        'Amor espiritual, valores trascendentes': 'Spiritual love, transcendent values',
+        'Amor directo, deseo activo': 'Direct love, active desire',
+        'Amor estable, placer sensorial': 'Stable love, sensory pleasure',
+        'Amor versátil, conexiones múltiples': 'Versatile love, multiple connections',
+        'Amor nutricio, vínculos familiares': 'Nurturing love, family bonds',
+        'Amor generoso, creatividad afectiva': 'Generous love, affective creativity',
+        'Amor práctico, servicio afectivo': 'Practical love, affective service',
+        'Amor equilibrado, armonía relacional': 'Balanced love, relational harmony',
+        'Amor intenso, pasión transformadora': 'Intense love, transformative passion',
+        'Amor expansivo, aventura relacional': 'Expansive love, relational adventure',
+        'Amor estructurado, compromiso práctico': 'Structured love, practical commitment',
+
+        // ── Eclipse names ──
+        'Eclipse Solar Anular': 'Annular Solar Eclipse',
+        'Eclipse Lunar Total': 'Total Lunar Eclipse',
+        'Eclipse Solar Total': 'Total Solar Eclipse',
+        'Eclipse Lunar Parcial': 'Partial Lunar Eclipse',
+
+        // ── Eclipse aspect descriptions ──
+        'Estructura, responsabilidad': 'Structure, responsibility',
+        'Expansión, oportunidades': 'Expansion, opportunities',
+        'Cambios súbitos, liberación': 'Sudden changes, liberation',
+        'Claridad vs ilusión': 'Clarity vs illusion',
+        'Transformación profunda': 'Deep transformation',
+        'Acción constructiva': 'Constructive action',
+        'Amor, valores, belleza': 'Love, values, beauty',
+        'Exceso, optimismo exagerado': 'Excess, exaggerated optimism',
+        'Límites, madurez emocional': 'Limits, emotional maturity',
+        'Intuición, innovación': 'Intuition, innovation',
+
+        // ── Eclipse visibility ──
+        'Antártida, sur de África, sur del Océano Índico': 'Antarctica, southern Africa, southern Indian Ocean',
+        'América, Europa, África': 'Americas, Europe, Africa',
+        'Groenlandia, Islandia, España': 'Greenland, Iceland, Spain',
+        'América, Europa, África, Asia': 'Americas, Europe, Africa, Asia',
+
+        // ── Retrograde sign translations ──
+        'Capricornio': 'Capricorn',
+        'Géminis → Tauro': 'Gemini → Taurus',
+        'Libra → Virgo': 'Libra → Virgo',
+        'Aries → Piscis': 'Aries → Pisces',
+        'Leo → Cáncer': 'Leo → Cancer',
+        'Cáncer': 'Cancer',
+        'Leo': 'Leo',
+        'Géminis → Tauro': 'Gemini → Taurus',
+        'Acuario → Capricornio': 'Aquarius → Capricorn',
+
+        // ── Spanish zodiac sign names ──
+        'Acuario': 'Aquarius',
+        'Piscis': 'Pisces',
+        'Aries': 'Aries',
+        'Tauro': 'Taurus',
+        'Géminis': 'Gemini',
+        'Virgo': 'Virgo',
+        'Libra': 'Libra',
+        'Escorpio': 'Scorpio',
+        'Sagitario': 'Sagittarius',
+
+        // ── Spanish planet names ──
+        'Mercurio': 'Mercury',
+        'Venus': 'Venus',
+        'Marte': 'Mars',
+        'Júpiter': 'Jupiter',
+        'Saturno': 'Saturn',
+        'Urano': 'Uranus',
+        'Neptuno': 'Neptune',
+        'Plutón': 'Pluto',
+        'Sol': 'Sun',
+        'Luna': 'Moon',
+
+        // ── Additional Mercury sign change meanings ──
+        'Ideas innovadoras, pensamiento colectivo': 'Innovative ideas, collective thinking',
+        'Intuición, comunicación emocional': 'Intuition, emotional communication',
+        'Comunicación directa, decisiones rápidas': 'Direct communication, quick decisions',
+
+        // ── Sign change lastTime strings ──
+        'Júpiter en Leo: Ago 2014-Ago 2015': 'Jupiter in Leo: Aug 2014-Aug 2015',
+        'Saturno en Aries: 1996-1999': 'Saturn in Aries: 1996-1999',
+        'Urano en Géminis: 1941-1949': 'Uranus in Gemini: 1941-1949',
+        'Neptuno en Aries: 1861-1875': 'Neptune in Aries: 1861-1875',
+
+        // ── Major aspect configuration meanings ──
+        'Tensión entre acción, transformación y comunicación. Momento de tomar decisiones difíciles.':
+            'Tension between action, transformation and communication. Time to make difficult decisions.',
+        'Desafíos que impulsan crecimiento. Energía dinámica para logros.':
+            'Challenges that drive growth. Dynamic energy for achievements.',
+        'Cambio súbito, comunicación urgente, acción necesaria. Crisis que genera oportunidad.':
+            'Sudden change, urgent communication, necessary action. Crisis that creates opportunity.',
+        'Innovación forzada. Soluciones creativas bajo presión.':
+            'Forced innovation. Creative solutions under pressure.',
+        'Configuración armónica con foco. Gran talento para manifestar cambios.':
+            'Harmonic configuration with focus. Great talent for manifesting changes.',
+        'Momento poderoso para transformación creativa y relaciones.':
+            'Powerful moment for creative transformation and relationships.',
+        'Balance entre espiritualidad y manifestación. Sueños + acción.':
+            'Balance between spirituality and manifestation. Dreams + action.',
+        'Talentos puestos al servicio de causas importantes.':
+            'Talents put in service of important causes.',
+
+        // ── Aspect type names ──
+        'Conjunción': 'Conjunction',
+        'Sextil': 'Sextile',
+        'Cuadratura': 'Square',
+        'Trígono': 'Trine',
+        'Oposición': 'Opposition'
     };
-    
-    return translations[spanishText] || spanishText;
+
+    if (translations[spanishText]) return translations[spanishText];
+
+    // Programmatic fallback for lastTime patterns like "Jun 2025 en Géminis/Sagitario"
+    if (spanishText && spanishText.indexOf(' en ') !== -1) {
+        var monthMap = {'Ene':'Jan','Feb':'Feb','Mar':'Mar','Abr':'Apr','May':'May','Jun':'Jun','Jul':'Jul','Ago':'Aug','Sep':'Sep','Oct':'Oct','Nov':'Nov','Dic':'Dec'};
+        var signMap = {'Capricornio':'Capricorn','Acuario':'Aquarius','Piscis':'Pisces','Aries':'Aries','Tauro':'Taurus','Géminis':'Gemini','Cáncer':'Cancer','Leo':'Leo','Virgo':'Virgo','Libra':'Libra','Escorpio':'Scorpio','Sagitario':'Sagittarius'};
+        var planetMap = {'Mercurio':'Mercury','Venus':'Venus','Marte':'Mars','Júpiter':'Jupiter','Saturno':'Saturn','Urano':'Uranus','Neptuno':'Neptune','Plutón':'Pluto','Sol':'Sun','Luna':'Moon'};
+        var result = spanishText.replace(/ en /g, ' in ');
+        Object.keys(monthMap).forEach(function(k) { result = result.replace(new RegExp('\\b'+k+'\\b','g'), monthMap[k]); });
+        Object.keys(signMap).forEach(function(k) { result = result.replace(new RegExp(k,'g'), signMap[k]); });
+        Object.keys(planetMap).forEach(function(k) { result = result.replace(new RegExp(k,'g'), planetMap[k]); });
+        if (result !== spanishText) return result;
+    }
+
+    return spanishText;
 }
 
 // Modal de Cambio de Signo
@@ -11669,11 +11896,11 @@ function showHistoricAspectsModal() {
         html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:0.82em;">';
         html += '<span style="color:#f0e68c;font-weight:600;">📅 ' + ev.date + (ev.time ? ' — ' + ev.time : '') + '</span>';
         html += '<span style="color:#c9a840;">⏱️ ' + ev.cycle + '</span>';
-        html += '<span style="color:rgba(255,255,255,0.5);">🔄 ' + ev.lastTime + '</span>';
+        html += '<span style="color:rgba(255,255,255,0.5);">🔄 ' + translateMeaning(ev.lastTime) + '</span>';
         html += '</div>';
-        html += '<div style="font-size:0.82em;color:#cfd8dc;line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;">' + ev.meaning + '</div>';
+        html += '<div style="font-size:0.82em;color:#cfd8dc;line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;">' + translateMeaning(ev.meaning) + '</div>';
         // AI interpretation button
-        var evClickText = (ev.planet1 + ' ' + ev.symbol + ' ' + ev.planet2 + ' ' + ev.date + ' ' + ev.meaning).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        var evClickText = (ev.planet1 + ' ' + ev.symbol + ' ' + ev.planet2 + ' ' + ev.date + ' ' + translateMeaning(ev.meaning)).replace(/'/g, "\\'").replace(/"/g, '&quot;');
         html += '<div onclick="event.stopPropagation();closeHistoricAspectsModal();setTimeout(function(){showBannerAspectDetail(\'' + evClickText + '\');},300);" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;margin-bottom:10px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:8px;font-size:0.78em;color:#c9a840;font-weight:600;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(201,168,64,0.25)\'" onmouseout="this.style.background=\'rgba(201,168,64,0.15)\'">' + (L ? '✨ Interpretar' : '✨ Interpret') + '</div>';
         if (ev.history && ev.history.length) {
             var hid = 'hist_' + ev.planet1.replace(/[^a-z]/gi,'') + '_' + ev.symbol.charCodeAt(0);
@@ -11744,11 +11971,11 @@ function renderHistoricEventCard(ev, cfg) {
     html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:0.82em;">';
     html += '<span style="color:#f0e68c;font-weight:600;">📅 ' + ev.date + (ev.time ? ' — ' + ev.time : '') + '</span>';
     if (ev.cycle) html += '<span style="color:#c9a840;">⏱️ ' + ev.cycle + '</span>';
-    if (ev.lastTime) html += '<span style="color:rgba(255,255,255,0.5);">🔄 ' + ev.lastTime + '</span>';
+    if (ev.lastTime) html += '<span style="color:rgba(255,255,255,0.5);">🔄 ' + translateMeaning(ev.lastTime) + '</span>';
     html += '</div>';
     // Meaning
     if (ev.meaning) {
-        html += '<div style="font-size:0.82em;color:#cfd8dc;line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;">' + ev.meaning + '</div>';
+        html += '<div style="font-size:0.82em;color:#cfd8dc;line-height:1.5;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;">' + translateMeaning(ev.meaning) + '</div>';
     }
     // History expandable
     if (ev.history && ev.history.length) {
@@ -13865,8 +14092,8 @@ function _renderSigns2026View(es) {
             html += '</div>';
             html += '<div style="text-align:right;font-size:0.78em;color:#f0e68c;white-space:nowrap;">' + dateStr + '</div>';
             html += '</div>';
-            if (asp.meaning) html += '<p style="color:rgba(255,255,255,0.6);font-size:0.8em;margin:4px 0 0 0;">' + asp.meaning + '</p>';
-            if (asp.lastTime) html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-top:3px;">🔄 ' + (es?'Última vez':'Last time') + ': ' + asp.lastTime + '</div>';
+            if (asp.meaning) html += '<p style="color:rgba(255,255,255,0.6);font-size:0.8em;margin:4px 0 0 0;">' + translateMeaning(asp.meaning) + '</p>';
+            if (asp.lastTime) html += '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-top:3px;">🔄 ' + (es?'Última vez':'Last time') + ': ' + translateMeaning(asp.lastTime) + '</div>';
             html += '</div>';
         });
 
@@ -14019,11 +14246,11 @@ function _renderEvents2026View(es) {
             html += '<div style="text-align:right;font-size:0.78em;color:#f0e68c;white-space:nowrap;">' + ev.date + '</div>';
             html += '</div>';
             // Meaning
-            if (ev.meaning) html += '<p style="color:rgba(255,255,255,0.55);font-size:0.78em;margin:4px 0 0 0;line-height:1.4;">' + ev.meaning + '</p>';
+            if (ev.meaning) html += '<p style="color:rgba(255,255,255,0.55);font-size:0.78em;margin:4px 0 0 0;line-height:1.4;">' + translateMeaning(ev.meaning) + '</p>';
             // Cycle info
             html += '<div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-top:3px;">';
             if (ev.cycle) html += '⏱️ ' + ev.cycle;
-            if (ev.lastTime) html += ' • 🔄 ' + ev.lastTime;
+            if (ev.lastTime) html += ' • 🔄 ' + translateMeaning(ev.lastTime);
             html += '</div>';
             // History
             if (ev.history && ev.history.length) {
@@ -14287,7 +14514,7 @@ function _renderAsteroids2026View(es) {
                     + '<div style="font-size:0.78em;color:rgba(255,255,255,0.5);">' + formatShortDate(evt.date) + '</div>'
                     + '</div>'
                     + '</div>'
-                    + '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-top:3px;">' + evt.meaning + '</div>'
+                    + '<div style="font-size:0.68em;color:rgba(255,255,255,0.35);margin-top:3px;">' + translateMeaning(evt.meaning) + '</div>'
                     + '</div>';
             });
             html += '</div>';
@@ -14345,7 +14572,7 @@ window.showAsteroid2026Detail = function(idx) {
         // Meaning
         + '<div style="padding:12px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;">'
         + '<div style="font-size:0.75em;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:4px;">' + (L ? 'Significado' : 'Meaning') + '</div>'
-        + '<div style="font-size:0.88em;color:rgba(255,255,255,0.85);line-height:1.6;">' + d.meaning + '</div>'
+        + '<div style="font-size:0.88em;color:rgba(255,255,255,0.85);line-height:1.6;">' + translateMeaning(d.meaning) + '</div>'
         + '</div>'
         // Domain
         + '<div style="padding:10px;background:rgba(' + rgbStr + ',0.06);border-radius:8px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px;">'
@@ -14375,7 +14602,7 @@ function _generateAsteroidInterpretation(d, L) {
     // Build a specific prompt for THIS event (not generic)
     var prompt = L
         ? 'Interpreta este evento astrológico específico para mi carta natal: El asteroide ' + d.asteroid + ' — ' + d.type + ' el ' + d.date + '. ' + d.asteroid + ' gobierna: ' + d.domain + '. ' + (d.isRetro ? 'Actualmente retrógrado. ' : '') + (d.category === 'retro' ? 'Este evento es el inicio de su retrogradación. ' : d.category === 'direct' ? 'Este evento es cuando vuelve directo. ' : 'Este es un cambio de signo. ') + 'Significado base: ' + d.meaning + '. Interpreta cómo me afecta personalmente, qué áreas de mi vida impacta, y qué consejo práctico darías. Máximo 200 palabras.'
-        : 'Interpret this specific astrological event for my natal chart: Asteroid ' + d.asteroid + ' — ' + d.type + ' on ' + d.date + '. ' + d.asteroid + ' rules: ' + d.domain + '. ' + (d.isRetro ? 'Currently retrograde. ' : '') + (d.category === 'retro' ? 'This event is the start of its retrograde. ' : d.category === 'direct' ? 'This event is when it goes direct. ' : 'This is a sign change. ') + 'Base meaning: ' + d.meaning + '. Interpret how it affects me personally, what life areas it impacts, and practical advice. Max 200 words.';
+        : 'Interpret this specific astrological event for my natal chart: Asteroid ' + d.asteroid + ' — ' + d.type + ' on ' + d.date + '. ' + d.asteroid + ' rules: ' + d.domain + '. ' + (d.isRetro ? 'Currently retrograde. ' : '') + (d.category === 'retro' ? 'This event is the start of its retrograde. ' : d.category === 'direct' ? 'This event is when it goes direct. ' : 'This is a sign change. ') + 'Base meaning: ' + translateMeaning(d.meaning) + '. Interpret how it affects me personally, what life areas it impacts, and practical advice. Max 200 words.';
 
     // Store prompt globally for the chat button
     window._lastAstInterp = { prompt: prompt, d: d };
@@ -14662,8 +14889,8 @@ function renderAspects2026Panel() {
                     + '</div>'
                     + '<div style="text-align:right;font-size:0.78em;color:#f0e68c;white-space:nowrap;">' + dateStr + '</div>'
                     + '</div>'
-                    + (meaning ? '<p style="color:rgba(255,255,255,0.6);font-size:0.8em;margin:4px 0 0 0;">' + meaning + '</p>' : '')
-                    + (asp.lastTime ? '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-top:3px;">🔄 ' + (es?'Última vez':'Last time') + ': ' + asp.lastTime + '</div>' : '')
+                    + (meaning ? '<p style="color:rgba(255,255,255,0.6);font-size:0.8em;margin:4px 0 0 0;">' + translateMeaning(meaning) + '</p>' : '')
+                    + (asp.lastTime ? '<div style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-top:3px;">🔄 ' + (es?'Última vez':'Last time') + ': ' + translateMeaning(asp.lastTime) + '</div>' : '')
                     + '</div>';
             });
             html += '</div>';
@@ -14789,8 +15016,8 @@ function showAspect2026Detail(planetName, aspectType, aspectSymbol, withPlanet, 
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Aspecto:' : 'Aspect:') + '</strong> <span style="color:#e91e63;font-weight:700;">' + (aspectSymbol || '') + ' ' + (aspectType || '') + '</span></div>';
     html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Con:' : 'With:') + '</strong> ' + withPlanet + '</div>';
     if (dateStr) html += '<div style="font-size:0.9em;margin-bottom:8px;"><strong>' + (L ? 'Fecha:' : 'Date:') + '</strong> ' + dateStr + '</div>';
-    if (lastTime) html += '<div style="font-size:0.85em;margin-bottom:8px;color:rgba(126,200,255,0.7);">🔄 ' + (L ? 'Última vez' : 'Last time') + ': ' + lastTime + '</div>';
-    if (meaning) html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.6);margin-top:8px;line-height:1.5;">' + meaning + '</div>';
+    if (lastTime) html += '<div style="font-size:0.85em;margin-bottom:8px;color:rgba(126,200,255,0.7);">🔄 ' + (L ? 'Última vez' : 'Last time') + ': ' + translateMeaning(lastTime) + '</div>';
+    if (meaning) html += '<div style="font-size:0.85em;color:rgba(255,255,255,0.6);margin-top:8px;line-height:1.5;">' + translateMeaning(meaning) + '</div>';
     html += '</div>';
 
     // AI interpretation
@@ -14801,7 +15028,7 @@ function showAspect2026Detail(planetName, aspectType, aspectSymbol, withPlanet, 
 
     var prompt = L
         ? 'Interpreta este aspecto astrológico del 2026 y cómo me afecta personalmente según mi carta natal: ' + planetName + ' ' + (aspectSymbol||'') + ' ' + (aspectType||'') + ' ' + withPlanet + (dateStr ? ' (fecha: ' + dateStr + ')' : '') + (meaning ? '. Significado: ' + meaning : '')
-        : 'Interpret this 2026 astrological aspect and how it affects me personally based on my natal chart: ' + planetName + ' ' + (aspectSymbol||'') + ' ' + (aspectType||'') + ' ' + withPlanet + (dateStr ? ' (date: ' + dateStr + ')' : '') + (meaning ? '. Meaning: ' + meaning : '');
+        : 'Interpret this 2026 astrological aspect and how it affects me personally based on my natal chart: ' + planetName + ' ' + (aspectSymbol||'') + ' ' + (aspectType||'') + ' ' + withPlanet + (dateStr ? ' (date: ' + dateStr + ')' : '') + (meaning ? '. Meaning: ' + translateMeaning(meaning) : '');
     var readingTitle = planetName + ' ' + (aspectSymbol||'') + ' ' + withPlanet;
     setTimeout(function() {
         fetchAIInterpretation(prompt, 'aiInterpDiv', readingTitle);
@@ -26829,7 +27056,7 @@ function checkNotifications() {
             var keyEcl12h = 'notif-eclipses-' + todayKey + '-12h';
             if (!localStorage.getItem(keyEcl12h)) {
                 sendNotif(L ? 'Eclipse Mañana' : 'Eclipse Tomorrow', {
-                    body: (L ? 'Mañana: ' : 'Tomorrow: ') + eclipseTomorrow.name,
+                    body: (L ? 'Mañana: ' : 'Tomorrow: ') + translateMeaning(eclipseTomorrow.name),
                     tag: 'eclipse-12h-' + todayKey,
                     requireInteraction: false
                 });
@@ -26842,7 +27069,7 @@ function checkNotifications() {
             var keyEclDay = 'notif-eclipses-' + todayKey + '-day';
             if (!localStorage.getItem(keyEclDay)) {
                 sendNotif(L ? 'Eclipse Hoy' : 'Eclipse Today', {
-                    body: eclipse.name,
+                    body: translateMeaning(eclipse.name),
                     tag: 'eclipse-day-' + todayKey,
                     requireInteraction: true
                 });
@@ -27651,7 +27878,7 @@ function openMoonVerMas(timestamp) {
         const hasAspects = eclipse||interAspects.length||signChanges.length||retrogrades.length||dayAspects.length;
 
         const aspectsHTML = hasAspects ? `
-            ${eclipse ? `<div style="padding:4px 6px;margin-bottom:2px;border-radius:4px;background:rgba(255,215,0,0.10);border-left:2px solid #FFD700;font-size:0.80em;"><span style="color:#FFD700;font-weight:700;">${eclipse.type==='solar'?'☀️':'🌒'} ${eclipse.name}</span></div>` : ''}
+            ${eclipse ? `<div style="padding:4px 6px;margin-bottom:2px;border-radius:4px;background:rgba(255,215,0,0.10);border-left:2px solid #FFD700;font-size:0.80em;"><span style="color:#FFD700;font-weight:700;">${eclipse.type==='solar'?'☀️':'🌒'} ${translateMeaning(eclipse.name)}</span></div>` : ''}
             ${interAspects.length ? `<div style="font-size:0.62em;color:#c9a840;font-weight:600;text-transform:uppercase;margin:3px 0 2px;letter-spacing:0.5px;">${currentLang==='es'?'Interplanetarios':'Interplanetary'}</div>` : ''}
             ${interAspects.map(a=>`<div style="padding:3px 6px;margin-bottom:2px;border-radius:4px;background:rgba(0,0,0,0.18);border-left:2px solid ${a.color};font-size:0.80em;"><span style="color:${a.color};font-weight:700;">${a.symbol}</span> <span style="color:#e8eaf6;">${tp(a.planet1)} – ${tp(a.planet2)}</span>${a.degrees?`<span style="color:rgba(255,255,255,0.35);font-size:0.82em;"> (${a.degrees})</span>`:''}${a.signs?`<span style="color:rgba(255,255,255,0.3);font-size:0.78em;"> ${a.signs}</span>`:''}${a.time?`<span style="color:#c9a840;float:right;font-size:0.85em;">${a.time}</span>`:''}</div>`).join('')}
             ${signChanges.map(c=>`<div style="padding:3px 6px;margin-bottom:2px;border-radius:4px;background:rgba(0,0,0,0.18);border-left:2px solid ${c.color};font-size:0.80em;"><span style="color:${c.color};">→</span> <span style="color:#e8eaf6;">${tp(c.planet)}: ${ts(c.toSign)}</span></div>`).join('')}
@@ -28363,7 +28590,7 @@ function buildAspectDetailHtml(data, borderColor) {
         + '<div style="font-size:0.58em;color:rgba(255,255,255,0.4);">'+(currentLang==='es'?'Signos':'Signs')+'</div>'
         + '<div style="font-size:0.85em;font-weight:bold;color:#7ec8ff;">'+(data.signs||'—')+'</div></div>'
         + '</div>'
-        + (data.meaning ? '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);line-height:1.5;padding:10px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid '+borderColor+';">'+data.meaning+'</div>' : '')
+        + (data.meaning ? '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);line-height:1.5;padding:10px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid '+borderColor+';">'+translateMeaning(data.meaning)+'</div>' : '')
         + '</div>';
 }
 
@@ -28410,7 +28637,7 @@ function handleNotifItemClick(index) {
             if (matchedSc && matchedSc.meaning) {
                 detailHtml = '<div style="padding:14px;background:rgba(5,7,30,0.95);border:1px solid '+borderColor+';border-radius:10px;">'
                     + '<div style="text-align:center;font-size:1.2em;margin-bottom:10px;">'+item.message+'</div>'
-                    + '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);line-height:1.5;">'+matchedSc.meaning+'</div>'
+                    + '<div style="font-size:0.78em;color:rgba(255,255,255,0.55);line-height:1.5;">'+translateMeaning(matchedSc.meaning)+'</div>'
                     + '</div>';
             } else {
                 detailHtml = '<div style="padding:14px;text-align:center;font-size:1em;color:#e8eaf6;">'+item.message+'</div>';
