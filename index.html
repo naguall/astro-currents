@@ -26691,12 +26691,11 @@ function goToCurrentCycle() {
                     { sel: '#currentDayInfo', icon: '📋', title: L ? 'Info del día de HOY' : 'TODAY\'s Info', desc: L ? 'Información del día lunar, solar y gregoriano. Toca los botones agenda y de info lunar 🌙 y solar ☀️ para ver detalles expandidos. ¡Cada elemento es interactivo! Para regresar siempre al día de hoy, toca el botón HOY.' : 'Lunar, solar and gregorian day info. Tap the agenda and lunar 🌙 and solar ☀️ info buttons for expanded details. Every element is interactive! To always return to today, tap the TODAY button.' }
                 ],
                 'lunar': [
-                    { sel: '.moon-grid,.calendar-grid', icon: '📅', title: L ? 'Calendario Lunar' : 'Lunar Calendar', desc: L ? 'Toca cualquier día para ver detalle con aspectos, diario y eventos' : 'Tap any day to see detail with aspects, diary and events' },
-                    { sel: '.planet-btn[onclick*="showPlanetAspects"],.planet-btn', icon: '🪐', title: L ? 'Planetas' : 'Planets', desc: L ? 'Toca cada planeta para ver sus aspectos actuales con la Luna' : 'Tap each planet to see its current aspects with the Moon', multi: true },
-                    { sel: '[onclick*="showMajorAspectsModal"]', icon: '✦', title: L ? 'Aspectos Mayores' : 'Major Aspects', desc: L ? 'Lista completa de aspectos planetarios del ciclo actual' : 'Complete list of planetary aspects for the current cycle' },
-                    { sel: '[onclick*="openLunarCalendar2026"]', icon: '📅', title: L ? 'Calendario 2026' : '2026 Calendar', desc: L ? 'Vista anual de todas las fases lunares de 2026' : 'Annual view of all 2026 lunar phases' },
-                    { sel: '[onclick*="toggleLunarRiseSetList"],.btn-shine-teal', icon: '🌊', title: L ? 'Info de Hoy' : 'Today Info', desc: L ? 'Fase lunar actual, mareas, salida/puesta, distancia y declinación' : 'Current lunar phase, tides, rise/set, distance and declination' },
-                    { sel: '[onclick*="openLocationSelector"]', icon: '📍', title: L ? 'Ubicación' : 'Location', desc: L ? 'Cambia tu ubicación para cálculos precisos' : 'Change your location for precise calculations' }
+                    { sel: '.day-cell.perfection-day,.lunar-week.active .week-header', icon: '🌕', title: L ? 'Fases Lunares' : 'Lunar Phases', desc: L ? 'Las 4 fases donde se perfecciona la Luna. Ese día se perfecciona la fase: Luna Nueva, Cuarto Creciente, Luna Llena o Cuarto Menguante.' : 'The 4 phases where the Moon perfects. On that day the phase perfects: New Moon, First Quarter, Full Moon or Last Quarter.' },
+                    { sel: '.day-cell.today,.day-cell:not(.past)', icon: '📅', title: L ? 'Toca un Día' : 'Tap a Day', desc: L ? 'Haz click y anota eventos de agenda, escribe en tu diario personal y de sueños, consulta aspectos del día.' : 'Click and note agenda events, write in your personal and dream diary, check daily aspects.' },
+                    { sel: '[onclick*="toggleLunarRiseSetList"]', icon: '🌙', title: L ? 'Salida y Puesta' : 'Moonrise & Moonset', desc: L ? 'Haz click y mira las salidas y puestas de la Luna del año.' : 'Click and see the Moon rises and sets for the year.' },
+                    { sel: '[onclick*="openTideCycleModal"],.tide-curve-container', icon: '🌊', title: L ? 'Curva de Mareas' : 'Tide Curve', desc: L ? 'Haz click para mirar las mareas de esta semana.' : 'Click to see this week\'s tides.' },
+                    { sel: '[onclick*="openLocationSelector"]', icon: '📍', title: L ? 'Ubicación' : 'Location', desc: L ? 'Pon la ubicación deseada para cálculos precisos de salidas, puestas y mareas.' : 'Set your desired location for precise rise, set and tide calculations.' }
                 ],
                 'solar': [
                     { sel: '.sun-map-container,#sunMapCanvas,canvas', icon: '🗺️', title: L ? 'Mapa Solar' : 'Solar Map', desc: L ? 'Posición del Sol sobre la Tierra en tiempo real con línea día/noche' : 'Real-time Sun position over Earth with day/night line', ctx: 'solar' },
@@ -32769,7 +32768,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v563';
+var APP_VERSION = 'v564';
 var _pendingSW = null;
 
 // What's New removed per user request

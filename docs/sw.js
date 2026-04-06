@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-currents-v563';
+const CACHE_NAME = 'astro-currents-v564';
 const BASE = '/astro-currents';
 const ASSETS = [
   BASE + '/',
