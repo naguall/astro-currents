@@ -26831,23 +26831,37 @@ function goToCurrentCycle() {
                 _elevatedAncestors = [];
             }
 
-            function _highlightSingleEl(el) {
-                el.style.position = 'relative';
-                el.style.zIndex = '9995';
-                el.style.boxShadow = '0 0 0 5px rgba(102,126,234,1), 0 0 20px 10px rgba(102,126,234,0.8), 0 0 60px 20px rgba(102,126,234,0.5), 0 0 100px 40px rgba(102,126,234,0.3)';
-                el.style.borderRadius = el.style.borderRadius || '8px';
-                el.style.outline = '3px solid rgba(255,255,255,0.8)';
-                el.style.outlineOffset = '4px';
-                el.style.background = 'rgba(102,126,234,0.35)';
-                var _elRect = el.getBoundingClientRect();
-                if (_elRect.width > 300) {
+            function _highlightSingleEl(el, isMulti) {
+                if (isMulti) {
+                    // Multi-element: gentle highlight WITHOUT moving layout
+                    el.style.zIndex = '9995';
+                    el.style.boxShadow = '0 0 0 4px rgba(102,126,234,1), 0 0 15px 8px rgba(102,126,234,0.7)';
+                    el.style.borderRadius = el.style.borderRadius || '8px';
+                    el.style.outline = '2px solid rgba(255,255,255,0.8)';
+                    el.style.outlineOffset = '2px';
+                    el.style.background = 'rgba(102,126,234,0.35)';
                     el.style.animation = 'none';
                     el.style.transform = 'none';
+                    el.style.filter = 'brightness(1.8)';
                 } else {
-                    el.style.animation = 'spotlightPulse 1.5s ease-in-out infinite';
-                    el.style.transform = 'scale(1.15)';
+                    // Single element: full effect with position/scale
+                    el.style.position = 'relative';
+                    el.style.zIndex = '9995';
+                    el.style.boxShadow = '0 0 0 5px rgba(102,126,234,1), 0 0 20px 10px rgba(102,126,234,0.8), 0 0 60px 20px rgba(102,126,234,0.5), 0 0 100px 40px rgba(102,126,234,0.3)';
+                    el.style.borderRadius = el.style.borderRadius || '8px';
+                    el.style.outline = '3px solid rgba(255,255,255,0.8)';
+                    el.style.outlineOffset = '4px';
+                    el.style.background = 'rgba(102,126,234,0.35)';
+                    var _elRect = el.getBoundingClientRect();
+                    if (_elRect.width > 300) {
+                        el.style.animation = 'none';
+                        el.style.transform = 'none';
+                    } else {
+                        el.style.animation = 'spotlightPulse 1.5s ease-in-out infinite';
+                        el.style.transform = 'scale(1.15)';
+                    }
+                    el.style.filter = 'brightness(1.8)';
                 }
-                el.style.filter = 'brightness(1.8)';
                 // Elevate ancestors
                 var ancestor = el.parentElement;
                 while (ancestor && ancestor !== document.body) {
@@ -26890,7 +26904,7 @@ function goToCurrentCycle() {
                                 transform: mel.style.transform, filter: mel.style.filter
                             };
                             _prevMultiEls.push({ el: mel, orig: origStyles });
-                            _highlightSingleEl(mel);
+                            _highlightSingleEl(mel, true);
                         });
 
                         // Position tooltip near the center of all highlighted elements
@@ -32875,7 +32889,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v567';
+var APP_VERSION = 'v568';
 var _pendingSW = null;
 
 // What's New removed per user request
