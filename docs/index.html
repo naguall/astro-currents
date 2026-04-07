@@ -26679,16 +26679,16 @@ function goToCurrentCycle() {
             var steps = {
                 'header': [
                     { sel: '#notifHistoryBtn,#notificationBtn', icon: '🔔', title: L ? 'Notificaciones' : 'Notifications', desc: L ? 'Recibe las notificaciones de eventos en tu agenda, aspectos planetarios, comunidad y más.' : 'Get notifications for agenda events, planetary aspects, community and more.' },
-                    { sel: '#savedReadingsBtn', icon: '📚', title: L ? 'Lecturas Guardadas' : 'Saved Readings', desc: L ? 'Al salvar cualquier interpretación de la app puedes releerla, editar, preguntar y expandir acá. Lo mismo con tu diario personal y diario de sueños.' : 'Save any app interpretation to reread, edit, ask questions and expand. Same with your personal diary and dream journal.' },
-                    { sel: '#moonCompassBtn', icon: '🧭', title: L ? 'Brújula Celeste' : 'Celestial Compass', desc: L ? 'Brújula que apunta hacia la posición real de los astros en el cielo en tiempo real.' : 'Compass pointing to the real-time position of celestial bodies in the sky.' },
+                    { sel: '#savedReadingsBtn', icon: '📚', title: L ? 'Lecturas Guardadas' : 'Saved Readings', desc: L ? 'Al salvar cualquier conversación, interpretación en la app puedes releerla, editar, preguntar y expandir acá. Lo mismo con tu diario personal y diario de sueños.' : 'Save any conversation or app interpretation to reread, edit, ask questions and expand. Same with your personal diary and dream journal.' },
+                    { sel: '#moonCompassBtn', icon: '🧭', title: L ? 'Brújula Celeste' : 'Celestial Compass', desc: L ? 'Brújula que apunta hacia la posición real de los astros en el cielo en tiempo real. Ubícalos en cualquier momento.' : 'Compass pointing to the real-time position of celestial bodies in the sky. Locate them at any time.' },
                     { sel: '#preferencesBtn', icon: '⚙️', title: L ? 'Preferencias' : 'Preferences', desc: L ? 'Idioma, notificaciones, tamaño del calendario, ubicación, programación de alarma de sueños, interpretadores y más.' : 'Language, notifications, calendar size, location, dream alarm scheduling, interpreters and more.' },
                     { sel: '#lunarModeBtn', icon: '🌙', title: L ? 'Tab Lunar' : 'Lunar Tab', desc: L ? 'Calendario por ciclos lunares con fases, información lunar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Calendar by lunar cycles with phases, lunar info, planetary aspects, event notes, notifications, personal and dream diary.' },
-                    { sel: '#solarModeBtn', icon: '☀️', title: L ? 'Tab Solar' : 'Solar Tab', desc: L ? 'Calendario solar real, información solar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Real solar calendar, solar info, planetary aspects, event notes, notifications, personal and dream diary.' },
+                    { sel: '#solarModeBtn', icon: '☀️', title: L ? 'Tab Solar' : 'Solar Tab', desc: L ? 'Calendario Solar, información solar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Solar Calendar, solar info, planetary aspects, event notes, notifications, personal and dream diary.' },
                     { sel: '#gregorianModeBtn', icon: '📅', title: L ? 'Tab Gregoriano' : 'Gregorian Tab', desc: L ? 'Calendario clásico semanal, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Classic weekly calendar, planetary aspects, event notes, notifications, personal and dream diary.' },
                     { sel: '#personalModeBtn', icon: '🔮', title: L ? 'Tab Astro' : 'Astro Tab', desc: L ? 'Sección astrológica: carta natal, astrología avanzada, curso Astro Currents y más.' : 'Astrology section: natal chart, advanced astrology, Astro Currents course and more.' },
                     { sel: '#socialModeBtn', icon: '🌐', title: 'AstroConnect', desc: L ? 'Red social astrológica: feed, comunidades, chat, encuentra tu especie astrológica.' : 'Astrological social network: feed, communities, chat, find your astrological species.' },
                     { sel: '#aiChatFab', icon: '✨', title: L ? 'Asistente A.C.' : 'A.C. Assistant', desc: L ? 'Chat inteligente que responde preguntas sobre astrología, tu carta natal, agenda y más.' : 'Smart chat answering questions about astrology, your natal chart, agenda and more.' },
-                    { sel: '#currentDayInfo', icon: '📋', title: L ? 'Info del día de HOY' : 'TODAY\'s Info', desc: L ? 'Información del día lunar, solar y gregoriano. Toca los botones agenda y de info lunar 🌙 y solar ☀️ para ver detalles expandidos. ¡Cada elemento es interactivo! Para regresar siempre al día de hoy, toca el botón HOY.' : 'Lunar, solar and gregorian day info. Tap the agenda and lunar 🌙 and solar ☀️ info buttons for expanded details. Every element is interactive! To always return to today, tap the TODAY button.' }
+                    { sel: '#currentDayInfo', icon: '📋', title: L ? 'Info del día de HOY' : 'TODAY\'s Info', desc: L ? 'Información del día HOY con los eventos de agenda, aspectos lunares del día. Haz click y expande la información. Navega en el calendario y regresa al día de hoy haciendo click en día de HOY.' : 'TODAY\'s info with agenda events and daily lunar aspects. Click to expand the information. Navigate the calendar and return to today by clicking on TODAY.' }
                 ],
                 'lunar': [
                     { sel: '.day-cell.perfection-day,.lunar-week.active .week-header', icon: '🌕', title: L ? 'Fases Lunares' : 'Lunar Phases', desc: L ? 'Las 4 fases donde se perfecciona la Luna. Ese día se perfecciona la fase: Luna Nueva, Cuarto Creciente, Luna Llena o Cuarto Menguante.' : 'The 4 phases where the Moon perfects. On that day the phase perfects: New Moon, First Quarter, Full Moon or Last Quarter.' },
@@ -26844,8 +26844,15 @@ function goToCurrentCycle() {
                     el.style.outline = '3px solid rgba(255,255,255,0.8)';
                     el.style.outlineOffset = '4px';
                     el.style.background = 'rgba(102,126,234,0.35)';
-                    el.style.animation = 'spotlightPulse 1.5s ease-in-out infinite';
-                    el.style.transform = 'scale(1.15)';
+                    // Skip zoom/pulse for large elements (banners, info boxes)
+                    var _elRect = el.getBoundingClientRect();
+                    if (_elRect.width > 300) {
+                        el.style.animation = 'none';
+                        el.style.transform = 'none';
+                    } else {
+                        el.style.animation = 'spotlightPulse 1.5s ease-in-out infinite';
+                        el.style.transform = 'scale(1.15)';
+                    }
                     el.style.filter = 'brightness(1.8)';
 
                     // Walk up ancestors and elevate any that create stacking contexts
@@ -32768,7 +32775,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v565';
+var APP_VERSION = 'v566';
 var _pendingSW = null;
 
 // What's New removed per user request
