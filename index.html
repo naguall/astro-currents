@@ -32927,8 +32927,10 @@ function showUpdateBanner() {
     if (navigator.setAppBadge) navigator.setAppBadge(1).catch(function(){});
 }
 
+var _swUpdateRequested = false;
 function applyAppUpdate() {
     if (_pendingSW) {
+        _swUpdateRequested = true;
         _pendingSW.postMessage({ type: 'SKIP_WAITING' });
     } else {
         window.location.reload();
@@ -32968,10 +32970,14 @@ if ('serviceWorker' in navigator) {
                 .catch(function(e) { console.log('❌ SW failed completely:', e); });
         });
 
-    // When new SW takes control, show update banner instead of auto-reloading
+    // When new SW takes control: reload if user requested update, else show banner
     navigator.serviceWorker.addEventListener('controllerchange', function() {
         console.log('🔄 New SW active');
-        showUpdateBanner();
+        if (_swUpdateRequested) {
+            window.location.reload();
+        } else {
+            showUpdateBanner();
+        }
     });
 
     // Periodically check for updates (every 30 minutes)
