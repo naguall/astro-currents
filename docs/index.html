@@ -600,8 +600,8 @@
             /* ── Natal calendar: fit within screen ── */
             .personal-natal-card { padding: 6px !important; }
             .personal-month-grid { gap: 2px !important; }
-            .personal-day-cell { min-height: 52px !important; padding: 3px !important; font-size: 0.68em !important; overflow: hidden !important; }
-            .personal-day-cell .personal-day-num { font-size: 1.1em !important; }
+            .personal-day-cell { min-height: 48px !important; padding: 2px 3px !important; font-size: 0.62em !important; overflow: hidden !important; }
+            .personal-day-cell .personal-day-num { font-size: 0.95em !important; }
             #natalCalendarGrid .personal-natal-card > div:first-child { margin-bottom: 4px !important; }
             #natalCalendarGrid .personal-natal-card > div:first-child button { padding: 4px 8px !important; font-size: 0.78em !important; }
 
@@ -21141,8 +21141,19 @@ function renderPersonalCalendar() {
 
         // Personal year day: day 1 = birthday
         const birthAnniversary = new Date(year, birthM - 1, birthD);
+        const nextBirthday = new Date(year + 1, birthM - 1, birthD);
         let personalDay = Math.floor((date - birthAnniversary) / 86400000) + 1;
-        if (personalDay <= 0) personalDay += 365;
+        let totalPersonalDays = Math.round((nextBirthday - birthAnniversary) / 86400000);
+        if (personalDay <= 0) {
+            const prevBirthday = new Date(year - 1, birthM - 1, birthD);
+            totalPersonalDays = Math.round((birthAnniversary - prevBirthday) / 86400000);
+            personalDay += totalPersonalDays;
+        }
+        const daysRemaining = totalPersonalDays - personalDay;
+        // Numerology reduction
+        const reduceNum = (num) => { let n = num; while (n > 9 && n !== 11 && n !== 22 && n !== 33) { n = String(n).split('').reduce((s,d) => s + parseInt(d), 0); } return n; };
+        const numDay = reduceNum(personalDay);
+        const numTotal = reduceNum(totalPersonalDays);
 
         // Moon phase icon (new moon / full moon)
         const moonEvent = getMoonEventForDate(date);
@@ -21198,15 +21209,15 @@ function renderPersonalCalendar() {
         }
 
         calendarHTML += `
-            <div class="${classes}" onclick="showPersonalDayDetail(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder || cycleBorder}">
+            <div class="${classes}" onclick="handlePersonalDayClick(${year},${month},${day})" title="${seasonTitle || (isBirthday ? '🎂 ' : '')}${date.toLocaleDateString(L?'es':'en')}" style="${seasonBorder || cycleBorder}">
                 <div style="display:flex;align-items:baseline;justify-content:space-between;width:100%;">
-                    <div style="display:flex;align-items:baseline;gap:3px;">
-                        <div class="personal-day-num" style="font-size:1.3em;font-weight:800;color:#e8c84a;">${isBirthday ? '🎂 ' : ''}${personalDay}</div>
-                        ${seasonIcon ? `<span style="font-size:0.75em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
+                    <div style="display:flex;align-items:baseline;gap:2px;">
+                        <div class="personal-day-num" style="font-size:1em;font-weight:800;color:#e8c84a;line-height:1;">${isBirthday ? '🎂' : ''}${personalDay}<span style="font-size:0.55em;color:rgba(232,200,74,0.45);font-weight:600;">/${totalPersonalDays}</span></div>
+                        ${seasonIcon ? `<span style="font-size:0.65em;" title="${seasonTitle}">${seasonIcon}</span>` : ''}
                     </div>
-                    <div style="font-size:0.95em;font-weight:800;color:#b39ddb;min-width:18px;text-align:right;line-height:1;" title="${L?'Numerología del día':'Day numerology'}">${(() => { let n = personalDay; while (n > 9 && n !== 11 && n !== 22 && n !== 33) { n = String(n).split('').reduce((s,d) => s + parseInt(d), 0); } return n; })()}</div>
+                    <div style="font-size:0.75em;font-weight:800;color:#b39ddb;text-align:right;line-height:1;" title="${L?'Numerología del día/año':'Day/year numerology'}">${numDay}<span style="font-size:0.7em;color:rgba(179,157,219,0.45);">/${numTotal}</span></div>
                 </div>
-                <div style="font-size:0.6em;color:${getMonthColor(month)};font-weight:600;margin-top:1px;">${day}/${month+1}</div>
+                <div style="font-size:0.55em;color:${getMonthColor(month)};font-weight:600;margin-top:1px;">${day}/${month+1}</div>
                 ${season ? `<div style="font-size:0.5em;color:${seasonColors[season.key]};font-weight:700;text-align:center;line-height:1;margin-top:1px;">${L ? season.es.replace('Personal ','').replace('de ','') : season.en.replace('Personal ','')}</div>` : ''}
                 ${(moonIcon || getCyclesForDate(date).length > 0 || _calAstroIcons) ? `<div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center;justify-content:center;width:100%;margin-top:1px;">${moonIcon ? `<span style="font-size:0.85em;">${moonIcon}</span>` : ''}${getCyclesForDate(date).filter(c => c.type !== 'solarReturn' || !isBirthday).map(c => `<span style="font-size:0.6em;" title="${c.label}">${c.icon}</span>`).join('')}${_calAstroIcons}</div>` : ''}
                 ${_calEvtHTML}
@@ -21253,22 +21264,7 @@ function renderPersonalCalendar() {
             });
         } catch(e) {}
 
-        // Moon phases (new/full)
-        var dInM = new Date(year, em + 1, 0).getDate();
-        for (var ed = 1; ed <= dInM; ed++) {
-            var eDate = new Date(year, em, ed);
-            var mev = getMoonEventForDate(eDate);
-            if (mev) {
-                yearEvents.push({
-                    date: eDate,
-                    icon: mev.type === 'full' ? '🌕' : '🌑',
-                    color: mev.type === 'full' ? '#f5f5dc' : '#616161',
-                    label: mev.type === 'full' ? (L ? 'Luna Llena' : 'Full Moon') : (L ? 'Luna Nueva' : 'New Moon'),
-                    type: 'moonPhase',
-                    desc: ''
-                });
-            }
-        }
+        // Moon phases (new/full) — removed from ciclos list (v588)
 
         // Personal seasons
         var mSeasons = getPersonalSeasons(year, birthM, birthD);
@@ -22113,6 +22109,47 @@ function personalNextMonth() {
 }
 
 // --- Day Detail Modal ---
+function handlePersonalDayClick(year, month, day) {
+    // Show same day options menu as Lunar/Solar calendars
+    try {
+        document.querySelectorAll('.modal.show').forEach(function(m) { m.classList.remove('show'); });
+        const date = new Date(year, month, day);
+        const L = currentLang === 'es';
+
+        // Calculate aspects count
+        const signChanges = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
+        const retrogrades = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
+        const interAspects = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
+        const eclipse = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
+        const moonEvent = getMoonEventForDate(date);
+        const allEvents = signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0);
+
+        const modal = document.getElementById('dayOptionsModal');
+        const aspectsBtn = document.getElementById('aspectsOptionBtn');
+
+        var titleEl = document.getElementById('dayOptionsTitle');
+        if (titleEl) titleEl.textContent = L ? 'Opciones del Día' : 'Day Options';
+        var aspCount = document.getElementById('aspectsCount');
+        if (aspCount) aspCount.textContent = allEvents;
+
+        document.getElementById('dayOptionsDate').textContent = '🔮 ' + date.toLocaleDateString(L ? 'es' : 'en', { weekday: 'short', day: 'numeric', month: 'long' });
+
+        // Store for selectDayOption
+        window.selectedDayDate = date;
+        window.selectedDayLunarDay = 0;
+        window.selectedDayData = {};
+        // Store personal detail callback
+        window._pendingPersonalDetail = { year: year, month: month, day: day };
+
+        if (aspectsBtn) { aspectsBtn.style.display = 'flex'; aspectsBtn.style.visibility = 'visible'; aspectsBtn.style.opacity = '1'; }
+        modal.classList.add('show');
+    } catch(e) {
+        console.error('handlePersonalDayClick error:', e);
+        // Fallback to direct detail
+        showPersonalDayDetail(year, month, day);
+    }
+}
+
 function showPersonalDayDetail(year, month, day) {
     const L = currentLang === 'es';
     const date = new Date(year, month, day);
@@ -32901,7 +32938,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v587';
+var APP_VERSION = 'v588';
 var _pendingSW = null;
 
 // What's New removed per user request
