@@ -27016,6 +27016,8 @@ function goToCurrentCycle() {
     // The resetOnboardingTutorial function now resets the new spotlight walkthrough
     window.resetOnboardingTutorial = function() {
         localStorage.removeItem('astroCurrents_btnWalkthrough');
+        // Reset in-memory walkthrough state too
+        if (typeof _resetButtonWalkthroughs === 'function') _resetButtonWalkthroughs();
         var prefModal = document.getElementById('preferencesModal');
         if (prefModal) prefModal.classList.remove('show');
         // Start fresh walkthrough for current mode
@@ -27373,7 +27375,7 @@ function goToCurrentCycle() {
 
     // CSS animation keyframes
     var styleEl = document.createElement('style');
-    styleEl.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes slideDown{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}} @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} @keyframes spotlightPulse{0%,100%{box-shadow:0 0 0 5px rgba(102,126,234,1),0 0 20px 10px rgba(102,126,234,0.8),0 0 60px 20px rgba(102,126,234,0.5),0 0 100px 40px rgba(102,126,234,0.3);transform:scale(1.15)}50%{box-shadow:0 0 0 8px rgba(102,126,234,1),0 0 30px 15px rgba(102,126,234,0.9),0 0 80px 30px rgba(102,126,234,0.6),0 0 120px 50px rgba(102,126,234,0.3);transform:scale(1.2)}} @keyframes tooltipAppear{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}';
+    styleEl.textContent = '@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes slideDown{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}} @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}} @keyframes spotlightPulse{0%,100%{box-shadow:0 0 0 5px rgba(102,126,234,1),0 0 20px 10px rgba(102,126,234,0.8),0 0 60px 20px rgba(102,126,234,0.5),0 0 100px 40px rgba(102,126,234,0.3);transform:scale(1.08)}50%{box-shadow:0 0 0 8px rgba(102,126,234,1),0 0 30px 15px rgba(102,126,234,0.9),0 0 80px 30px rgba(102,126,234,0.6),0 0 120px 50px rgba(102,126,234,0.3);transform:scale(1.12)}} @keyframes tooltipAppear{0%{opacity:0;transform:translateX(-50%) scale(0.85) translateY(12px)}100%{opacity:1;transform:translateX(-50%) scale(1) translateY(0)}}';
     document.head.appendChild(styleEl);
 
     // ══════════════════════════════════════════════════
@@ -27396,12 +27398,12 @@ function goToCurrentCycle() {
                     { sel: '#savedReadingsBtn', icon: '📚', title: L ? 'Lecturas Guardadas' : 'Saved Readings', desc: L ? 'Al salvar cualquier conversación, interpretación en la app puedes releerla, editar, preguntar y expandir acá. Lo mismo con tu diario personal y diario de sueños.' : 'Save any conversation or app interpretation to reread, edit, ask questions and expand. Same with your personal diary and dream journal.' },
                     { sel: '#moonCompassBtn', icon: '🧭', title: L ? 'Brújula Celeste' : 'Celestial Compass', desc: L ? 'Brújula que apunta hacia la posición real de los astros en el cielo en tiempo real. Ubícalos en cualquier momento.' : 'Compass pointing to the real-time position of celestial bodies in the sky. Locate them at any time.' },
                     { sel: '#preferencesBtn', icon: '⚙️', title: L ? 'Preferencias' : 'Preferences', desc: L ? 'Idioma, notificaciones, tamaño del calendario, ubicación, programación de alarma de sueños, interpretadores y más.' : 'Language, notifications, calendar size, location, dream alarm scheduling, interpreters and more.' },
+                    { sel: '#aiChatHeaderBtn', icon: '✨', title: L ? 'Asistente AstroField' : 'AstroField Assistant', desc: L ? 'Chat inteligente que responde preguntas sobre astrología, tu carta natal, agenda y más.' : 'Smart chat answering questions about astrology, your natal chart, agenda and more.' },
                     { sel: '#lunarModeBtn', icon: '🌙', title: L ? 'Tab Lunar' : 'Lunar Tab', desc: L ? 'Calendario por ciclos lunares con fases, información lunar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Calendar by lunar cycles with phases, lunar info, planetary aspects, event notes, notifications, personal and dream diary.' },
                     { sel: '#solarModeBtn', icon: '☀️', title: L ? 'Tab Solar' : 'Solar Tab', desc: L ? 'Calendario Solar, información solar, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Solar Calendar, solar info, planetary aspects, event notes, notifications, personal and dream diary.' },
                     { sel: '#gregorianModeBtn', icon: '📅', title: L ? 'Tab Gregoriano' : 'Gregorian Tab', desc: L ? 'Calendario clásico semanal, aspectos planetarios, anota tus eventos, notificaciones, diario personal y de sueños.' : 'Classic weekly calendar, planetary aspects, event notes, notifications, personal and dream diary.' },
                     { sel: '#personalModeBtn', icon: '🔮', title: L ? 'Tab Astrología' : 'Astrology Tab', desc: L ? 'Sección astrológica: carta natal, astrología avanzada, curso AstroField y más.' : 'Astrology section: natal chart, advanced astrology, AstroField course and more.' },
                     { sel: '#socialModeBtn', icon: '🌐', title: 'AstroConnect', desc: L ? 'Red social astrológica: feed, comunidades, chat, encuentra tu especie astrológica.' : 'Astrological social network: feed, communities, chat, find your astrological species.' },
-                    { sel: '#aiChatHeaderBtn', icon: '✨', title: L ? 'Asistente A.C.' : 'A.C. Assistant', desc: L ? 'Chat inteligente que responde preguntas sobre astrología, tu carta natal, agenda y más.' : 'Smart chat answering questions about astrology, your natal chart, agenda and more.' },
                     { sel: '#currentDayInfo', icon: '📋', title: L ? 'Info del día de HOY' : 'TODAY\'s Info', desc: L ? 'Información del día HOY con los eventos de agenda, aspectos lunares del día. Haz click y expande la información. Navega en el calendario y regresa al día de hoy haciendo click en día de HOY.' : 'TODAY\'s info with agenda events and daily lunar aspects. Click to expand the information. Navigate the calendar and return to today by clicking on TODAY.' }
                 ],
                 'lunar': [
@@ -27502,7 +27504,7 @@ function goToCurrentCycle() {
             // Tooltip
             var tooltip = document.createElement('div');
             tooltip.id = 'wkTooltip';
-            tooltip.style.cssText = 'position:fixed;z-index:9998;max-width:320px;width:90%;background:linear-gradient(170deg,rgba(15,17,55,0.98),rgba(8,10,35,0.98));border:1.5px solid rgba(102,126,234,0.5);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.7);padding:0;overflow:hidden;animation:tooltipAppear 0.25s ease;';
+            tooltip.style.cssText = 'position:fixed;z-index:9998;max-width:320px;width:90%;background:linear-gradient(170deg,rgba(15,17,55,0.98),rgba(8,10,35,0.98));border:1.5px solid rgba(102,126,234,0.5);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.7);padding:0;overflow:hidden;animation:tooltipAppear 0.35s cubic-bezier(0.34,1.56,0.64,1);';
 
             document.body.appendChild(backdrop);
             document.body.appendChild(tooltip);
@@ -27575,8 +27577,8 @@ function goToCurrentCycle() {
                         el.style.animation = 'none';
                         el.style.transform = 'none';
                     } else {
-                        el.style.animation = 'spotlightPulse 1.5s ease-in-out infinite';
-                        el.style.transform = 'scale(1.15)';
+                        el.style.animation = 'spotlightPulse 2s ease-in-out infinite';
+                        el.style.transform = 'scale(1.08)';
                     }
                     el.style.filter = 'brightness(1.8)';
                 }
@@ -27658,13 +27660,21 @@ function goToCurrentCycle() {
                         html += '</div></div>';
                         tooltip.innerHTML = html;
 
-                        // Position tooltip in center of viewport, below the first element
+                        // Position tooltip below or above elements, always within viewport
                         var ttW = 320;
+                        var ttH = 180;
                         var ttLeft = Math.max(10, Math.min(window.innerWidth - ttW - 10, rect.left + rect.width / 2 - ttW / 2));
-                        var ttTop = rect.bottom + 20;
-                        if (ttTop + 200 > window.innerHeight) ttTop = Math.max(10, rect.top - 220);
-                        if (ttTop < 10) ttTop = 10;
-                        if (ttTop + 200 > window.innerHeight) ttTop = window.innerHeight - 210;
+                        var spBelow = window.innerHeight - rect.bottom;
+                        var spAbove = rect.top;
+                        var ttTop;
+                        if (spBelow > ttH + 20) {
+                            ttTop = rect.bottom + 16;
+                        } else if (spAbove > ttH + 20) {
+                            ttTop = rect.top - ttH - 16;
+                        } else {
+                            ttTop = Math.max(10, (window.innerHeight - ttH) / 2);
+                        }
+                        ttTop = Math.max(10, Math.min(ttTop, window.innerHeight - ttH - 10));
                         tooltip.style.left = ttLeft + 'px';
                         tooltip.style.top = ttTop + 'px';
 
@@ -27744,15 +27754,21 @@ function goToCurrentCycle() {
                     html += '</div></div>';
                     tooltip.innerHTML = html;
 
-                    // Position tooltip below or above the element
-                    var ttHeight = 160;
+                    // Position tooltip below or above the element, always within viewport
+                    var ttHeight = 180;
                     var spaceBelow = window.innerHeight - rect.bottom;
+                    var spaceAbove = rect.top;
                     var tooltipTop;
                     if (spaceBelow > ttHeight + 20) {
                         tooltipTop = rect.bottom + 16;
+                    } else if (spaceAbove > ttHeight + 20) {
+                        tooltipTop = rect.top - ttHeight - 16;
                     } else {
-                        tooltipTop = Math.max(8, rect.top - ttHeight - 16);
+                        // Not enough space above or below — center in viewport
+                        tooltipTop = Math.max(10, (window.innerHeight - ttHeight) / 2);
                     }
+                    // Clamp to viewport bounds
+                    tooltipTop = Math.max(10, Math.min(tooltipTop, window.innerHeight - ttHeight - 10));
                     tooltip.style.left = '50%';
                     tooltip.style.transform = 'translateX(-50%)';
                     tooltip.style.top = tooltipTop + 'px';
@@ -34053,7 +34069,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v597';
+var APP_VERSION = 'v598';
 var _pendingSW = null;
 
 // What's New removed per user request
