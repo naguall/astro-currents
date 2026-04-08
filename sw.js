@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astro-currents-v577';
+const CACHE_NAME = 'astro-currents-v578';
 const ASSETS = [
   '/astro-currents/',
   '/astro-currents/index.html',
@@ -43,13 +43,6 @@ self.addEventListener('activate', e => {
       return clearEverything();
     }).then(() => {
       return self.clients.claim();
-    }).then(() => {
-      // Force all open pages to reload with new version
-      return self.clients.matchAll({type: 'window'}).then(windowClients => {
-        windowClients.forEach(client => {
-          client.navigate(client.url);
-        });
-      });
     })
   );
 });
