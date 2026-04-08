@@ -3118,6 +3118,359 @@ function getStellium(date) {
     return null;
 }
 
+// ══════════════════════════════════════════════════════════
+// ── DYNAMIC ASPECT PATTERN DETECTION (v590) ──
+// Detects: Stellium, T-Square, Grand Trine, Grand Cross,
+//          Yod, Kite, Mystic Rectangle, Cradle, Grand Sextile
+// ══════════════════════════════════════════════════════════
+var _aspectPatternsCache = {};
+function detectAspectPatterns(date) {
+    var dateKey = date.toDateString();
+    if (_aspectPatternsCache[dateKey]) return _aspectPatternsCache[dateKey];
+
+    var L = currentLang === 'es';
+    var patterns = [];
+    var planets = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto'];
+    var pNames = L ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón'}
+                   : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto'};
+    var pSymbols = {sun:'☉',moon:'☽',mercury:'☿',venus:'♀',mars:'♂',jupiter:'♃',saturn:'♄',uranus:'♅',neptune:'♆',pluto:'♇'};
+    var signNames = ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis'];
+
+    // Get all planet positions
+    var positions = {};
+    planets.forEach(function(p) {
+        try { positions[p] = getPlanetPosition(p, date); } catch(e) {}
+    });
+
+    // Helper: angular difference (0-180)
+    function angDiff(a, b) {
+        var d = Math.abs(a - b) % 360;
+        return d > 180 ? 360 - d : d;
+    }
+    // Helper: get zodiac sign name from longitude
+    function getSign(lon) { return signNames[Math.floor(((lon % 360) + 360) % 360 / 30)]; }
+    // Helper: get element from sign
+    function getElement(sign) {
+        var fire = ['Aries','Leo','Sagitario'], earth = ['Tauro','Virgo','Capricornio'];
+        var air = ['Géminis','Libra','Acuario'], water = ['Cáncer','Escorpio','Piscis'];
+        if (fire.indexOf(sign) >= 0) return L ? 'Fuego' : 'Fire';
+        if (earth.indexOf(sign) >= 0) return L ? 'Tierra' : 'Earth';
+        if (air.indexOf(sign) >= 0) return L ? 'Aire' : 'Air';
+        if (water.indexOf(sign) >= 0) return L ? 'Agua' : 'Water';
+        return '';
+    }
+
+    // Build aspect matrix between all planet pairs
+    var orbs = { conjunction: 8, opposition: 8, trine: 7, square: 7, sextile: 5, quincunx: 3 };
+    var aspects = [];
+    for (var i = 0; i < planets.length; i++) {
+        for (var j = i + 1; j < planets.length; j++) {
+            var p1 = planets[i], p2 = planets[j];
+            if (!positions[p1] && positions[p1] !== 0) continue;
+            if (!positions[p2] && positions[p2] !== 0) continue;
+            var diff = angDiff(positions[p1], positions[p2]);
+            // Tighter orbs for faster planets with Moon
+            var moonOrb = (p1 === 'moon' || p2 === 'moon') ? -2 : 0;
+            if (diff <= orbs.conjunction + moonOrb) aspects.push({ p1:p1, p2:p2, type:'conjunction', diff:diff });
+            else if (Math.abs(diff - 60) <= orbs.sextile + moonOrb) aspects.push({ p1:p1, p2:p2, type:'sextile', diff:Math.abs(diff-60) });
+            else if (Math.abs(diff - 90) <= orbs.square + moonOrb) aspects.push({ p1:p1, p2:p2, type:'square', diff:Math.abs(diff-90) });
+            else if (Math.abs(diff - 120) <= orbs.trine + moonOrb) aspects.push({ p1:p1, p2:p2, type:'trine', diff:Math.abs(diff-120) });
+            else if (Math.abs(diff - 150) <= orbs.quincunx) aspects.push({ p1:p1, p2:p2, type:'quincunx', diff:Math.abs(diff-150) });
+            else if (Math.abs(diff - 180) <= orbs.opposition + moonOrb) aspects.push({ p1:p1, p2:p2, type:'opposition', diff:Math.abs(diff-180) });
+        }
+    }
+
+    // Helper: find aspect between two specific planets
+    function findAspect(pa, pb, type) {
+        return aspects.find(function(a) {
+            return a.type === type && ((a.p1 === pa && a.p2 === pb) || (a.p1 === pb && a.p2 === pa));
+        });
+    }
+    // Helper: get all planets connected to a planet by a specific aspect type
+    function getConnected(planet, type) {
+        var result = [];
+        aspects.forEach(function(a) {
+            if (a.type === type) {
+                if (a.p1 === planet) result.push(a.p2);
+                if (a.p2 === planet) result.push(a.p1);
+            }
+        });
+        return result;
+    }
+
+    // ── 1. STELLIUM (3+ planets in same sign, within 30°) ──
+    var signGroups = {};
+    planets.forEach(function(p) {
+        if (positions[p] === undefined) return;
+        var s = getSign(positions[p]);
+        if (!signGroups[s]) signGroups[s] = [];
+        signGroups[s].push(p);
+    });
+    Object.keys(signGroups).forEach(function(sign) {
+        if (signGroups[sign].length >= 3) {
+            var pList = signGroups[sign];
+            // Exclude if all are fast personal planets only (too common)
+            var hasSlow = pList.some(function(p) { return ['jupiter','saturn','uranus','neptune','pluto'].indexOf(p) >= 0; });
+            if (hasSlow || pList.length >= 4) {
+                patterns.push({
+                    type: 'stellium', icon: '★', color: '#FFD700',
+                    name: L ? 'Stellium en ' + sign : 'Stellium in ' + sign,
+                    planets: pList.map(function(p) { return pNames[p]; }),
+                    symbols: pList.map(function(p) { return pSymbols[p]; }).join(''),
+                    sign: sign, element: getElement(sign),
+                    desc: L ? pList.length + ' planetas concentrados en ' + sign + ' (' + getElement(sign) + '). Energía masiva enfocada en los temas de este signo.'
+                         : pList.length + ' planets concentrated in ' + sign + ' (' + getElement(sign) + '). Massive focused energy on this sign\'s themes.'
+                });
+            }
+        }
+    });
+
+    // ── 2. T-SQUARE (opposition + both square to a third) ──
+    var oppositions = aspects.filter(function(a) { return a.type === 'opposition'; });
+    oppositions.forEach(function(opp) {
+        planets.forEach(function(apex) {
+            if (apex === opp.p1 || apex === opp.p2) return;
+            var sq1 = findAspect(apex, opp.p1, 'square');
+            var sq2 = findAspect(apex, opp.p2, 'square');
+            if (sq1 && sq2) {
+                // Check not already found
+                var key = [opp.p1, opp.p2, apex].sort().join('-');
+                if (!patterns.some(function(p) { return p._key === key && p.type === 'tSquare'; })) {
+                    patterns.push({
+                        type: 'tSquare', icon: 'T', color: '#ff6b6b', _key: key,
+                        name: L ? 'T-Cuadrada' : 'T-Square',
+                        planets: [pNames[opp.p1], pNames[opp.p2], pNames[apex]],
+                        symbols: pSymbols[opp.p1] + '☍' + pSymbols[opp.p2] + ' □ ' + pSymbols[apex],
+                        apex: pNames[apex], apexSign: getSign(positions[apex]),
+                        desc: L ? pNames[opp.p1] + ' opuesto a ' + pNames[opp.p2] + ' con ' + pNames[apex] + ' en el vértice (' + getSign(positions[apex]) + '). Tensión dinámica que impulsa acción — el punto focal es ' + pNames[apex] + '.'
+                             : pNames[opp.p1] + ' opposite ' + pNames[opp.p2] + ' with ' + pNames[apex] + ' at the apex (' + getSign(positions[apex]) + '). Dynamic tension driving action — focal point is ' + pNames[apex] + '.'
+                    });
+                }
+            }
+        });
+    });
+
+    // ── 3. GRAND TRINE (3 planets each 120° apart) ──
+    var trines = aspects.filter(function(a) { return a.type === 'trine'; });
+    for (var ti = 0; ti < trines.length; ti++) {
+        for (var tj = ti + 1; tj < trines.length; tj++) {
+            var t1 = trines[ti], t2 = trines[tj];
+            // Find the shared planet
+            var shared = null, other1 = null, other2 = null;
+            if (t1.p1 === t2.p1) { shared = t1.p1; other1 = t1.p2; other2 = t2.p2; }
+            else if (t1.p1 === t2.p2) { shared = t1.p1; other1 = t1.p2; other2 = t2.p1; }
+            else if (t1.p2 === t2.p1) { shared = t1.p2; other1 = t1.p1; other2 = t2.p2; }
+            else if (t1.p2 === t2.p2) { shared = t1.p2; other1 = t1.p1; other2 = t2.p1; }
+            if (shared && other1 && other2 && other1 !== other2) {
+                // Check if other1-other2 also trine
+                if (findAspect(other1, other2, 'trine')) {
+                    var key = [shared, other1, other2].sort().join('-');
+                    if (!patterns.some(function(p) { return p._key === key && p.type === 'grandTrine'; })) {
+                        var elem = getElement(getSign(positions[shared]));
+                        patterns.push({
+                            type: 'grandTrine', icon: '△', color: '#2ecc71', _key: key,
+                            name: L ? 'Gran Trígono de ' + elem : 'Grand Trine in ' + elem,
+                            planets: [pNames[shared], pNames[other1], pNames[other2]],
+                            symbols: pSymbols[shared] + '△' + pSymbols[other1] + '△' + pSymbols[other2],
+                            element: elem,
+                            desc: L ? 'Triángulo armónico perfecto en signos de ' + elem + '. Talento natural y fluidez. ' + pNames[shared] + ', ' + pNames[other1] + ' y ' + pNames[other2] + ' fluyen juntos.'
+                                 : 'Perfect harmonic triangle in ' + elem + ' signs. Natural talent and flow. ' + pNames[shared] + ', ' + pNames[other1] + ' and ' + pNames[other2] + ' flow together.'
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // ── 4. GRAND CROSS (2 oppositions + 4 squares forming a cross) ──
+    for (var oi = 0; oi < oppositions.length; oi++) {
+        for (var oj = oi + 1; oj < oppositions.length; oj++) {
+            var o1 = oppositions[oi], o2 = oppositions[oj];
+            var gcPlanets = [o1.p1, o1.p2, o2.p1, o2.p2];
+            // All four must be different
+            if (new Set(gcPlanets).size !== 4) continue;
+            // Check all 4 squares exist
+            var hasAllSquares = findAspect(o1.p1, o2.p1, 'square') && findAspect(o1.p1, o2.p2, 'square') &&
+                                findAspect(o1.p2, o2.p1, 'square') && findAspect(o1.p2, o2.p2, 'square');
+            if (hasAllSquares) {
+                var key = gcPlanets.sort().join('-');
+                if (!patterns.some(function(p) { return p._key === key && p.type === 'grandCross'; })) {
+                    patterns.push({
+                        type: 'grandCross', icon: '✚', color: '#e74c3c', _key: key,
+                        name: L ? 'Gran Cruz' : 'Grand Cross',
+                        planets: gcPlanets.map(function(p) { return pNames[p]; }),
+                        symbols: gcPlanets.map(function(p) { return pSymbols[p]; }).join('✚'),
+                        desc: L ? 'Configuración de máxima tensión: 2 oposiciones y 4 cuadraturas. Presión desde todos los ángulos pero enorme potencial de acción y transformación.'
+                             : 'Maximum tension configuration: 2 oppositions and 4 squares. Pressure from all angles but enormous potential for action and transformation.'
+                    });
+                }
+            }
+        }
+    }
+
+    // ── 5. YOD (Finger of God: 2 quincunxes + 1 sextile) ──
+    var quincunxes = aspects.filter(function(a) { return a.type === 'quincunx'; });
+    for (var qi = 0; qi < quincunxes.length; qi++) {
+        for (var qj = qi + 1; qj < quincunxes.length; qj++) {
+            var q1 = quincunxes[qi], q2 = quincunxes[qj];
+            var sharedQ = null, baseA = null, baseB = null;
+            if (q1.p1 === q2.p1) { sharedQ = q1.p1; baseA = q1.p2; baseB = q2.p2; }
+            else if (q1.p1 === q2.p2) { sharedQ = q1.p1; baseA = q1.p2; baseB = q2.p1; }
+            else if (q1.p2 === q2.p1) { sharedQ = q1.p2; baseA = q1.p1; baseB = q2.p2; }
+            else if (q1.p2 === q2.p2) { sharedQ = q1.p2; baseA = q1.p1; baseB = q2.p1; }
+            if (sharedQ && baseA && baseB && baseA !== baseB) {
+                if (findAspect(baseA, baseB, 'sextile')) {
+                    var key = [sharedQ, baseA, baseB].sort().join('-');
+                    if (!patterns.some(function(p) { return p._key === key && p.type === 'yod'; })) {
+                        patterns.push({
+                            type: 'yod', icon: '🔺', color: '#9b59b6', _key: key,
+                            name: L ? 'Yod (Dedo de Dios)' : 'Yod (Finger of God)',
+                            planets: [pNames[sharedQ], pNames[baseA], pNames[baseB]],
+                            symbols: pSymbols[baseA] + '⚹' + pSymbols[baseB] + ' → ' + pSymbols[sharedQ],
+                            apex: pNames[sharedQ], apexSign: getSign(positions[sharedQ]),
+                            desc: L ? pNames[sharedQ] + ' en ' + getSign(positions[sharedQ]) + ' es el punto de destino. ' + pNames[baseA] + ' y ' + pNames[baseB] + ' en sextil canalizan energía hacia una misión especial. Configuración kármica.'
+                                 : pNames[sharedQ] + ' in ' + getSign(positions[sharedQ]) + ' is the destiny point. ' + pNames[baseA] + ' and ' + pNames[baseB] + ' in sextile channel energy toward a special mission. Karmic configuration.'
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // ── 6. KITE (Grand Trine + 1 planet opposing one vertex, sextile the other two) ──
+    patterns.filter(function(p) { return p.type === 'grandTrine'; }).forEach(function(gt) {
+        var gtKeys = gt._key.split('-');
+        planets.forEach(function(kiteP) {
+            if (gtKeys.indexOf(kiteP) >= 0) return;
+            // kiteP must oppose one GT planet and sextile the other two
+            for (var ki = 0; ki < gtKeys.length; ki++) {
+                var oppTarget = gtKeys[ki];
+                var others = gtKeys.filter(function(k) { return k !== oppTarget; });
+                if (findAspect(kiteP, oppTarget, 'opposition') && findAspect(kiteP, others[0], 'sextile') && findAspect(kiteP, others[1], 'sextile')) {
+                    var key = [kiteP].concat(gtKeys).sort().join('-');
+                    if (!patterns.some(function(p) { return p._key === key && p.type === 'kite'; })) {
+                        patterns.push({
+                            type: 'kite', icon: '🪁', color: '#1abc9c', _key: key,
+                            name: L ? 'Cometa' : 'Kite',
+                            planets: [pNames[kiteP], pNames[oppTarget], pNames[others[0]], pNames[others[1]]],
+                            symbols: pSymbols[kiteP] + '☍' + pSymbols[oppTarget] + ' △ ' + pSymbols[others[0]] + ',' + pSymbols[others[1]],
+                            desc: L ? 'Gran Trígono con punto de enfoque: ' + pNames[kiteP] + ' opuesto a ' + pNames[oppTarget] + ' dirige el talento del trígono hacia la acción concreta.'
+                                 : 'Grand Trine with focus point: ' + pNames[kiteP] + ' opposite ' + pNames[oppTarget] + ' directs the trine\'s talent toward concrete action.'
+                        });
+                    }
+                }
+            }
+        });
+    });
+
+    // ── 7. MYSTIC RECTANGLE (2 oppositions + 2 trines + 2 sextiles) ──
+    for (var ri = 0; ri < oppositions.length; ri++) {
+        for (var rj = ri + 1; rj < oppositions.length; rj++) {
+            var ro1 = oppositions[ri], ro2 = oppositions[rj];
+            var rPlanets = [ro1.p1, ro1.p2, ro2.p1, ro2.p2];
+            if (new Set(rPlanets).size !== 4) continue;
+            // Check for trines and sextiles connecting the two oppositions
+            var hasMR = (findAspect(ro1.p1, ro2.p1, 'trine') && findAspect(ro1.p2, ro2.p2, 'trine') && findAspect(ro1.p1, ro2.p2, 'sextile') && findAspect(ro1.p2, ro2.p1, 'sextile')) ||
+                        (findAspect(ro1.p1, ro2.p2, 'trine') && findAspect(ro1.p2, ro2.p1, 'trine') && findAspect(ro1.p1, ro2.p1, 'sextile') && findAspect(ro1.p2, ro2.p2, 'sextile'));
+            if (hasMR) {
+                var key = rPlanets.sort().join('-');
+                if (!patterns.some(function(p) { return p._key === key && p.type === 'mysticRect'; })) {
+                    patterns.push({
+                        type: 'mysticRect', icon: '▭', color: '#3498db', _key: key,
+                        name: L ? 'Rectángulo Místico' : 'Mystic Rectangle',
+                        planets: rPlanets.map(function(p) { return pNames[p]; }),
+                        symbols: rPlanets.map(function(p) { return pSymbols[p]; }).join('▭'),
+                        desc: L ? 'Dos oposiciones conectadas por trígonos y sextiles. Tensión con salidas armoniosas — equilibrio productivo entre fuerzas opuestas.'
+                             : 'Two oppositions connected by trines and sextiles. Tension with harmonic outlets — productive balance between opposing forces.'
+                    });
+                }
+            }
+        }
+    }
+
+    // ── 8. CRADLE (3 sextiles + 2 trines + 1 opposition) ──
+    var sextiles = aspects.filter(function(a) { return a.type === 'sextile'; });
+    for (var ci = 0; ci < oppositions.length; ci++) {
+        var co = oppositions[ci];
+        // Find two planets that sextile one end and trine the other (or vice versa)
+        planets.forEach(function(cp1) {
+            if (cp1 === co.p1 || cp1 === co.p2) return;
+            planets.forEach(function(cp2) {
+                if (cp2 === co.p1 || cp2 === co.p2 || cp2 <= cp1) return;
+                // cp1 and cp2 must form a chain: sextile each other, and connect to both opposition ends
+                if (!findAspect(cp1, cp2, 'sextile')) return;
+                var valid = (findAspect(cp1, co.p1, 'sextile') && findAspect(cp1, co.p2, 'trine') && findAspect(cp2, co.p1, 'trine') && findAspect(cp2, co.p2, 'sextile')) ||
+                            (findAspect(cp1, co.p1, 'trine') && findAspect(cp1, co.p2, 'sextile') && findAspect(cp2, co.p1, 'sextile') && findAspect(cp2, co.p2, 'trine'));
+                if (valid) {
+                    var key = [co.p1, co.p2, cp1, cp2].sort().join('-');
+                    if (!patterns.some(function(p) { return p._key === key && p.type === 'cradle'; })) {
+                        patterns.push({
+                            type: 'cradle', icon: '⌒', color: '#e67e22', _key: key,
+                            name: L ? 'Cuna' : 'Cradle',
+                            planets: [pNames[co.p1], pNames[co.p2], pNames[cp1], pNames[cp2]],
+                            symbols: [co.p1, co.p2, cp1, cp2].map(function(p) { return pSymbols[p]; }).join('⌒'),
+                            desc: L ? 'Oposición de ' + pNames[co.p1] + '-' + pNames[co.p2] + ' arropada por trígonos y sextiles. Protección y soporte para resolver la tensión.'
+                                 : pNames[co.p1] + '-' + pNames[co.p2] + ' opposition cradled by trines and sextiles. Protection and support to resolve the tension.'
+                        });
+                    }
+                }
+            });
+        });
+    }
+
+    // ── 9. GRAND SEXTILE (Star of David: 6 planets in sextiles) ──
+    // Extremely rare — check if there are 6+ sextiles forming a hexagon
+    if (sextiles.length >= 6) {
+        // Build sextile graph
+        var sextGraph = {};
+        sextiles.forEach(function(s) {
+            if (!sextGraph[s.p1]) sextGraph[s.p1] = [];
+            if (!sextGraph[s.p2]) sextGraph[s.p2] = [];
+            sextGraph[s.p1].push(s.p2);
+            sextGraph[s.p2].push(s.p1);
+        });
+        // Find chains of 6 in sextile (each 60° apart)
+        Object.keys(sextGraph).forEach(function(start) {
+            if (sextGraph[start].length < 2) return;
+            // DFS for 6-chain
+            function findChain(current, chain, depth) {
+                if (depth === 6) {
+                    // Check if last connects back to first
+                    if (sextGraph[current] && sextGraph[current].indexOf(chain[0]) >= 0) {
+                        var key = chain.slice().sort().join('-');
+                        if (!patterns.some(function(p) { return p._key === key && p.type === 'grandSextile'; })) {
+                            patterns.push({
+                                type: 'grandSextile', icon: '✡', color: '#f1c40f', _key: key,
+                                name: L ? 'Gran Sextil (Estrella de David)' : 'Grand Sextile (Star of David)',
+                                planets: chain.map(function(p) { return pNames[p]; }),
+                                symbols: chain.map(function(p) { return pSymbols[p]; }).join('✡'),
+                                desc: L ? '¡Configuración extremadamente rara! 6 planetas en sextiles formando una estrella perfecta. Armonía total y potencial ilimitado.'
+                                     : 'Extremely rare configuration! 6 planets in sextiles forming a perfect star. Total harmony and unlimited potential.'
+                            });
+                        }
+                    }
+                    return;
+                }
+                if (!sextGraph[current]) return;
+                sextGraph[current].forEach(function(next) {
+                    if (chain.indexOf(next) < 0) {
+                        findChain(next, chain.concat([next]), depth + 1);
+                    }
+                });
+            }
+            findChain(start, [start], 1);
+        });
+    }
+
+    // Cache max 60 days
+    var cacheKeys = Object.keys(_aspectPatternsCache);
+    if (cacheKeys.length > 60) {
+        delete _aspectPatternsCache[cacheKeys[0]];
+    }
+    _aspectPatternsCache[dateKey] = patterns;
+    return patterns;
+}
+
 function getEclipseInfo(date) {
     const dateStr = date.toDateString();
     for (const eclipse of eclipses2026) {
@@ -5795,6 +6148,23 @@ function openAspectsModal(date, lunarDay, dayData) {
         retrogrades.forEach(function(ret) { allDayTexts.push(tp(ret.planet) + (ret.isStart ? ' Retrógrado INICIA' : ' Directo') + (ret.sign ? ' en ' + ret.sign : '')); });
         interAspects.forEach(function(asp) { allDayTexts.push(tp(asp.planet1) + ' ' + asp.symbol + ' ' + (asp.aspect||'') + ' ' + tp(asp.planet2) + (asp.signs ? ' ' + asp.signs : '')); });
         if (dayData.aspects) dayData.aspects.forEach(function(a) { allDayTexts.push('Luna ' + a.symbol + ' ' + (a.planetName||a.planet)); });
+        // Aspect Patterns section (v590)
+        var _dayPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
+        if (_dayPatterns.length > 0) {
+            htmlContent += '<div style="margin-top:12px;padding:10px;background:rgba(155,89,182,0.08);border:1px solid rgba(155,89,182,0.25);border-radius:10px;">';
+            htmlContent += '<div style="font-size:0.82em;font-weight:700;color:#c39bd3;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">' + (currentLang==='es' ? '🔷 Figuras de Aspecto' : '🔷 Aspect Patterns') + '</div>';
+            _dayPatterns.forEach(function(pat) {
+                var patTxt = (pat.name + ': ' + pat.planets.join(', ') + '. ' + pat.desc).replace(/'/g, "\\'");
+                htmlContent += '<div onclick="showBannerAspectDetail(\'' + patTxt + '\')" style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;background:rgba(255,255,255,0.03);border-radius:8px;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.08)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'">';
+                htmlContent += '<span style="font-size:1.3em;min-width:24px;text-align:center;">' + pat.icon + '</span>';
+                htmlContent += '<div><div style="font-weight:700;color:' + pat.color + ';font-size:0.88em;">' + pat.name + '</div>';
+                htmlContent += '<div style="font-size:0.75em;color:rgba(255,255,255,0.5);">' + pat.planets.join(', ') + '</div>';
+                htmlContent += '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-top:2px;">' + pat.desc.substring(0, 120) + (pat.desc.length > 120 ? '...' : '') + '</div></div></div>';
+                allDayTexts.push(pat.name + ': ' + pat.planets.join(', '));
+            });
+            htmlContent += '</div>';
+        }
+
         var safeDayTexts = allDayTexts.join('\\n').replace(/'/g, "\\'");
         var dateLabel = date.toLocaleDateString(currentLang==='es'?'es':'en',{weekday:'long',day:'numeric',month:'long'});
         htmlContent += `<div onclick="closeAspectsModal(); showDayInterpretation('${safeDayTexts}', '${dateLabel.replace(/'/g, "\\'")}')" style="margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.15),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.35);border-radius:10px;text-align:center;cursor:pointer;color:#c9a840;font-weight:bold;font-size:0.95em;">✦ ${currentLang==='es'?'Interpretación del día':'Day interpretation'}</div>`;
@@ -19176,6 +19546,7 @@ function renderNatalLunarCal() {
             var signChanges = getSignChanges(day.date);
             var interAspects = getInterPlanetaryAspects(day.date);
             var stellium = getStellium(day.date);
+            var dayPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(day.date) : [];
 
             var eventsHTML = dayEvents.slice(0, 3).map(function(evt) {
                 return '<div class="day-event-item type-' + evt.type + '">' + evt.title + '</div>';
@@ -19187,7 +19558,7 @@ function renderNatalLunarCal() {
 
             // Right-side astro symbols
             var astroSymbols = '';
-            if (eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium) {
+            if (eclipse || retrogrades.length > 0 || signChanges.length > 0 || interAspects.length > 0 || stellium || dayPatterns.length > 0) {
                 astroSymbols = '<div style="display:flex;flex-direction:column;gap:2px;font-size:1.2em;flex-shrink:0;margin-left:auto;padding-top:' + Math.min(dayEvents.length, 3) * 13 + 'px;">';
                 if (eclipse) astroSymbols += '<div style="line-height:1.2;font-size:0.7em;font-weight:bold;color:#FFD700;text-align:right;">' + (eclipse.type === 'solar' ? '☀️' : '🌒') + ' Eclipse</div>';
                 interAspects.forEach(function(asp) {
@@ -19200,6 +19571,10 @@ function renderNatalLunarCal() {
                     astroSymbols += '<div style="color:#7ec8ff;font-weight:bold;line-height:1.1;font-size:0.85em;text-align:right;">' + getPlanetInitial(sc.planet) + '→' + sc.toSign.substring(0, 3) + '</div>';
                 });
                 if (stellium) astroSymbols += '<div style="color:' + (stellium.count === 3 ? '#FFD700' : stellium.count === 4 ? '#f39c12' : '#e74c3c') + ';font-weight:bold;font-size:1.1em;">★</div>';
+                dayPatterns.forEach(function(pat) {
+                    if (pat.type === 'stellium' && stellium) return;
+                    astroSymbols += '<div style="color:' + pat.color + ';font-weight:bold;font-size:0.7em;text-align:right;" title="' + pat.name + '">' + pat.icon + '</div>';
+                });
                 astroSymbols += '</div>';
             }
 
@@ -21266,6 +21641,7 @@ function renderPersonalCalendar() {
         const _calInterAspects = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
         const _calEclipse = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
         const _calStellium = (typeof getStellium === 'function') ? getStellium(date) : null;
+        const _calPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
         const _calDayEvents = (typeof getAllEventsForDate === 'function') ? getAllEventsForDate(date) : [];
 
         // Build compact event indicators
@@ -21286,6 +21662,11 @@ function renderPersonalCalendar() {
             _calAstroIcons += `<span style="font-size:0.45em;color:#4ecdc4;" title="${sc.planet} → ${sc.toSign}">${_pi}→${_si}</span>`;
         });
         if (_calStellium) _calAstroIcons += `<span style="font-size:0.55em;color:#FFD700;" title="Stellium ${_calStellium.sign}">★</span>`;
+        // Dynamic aspect patterns (exclude stelliums already shown by hardcoded data)
+        _calPatterns.forEach(function(pat) {
+            if (pat.type === 'stellium' && _calStellium) return; // avoid duplicate stellium icon
+            _calAstroIcons += `<span style="font-size:0.5em;color:${pat.color};font-weight:700;" title="${pat.name}: ${pat.planets.join(', ')}">${pat.icon}</span>`;
+        });
 
         // Compact agenda events
         let _calEvtHTML = '';
@@ -23331,6 +23712,7 @@ function generateSolarWeeks(sign) {
             const signChanges = getSignChanges(dayDate);
             const interAspects = getInterPlanetaryAspects(dayDate);
             const stellium = getStellium(dayDate);
+            const dayPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(dayDate) : [];
             const majorAspect = getMajorAspect(dayDate);
             const astronomicalEvent = isAstronomicalEvent(dayDate);
             const moonEvent = getMoonEventForDate(dayDate);
@@ -23398,6 +23780,7 @@ function generateSolarWeeks(sign) {
                             }).join('')}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="color: ${stellium.count === 3 ? '#FFD700' : stellium.count === 4 ? '#f39c12' : '#e74c3c'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.1em;" title="Stellium en ${stellium.sign}">★</div>`; })() : ''}
                             ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -25215,6 +25598,7 @@ function renderCalendar() {
             const signChanges = getSignChanges(day.date);
             const interAspects = getInterPlanetaryAspects(day.date);
             const stellium = getStellium(day.date);
+            const dayPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(day.date) : [];
             const majorAspect = getMajorAspect(day.date);
             const astronomicalEvent = isAstronomicalEvent(day.date);
             const moonEvent = getMoonEventForDate(day.date);
@@ -25280,6 +25664,7 @@ function renderCalendar() {
                             }).join('')}
                             ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="color: ${stellium.count === 3 ? '#FFD700' : stellium.count === 4 ? '#f39c12' : '#e74c3c'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.1em;" title="Stellium en ${stellium.sign}">★</div>`; })() : ''}
                             ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -33029,7 +33414,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v589';
+var APP_VERSION = 'v590';
 var _pendingSW = null;
 
 // What's New removed per user request
