@@ -20845,7 +20845,98 @@ function calculateCosmicCyclesForMonth(year, month, natalChart, birthDate) {
         });
     }
 
-    // --- 6. ECLIPSES EN EJES NODALES ---
+    // --- 6. RETORNO DE SATURNO & MEDIO RETORNO (v589) ---
+    (function() {
+        var natalSaturn = natalChart.planets.saturn ? natalChart.planets.saturn.longitude : null;
+        if (natalSaturn !== null) {
+            var satOpp = (natalSaturn + 180) % 360;
+            // Check transit Saturn position at start, middle, end of month
+            var checkDates = [new Date(year, month, 1), new Date(year, month, 15), new Date(year, month, daysInMonth)];
+            var minConjDiff = 999, minOppDiff = 999;
+            checkDates.forEach(function(cd) {
+                var tPos = getPlanetPosition('saturn', cd);
+                var cDiff = Math.abs(tPos - natalSaturn); if (cDiff > 180) cDiff = 360 - cDiff;
+                var oDiff = Math.abs(tPos - satOpp); if (oDiff > 180) oDiff = 360 - oDiff;
+                if (cDiff < minConjDiff) minConjDiff = cDiff;
+                if (oDiff < minOppDiff) minOppDiff = oDiff;
+            });
+            // Saturn moves ~0.033°/day ≈ ~1°/month. Use 2° orb for monthly detection
+            if (minConjDiff < 2) {
+                var satReturn = findExactReturnTime('saturn', natalSaturn, new Date(year, month, 1), new Date(year, month + 1, 0, 23, 59));
+                if (satReturn && satReturn.getMonth() === month) {
+                    var satTimeStr = satReturn.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+                    var satAge = year - birthY;
+                    cycles.push({
+                        day: satReturn.getDate(), type: 'saturnReturn', icon: '♄', color: '#78909c',
+                        label: L ? 'Retorno de Saturno' : 'Saturn Return',
+                        desc: L ? 'Saturno regresa a su posición natal (' + natalSaturn.toFixed(1) + '°) a los ~' + satAge + ' años. Hora: ' + satTimeStr + '. Ciclo mayor de maduración, responsabilidad y reestructuración vital (~cada 29.5 años).'
+                             : 'Saturn returns to its natal position (' + natalSaturn.toFixed(1) + '°) at age ~' + satAge + '. Time: ' + satTimeStr + '. Major cycle of maturation, responsibility and life restructuring (~every 29.5 years).',
+                        exactTime: satReturn
+                    });
+                }
+            }
+            if (minOppDiff < 2) {
+                var satHalf = findExactReturnTime('saturn', satOpp, new Date(year, month, 1), new Date(year, month + 1, 0, 23, 59));
+                if (satHalf && satHalf.getMonth() === month) {
+                    var satHTimeStr = satHalf.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+                    cycles.push({
+                        day: satHalf.getDate(), type: 'saturnHalf', icon: '♄', color: '#90a4ae',
+                        label: L ? 'Medio Retorno de Saturno' : 'Saturn Half-Return',
+                        desc: L ? 'Saturno opuesto a su posición natal. Punto medio del ciclo de Saturno (~14.7 años). Hora: ' + satHTimeStr + '. Momento de evaluación profunda: ¿estás en el camino correcto?'
+                             : 'Saturn opposite its natal position. Midpoint of the Saturn cycle (~14.7 years). Time: ' + satHTimeStr + '. Moment of deep evaluation: are you on the right path?',
+                        exactTime: satHalf
+                    });
+                }
+            }
+        }
+    })();
+
+    // --- 7. RETORNO DE JÚPITER & MEDIO RETORNO (v589) ---
+    (function() {
+        var natalJupiter = natalChart.planets.jupiter ? natalChart.planets.jupiter.longitude : null;
+        if (natalJupiter !== null) {
+            var jupOpp = (natalJupiter + 180) % 360;
+            var checkDates = [new Date(year, month, 1), new Date(year, month, 15), new Date(year, month, daysInMonth)];
+            var minConjDiff = 999, minOppDiff = 999;
+            checkDates.forEach(function(cd) {
+                var tPos = getPlanetPosition('jupiter', cd);
+                var cDiff = Math.abs(tPos - natalJupiter); if (cDiff > 180) cDiff = 360 - cDiff;
+                var oDiff = Math.abs(tPos - jupOpp); if (oDiff > 180) oDiff = 360 - oDiff;
+                if (cDiff < minConjDiff) minConjDiff = cDiff;
+                if (oDiff < minOppDiff) minOppDiff = oDiff;
+            });
+            // Jupiter moves ~0.083°/day ≈ ~2.5°/month. Use 3° orb
+            if (minConjDiff < 3) {
+                var jupReturn = findExactReturnTime('jupiter', natalJupiter, new Date(year, month, 1), new Date(year, month + 1, 0, 23, 59));
+                if (jupReturn && jupReturn.getMonth() === month) {
+                    var jupTimeStr = jupReturn.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+                    var jupAge = year - birthY;
+                    cycles.push({
+                        day: jupReturn.getDate(), type: 'jupiterReturn', icon: '♃', color: '#7e57c2',
+                        label: L ? 'Retorno de Júpiter' : 'Jupiter Return',
+                        desc: L ? 'Júpiter regresa a su posición natal (' + natalJupiter.toFixed(1) + '°) a los ~' + jupAge + ' años. Hora: ' + jupTimeStr + '. Nuevo ciclo de expansión, abundancia y oportunidades (~cada 12 años).'
+                             : 'Jupiter returns to its natal position (' + natalJupiter.toFixed(1) + '°) at age ~' + jupAge + '. Time: ' + jupTimeStr + '. New cycle of expansion, abundance and opportunities (~every 12 years).',
+                        exactTime: jupReturn
+                    });
+                }
+            }
+            if (minOppDiff < 3) {
+                var jupHalf = findExactReturnTime('jupiter', jupOpp, new Date(year, month, 1), new Date(year, month + 1, 0, 23, 59));
+                if (jupHalf && jupHalf.getMonth() === month) {
+                    var jupHTimeStr = jupHalf.toLocaleTimeString(L ? 'es' : 'en', { hour: '2-digit', minute: '2-digit' });
+                    cycles.push({
+                        day: jupHalf.getDate(), type: 'jupiterHalf', icon: '♃', color: '#9575cd',
+                        label: L ? 'Medio Retorno de Júpiter' : 'Jupiter Half-Return',
+                        desc: L ? 'Júpiter opuesto a su posición natal. Punto medio del ciclo de Júpiter (~6 años). Hora: ' + jupHTimeStr + '. Momento de cosechar o replantear las metas de expansión.'
+                             : 'Jupiter opposite its natal position. Midpoint of the Jupiter cycle (~6 years). Time: ' + jupHTimeStr + '. Time to harvest or reassess expansion goals.',
+                        exactTime: jupHalf
+                    });
+                }
+            }
+        }
+    })();
+
+    // --- 8. ECLIPSES EN EJES NODALES ---
     var eclipses = getEclipsesForYear(year);
     eclipses.forEach(function(ecl) {
         var eclDate = ecl.date;
@@ -32938,7 +33029,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v588';
+var APP_VERSION = 'v589';
 var _pendingSW = null;
 
 // What's New removed per user request
