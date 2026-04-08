@@ -29641,15 +29641,17 @@ function openPreferencesModal() {
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '<div id="dreamAlarmStatus" style="font-size:0.72em;color:rgba(255,255,255,0.3);"></div>';
     dreamAlarmContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;">' + (currentLang==='es'?'Suena 1 minuto, abre el diario de sueños y activa el micrófono. Se detiene al hablar o tocar la pantalla.':'Rings for 1 minute, opens dream journal and activates microphone. Stops when you speak or tap the screen.') + '</div>';
-    sectionsHtml += _s('🌙', currentLang==='es'?'Alarma de Ensueños':'Dream Alarm', '#ce93d8', dreamAlarmContent);
+    sectionsHtml += _s('🌙', currentLang==='es'?'Alarma de Ensueños':'Dream Alarm', '#7ec8ff', dreamAlarmContent);
 
-    // ── Mis Mensajes ──
+    // ── Mis Mensajes (solo creador) ──
+    if (localStorage.getItem('astrofield_creator') === 'true') {
     var msgCount = (function(){ var msgs=JSON.parse(localStorage.getItem('myCustomMessages')||'{}'); var count=0; for(var k in msgs){if(msgs.hasOwnProperty(k))count+=Array.isArray(msgs[k])?msgs[k].length:1;} return count; })();
     sectionsHtml += _s('💬', currentLang==='es'?'Mis Mensajes':'My Messages', '#7ec8ff',
-        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Programa recordatorios personales como notificación.':'Schedule personal reminders as notifications.') + '</div>' +
+        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Programa mensajes como notificación para todos los usuarios.':'Schedule messages as notifications for all users.') + '</div>' +
         '<button onclick="closePreferencesModal();setTimeout(()=>openMyMessagesEditor(),200);" style="width:100%;padding:10px;background:linear-gradient(135deg,rgba(102,204,255,0.15),rgba(102,204,255,0.05));border:1px solid rgba(102,204,255,0.35);border-radius:8px;color:#66CCFF;font-size:0.85em;font-weight:600;cursor:pointer;">' + (currentLang==='es'?'Abrir editor de mensajes':'Open message editor') + '</button>' +
         '<div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">' + (msgCount>0?(currentLang==='es'?msgCount+' mensaje'+(msgCount>1?'s':'')+' programado'+(msgCount>1?'s':''):msgCount+' message'+(msgCount>1?'s':'')+' scheduled'):(currentLang==='es'?'Sin mensajes programados':'No messages scheduled')) + '</div>'
     );
+    }
 
     // ── Ubicación ──
     sectionsHtml += _s('📍', (currentLang==='es'?'Ubicación':'Location') + ' <span style="font-size:0.75em;opacity:0.5;font-weight:400;">(' + (ASTRO_USER_NAME || 'San José, Costa Rica') + ')</span>', '#7ec8ff',
@@ -29912,7 +29914,7 @@ function openPreferencesModal() {
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
             '<span style="font-size:0.82em;color:rgba(255,255,255,0.6);">' + (currentLang==='es'?'Activar Quiz Diario':'Enable Daily Quiz') + '</span>' +
             '<label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">' +
-                '<input type="checkbox" ' + (_dqPrefs.enabled?'checked':'') + ' onchange="toggleDailyQuiz(this.checked)" style="opacity:0;width:0;height:0;" />' +
+                '<input type="checkbox" ' + (_dqPrefs.enabled?'checked':'') + ' onchange="toggleDailyQuiz(this.checked);var bg=this.nextElementSibling;var dot=bg.nextElementSibling;if(this.checked){bg.style.background=\'linear-gradient(135deg,#ffd700,#ff9800)\';dot.style.left=\'22px\';}else{bg.style.background=\'rgba(255,255,255,0.15)\';dot.style.left=\'2px\';}" style="opacity:0;width:0;height:0;" />' +
                 '<span style="position:absolute;inset:0;background:' + (_dqPrefs.enabled?'linear-gradient(135deg,#ffd700,#ff9800)':'rgba(255,255,255,0.15)') + ';border-radius:24px;transition:0.3s;"></span>' +
                 '<span style="position:absolute;left:' + (_dqPrefs.enabled?'22':'2') + 'px;top:2px;width:20px;height:20px;background:white;border-radius:50%;transition:0.3s;"></span>' +
             '</label>' +
@@ -29961,17 +29963,10 @@ function openPreferencesModal() {
         '<button onclick="launchDailyQuiz()" style="width:100%;margin-top:8px;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,149,0,0.15));border:1px solid rgba(255,215,0,0.5);border-radius:10px;color:#ffd700;font-size:0.88em;font-weight:700;cursor:pointer;">🧠 ' + (currentLang==='es'?'Iniciar Quiz Ahora':'Start Quiz Now') + '</button>'
     );
 
-    // ── Tutorial ──
-    sectionsHtml += _s('🎓', currentLang==='es'?'Tutorial':'Tutorial', '#c9a840',
+    // ── Tutorial de AstroField ──
+    sectionsHtml += _s('🎓', currentLang==='es'?'Tutorial de AstroField':'AstroField Tutorial', '#c9a840',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Vuelve a ver la presentación de bienvenida y el tour interactivo de la app.':'Replay the welcome presentation and interactive app tour.') + '</div>' +
-        '<button onclick="if(typeof resetOnboardingTutorial===\'function\')resetOnboardingTutorial();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.45);border-radius:8px;color:#c9a840;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Ver Tutorial':'View Tutorial') + '</button>'
-    );
-
-    // ── Curso Pro de Astrología ──
-    var _courseProOverall = (function() { try { if (typeof LearnerProfile !== 'undefined') { LearnerProfile.load(); return {pct:Math.round(LearnerProfile.getOverallProgress())}; } return {pct:0}; } catch(e){return{pct:0};} })();
-    sectionsHtml += _s('🔭', currentLang==='es'?'Curso Pro de Astrología':'Pro Astrology Course', '#ffd700',
-        '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:8px;">' + (currentLang==='es'?'Curso profesional con 18 módulos, 130 temas, tests adaptativos y chat AI por tema.':'Professional course with 18 modules, 130 topics, adaptive tests and AI chat per topic.') + '</div>' +
-        '<button onclick="document.getElementById(\'preferencesModal\')&&document.getElementById(\'preferencesModal\').classList.remove(\'show\');switchToPersonalMode();setTimeout(function(){switchNatalTab(\'mapa\',document.querySelector(\'[onclick*=mapa]\'))},300)" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.2),rgba(255,215,0,0.05));border:1px solid rgba(255,215,0,0.45);border-radius:8px;color:#ffd700;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Abrir Curso Pro':'Open Course Pro') + ' (' + _courseProOverall.pct + '%)</button>'
+        '<button onclick="if(typeof resetOnboardingTutorial===\'function\')resetOnboardingTutorial();" style="width:100%;padding:12px;background:linear-gradient(135deg,rgba(201,168,64,0.2),rgba(201,168,64,0.05));border:1px solid rgba(201,168,64,0.45);border-radius:8px;color:#c9a840;font-size:0.85em;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">🎓 ' + (currentLang==='es'?'Ver Tutorial de AstroField':'View AstroField Tutorial') + '</button>'
     );
 
     // ═══════════════════════════════════════
@@ -34058,7 +34053,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v595';
+var APP_VERSION = 'v596';
 var _pendingSW = null;
 
 // What's New removed per user request
