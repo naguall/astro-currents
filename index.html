@@ -9170,6 +9170,60 @@ var _dreamSilenceTimer = null;
 var _dreamRecording = false;
 var _dreamRecognition = null;
 
+// ── Solfeggio Frequency Preferences ──
+function _getSolfeggioPrefs() {
+    var saved = JSON.parse(localStorage.getItem('dreamAlarmSolfeggio') || 'null');
+    if (!saved) saved = { '396': { on: true, vol: 80 }, '528': { on: true, vol: 55 } };
+    return saved;
+}
+window._toggleSolfFreq = function(hz, on) {
+    var prefs = _getSolfeggioPrefs();
+    var key = String(hz);
+    if (!prefs[key]) prefs[key] = { on: false, vol: 50 };
+    prefs[key].on = on;
+    localStorage.setItem('dreamAlarmSolfeggio', JSON.stringify(prefs));
+    openPreferencesModal();
+};
+window._setSolfVol = function(hz, val) {
+    var prefs = _getSolfeggioPrefs();
+    var key = String(hz);
+    if (!prefs[key]) prefs[key] = { on: true, vol: 50 };
+    prefs[key].vol = parseInt(val);
+    localStorage.setItem('dreamAlarmSolfeggio', JSON.stringify(prefs));
+    var label = document.getElementById('solVol' + hz);
+    if (label) label.textContent = val + '%';
+};
+window._testSolfeggioSound = function() {
+    try {
+        stopDreamAlarmSound();
+        var prefs = _getSolfeggioPrefs();
+        var activeFreqs = [];
+        for (var k in prefs) {
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 });
+        }
+        if (activeFreqs.length === 0) { alert(currentLang==='es'?'Activa al menos una frecuencia':'Enable at least one frequency'); return; }
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var testDur = 5;
+        var oscs = [];
+        for (var i = 0; i < activeFreqs.length; i++) {
+            var o = ctx.createOscillator();
+            var g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(activeFreqs[i].hz, ctx.currentTime);
+            g.gain.setValueAtTime(0, ctx.currentTime);
+            g.gain.linearRampToValueAtTime(activeFreqs[i].vol, ctx.currentTime + 0.5);
+            g.gain.linearRampToValueAtTime(activeFreqs[i].vol, ctx.currentTime + testDur - 1);
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime + testDur);
+            o.start(ctx.currentTime);
+            o.stop(ctx.currentTime + testDur);
+            oscs.push(o);
+        }
+        window._dreamAlarmAudio = { ctx: ctx, osc: oscs[0] || null, osc2: oscs[1] || null, voiceStream: null, voiceTimeout: null, _allOscs: oscs };
+        setTimeout(function() { stopDreamAlarmSound(); }, (testDur + 1) * 1000);
+    } catch(e) { console.error('Test solfeggio error:', e); }
+};
+
 function toggleDreamAlarm() {
     _dreamAlarmEnabled = !_dreamAlarmEnabled;
     localStorage.setItem('dreamAlarmEnabled', _dreamAlarmEnabled);
@@ -9313,13 +9367,14 @@ function stopDreamAlarmSound() {
     var a = window._dreamAlarmAudio;
     if (!a) return;
     try {
-        if (a.osc) a.osc.stop();
-        if (a.osc2) a.osc2.stop();
+        // Stop all oscillators (dynamic solfeggio array)
+        if (a._allOscs) { a._allOscs.forEach(function(o) { try { o.stop(); } catch(e) {} }); }
+        else { if (a.osc) try { a.osc.stop(); } catch(e) {} if (a.osc2) try { a.osc2.stop(); } catch(e) {} }
     } catch(e) {}
     try { if (a.ctx && a.ctx.state !== 'closed') a.ctx.close(); } catch(e) {}
     if (a.voiceStream) { a.voiceStream.getTracks().forEach(function(t) { t.stop(); }); }
     if (a.voiceTimeout) clearTimeout(a.voiceTimeout);
-    if (navigator.vibrate) navigator.vibrate(0); // Stop vibration
+    if (navigator.vibrate) navigator.vibrate(0);
     window._dreamAlarmAudio = null;
     console.log('🌙 Dream alarm sound stopped');
 }
@@ -9329,54 +9384,51 @@ function playDreamAlarmSound() {
         // Stop any previous alarm
         stopDreamAlarmSound();
 
+        var prefs = _getSolfeggioPrefs();
+        var activeFreqs = [];
+        for (var k in prefs) {
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 });
+        }
+        // Fallback if nothing selected
+        if (activeFreqs.length === 0) activeFreqs = [{ hz: 396, vol: 0.8 }, { hz: 528, vol: 0.5 }];
+
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
         var duration = 60; // 60 seconds
+        var allOscs = [];
 
-        // Main tone — gentle sine at solfeggio 396 Hz
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(396, ctx.currentTime);
+        for (var i = 0; i < activeFreqs.length; i++) {
+            var freq = activeFreqs[i];
+            var osc = ctx.createOscillator();
+            var g = ctx.createGain();
+            osc.connect(g);
+            g.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq.hz, ctx.currentTime);
 
-        // Secondary harmonic — soft octave above for richness
-        var osc2 = ctx.createOscillator();
-        var gain2 = ctx.createGain();
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(528, ctx.currentTime); // Solfeggio 528 Hz
+            // Fast fade in
+            g.gain.setValueAtTime(0, ctx.currentTime);
+            g.gain.linearRampToValueAtTime(freq.vol, ctx.currentTime + 1.5);
 
-        // Volume envelope — gradual fade in, tremolo waves, stays gentle
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 2);
-        gain2.gain.setValueAtTime(0, ctx.currentTime);
-        gain2.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 2);
+            // Tremolo pulses
+            for (var t = 1.5; t < duration - 2; t += 1.2) {
+                g.gain.linearRampToValueAtTime(freq.vol, ctx.currentTime + t);
+                g.gain.linearRampToValueAtTime(freq.vol * 0.18, ctx.currentTime + t + 0.6);
+            }
+            // Fade out
+            g.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
 
-        // Tremolo waves for the full duration (gentle pulsing)
-        for (var t = 2; t < duration - 2; t += 1.5) {
-            gain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + t);
-            gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + t + 0.75);
-            gain2.gain.linearRampToValueAtTime(0.07, ctx.currentTime + t);
-            gain2.gain.linearRampToValueAtTime(0.02, ctx.currentTime + t + 0.75);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + duration);
+            allOscs.push(osc);
         }
-        // Fade out at the end
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
-        gain2.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
-
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + duration);
-        osc2.start(ctx.currentTime);
-        osc2.stop(ctx.currentTime + duration);
 
         // Store reference for stopping
-        window._dreamAlarmAudio = { ctx: ctx, osc: osc, osc2: osc2, voiceStream: null, voiceTimeout: null };
+        window._dreamAlarmAudio = { ctx: ctx, osc: allOscs[0] || null, osc2: allOscs[1] || null, _allOscs: allOscs, voiceStream: null, voiceTimeout: null };
 
         // Auto-cleanup after duration
         var autoClean = setTimeout(function() { stopDreamAlarmSound(); }, (duration + 1) * 1000);
 
-        // 3. Voice detection — stop alarm when user speaks
+        // Voice detection — stop alarm when user speaks
         startAlarmVoiceDetection();
 
     } catch(e) {
@@ -9488,7 +9540,7 @@ function startDreamVoiceRecording() {
     _dreamRecognition.maxAlternatives = 3;
 
     var lastSpeechTime = Date.now();
-    var SILENCE_TIMEOUT = 120000; // 2 minutes
+    var SILENCE_TIMEOUT = 45000; // 45 seconds
 
     _dreamRecognition.onstart = function() {
         console.log('🌙🎤 Dream recording started');
@@ -9506,14 +9558,14 @@ function startDreamVoiceRecording() {
         // Show recording status
         var status = document.getElementById('dreamSaveStatus');
         if (status) {
-            status.innerHTML = L ? '🎤 Grabando sueño... (se detiene tras 2 min de silencio)' : '🎤 Recording dream... (stops after 2 min silence)';
+            status.innerHTML = L ? '🎤 Grabando sueño... (se detiene tras 45 seg de silencio)' : '🎤 Recording dream... (stops after 45s silence)';
             status.style.color = '#ff6b6b';
         }
 
         // Start silence check timer
         _dreamSilenceTimer = setInterval(function() {
             if (Date.now() - lastSpeechTime > SILENCE_TIMEOUT) {
-                console.log('🌙 2 min silence — auto-stopping dream recording');
+                console.log('🌙 45s silence — auto-stopping dream recording');
                 stopDreamVoiceRecording(true);
             }
         }, 10000); // Check every 10 seconds
@@ -19691,6 +19743,9 @@ function renderNatalLunarCal() {
                 signChanges.forEach(function(sc) {
                     astroSymbols += '<div style="color:#7ec8ff;font-weight:bold;line-height:1.1;font-size:0.85em;text-align:right;">' + getPlanetInitial(sc.planet) + '→' + sc.toSign.substring(0, 3) + '</div>';
                 });
+                if (stellium) {
+                    astroSymbols += '<div style="font-size:1.2em;color:#FFD700;font-weight:bold;line-height:1;text-align:right;" title="Stellium ' + stellium.sign + '">★</div>';
+                }
                 dayPatterns.forEach(function(pat) {
                     if (pat.type === 'stellium') return;
                     astroSymbols += '<div style="color:' + pat.color + ';font-weight:bold;font-size:0.7em;text-align:right;" title="' + pat.name + '">' + pat.icon + '</div>';
@@ -21822,7 +21877,7 @@ function renderPersonalCalendar() {
             const _si = sc.toSign ? sc.toSign.substring(0,3) : '';
             _calAstroIcons += `<span style="font-size:0.45em;color:#4ecdc4;" title="${sc.planet} → ${sc.toSign}">${_pi}→${_si}</span>`;
         });
-        // Dynamic aspect patterns (skip stelliums — too common, clutters calendar)
+        if (_calStellium) _calAstroIcons += `<span style="font-size:0.55em;color:#FFD700;" title="Stellium ${_calStellium.sign}">★</span>`;
         _calPatterns.forEach(function(pat) {
             if (pat.type === 'stellium') return;
             _calAstroIcons += `<span style="font-size:0.5em;color:${pat.color};font-weight:700;" title="${pat.name}: ${pat.planets.join(', ')}">${pat.icon}</span>`;
@@ -21867,6 +21922,7 @@ function renderPersonalCalendar() {
             <span style="color:#7ec8ff;">☿☍♄ = ${L?'Aspectos':'Aspects'}</span>
             <span style="color:#ff6b6b;">℞ = ${L?'Retrógrado':'Retrograde'}</span>
             <span style="color:#4ecdc4;">→ = ${L?'Cambio signo':'Sign change'}</span>
+            <span style="color:#FFD700;">★ = Stellium</span>
             <span style="color:#ef5350;">🌑🌕 = ${L?'Luna':'Moon'}</span>
         </div>
     `;
@@ -23972,7 +24028,8 @@ function generateSolarWeeks(sign) {
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.7em;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
                             ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium').map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -25855,7 +25912,8 @@ function renderCalendar() {
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.85em;white-space:nowrap;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
                             ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium').map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="font-size:1.2em;color:#FFD700;font-weight:bold;cursor:pointer;line-height:1;text-align:right;" title="Stellium ${stellium.sign}">★</div>`; })() : ''}
+                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -29735,6 +29793,53 @@ function openPreferencesModal() {
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '<div id="dreamAlarmStatus" style="font-size:0.72em;color:rgba(255,255,255,0.3);"></div>';
     dreamAlarmContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;">' + (currentLang==='es'?'Suena 1 minuto, abre el diario de sueños y activa el micrófono. Se detiene al hablar o tocar la pantalla.':'Rings for 1 minute, opens dream journal and activates microphone. Stops when you speak or tap the screen.') + '</div>';
+
+    // ── Solfeggio Frequencies Panel ──
+    var _solfFreqs = [
+        { hz: 174, name: currentLang==='es'?'Alivio del dolor':'Pain relief', color: '#e74c3c' },
+        { hz: 285, name: currentLang==='es'?'Sanación tejidos':'Tissue healing', color: '#e67e22' },
+        { hz: 396, name: currentLang==='es'?'Liberar miedo':'Release fear', color: '#f1c40f' },
+        { hz: 417, name: currentLang==='es'?'Facilitar cambio':'Facilitate change', color: '#2ecc71' },
+        { hz: 528, name: currentLang==='es'?'Transformación':'Transformation', color: '#1abc9c' },
+        { hz: 639, name: currentLang==='es'?'Conexión':'Connection', color: '#3498db' },
+        { hz: 741, name: currentLang==='es'?'Despertar intuición':'Awaken intuition', color: '#9b59b6' },
+        { hz: 852, name: currentLang==='es'?'Orden espiritual':'Spiritual order', color: '#8e44ad' },
+        { hz: 963, name: currentLang==='es'?'Conciencia divina':'Divine consciousness', color: '#ce93d8' }
+    ];
+    var _savedSolf = JSON.parse(localStorage.getItem('dreamAlarmSolfeggio') || 'null');
+    if (!_savedSolf) _savedSolf = { '396': { on: true, vol: 80 }, '528': { on: true, vol: 55 } };
+
+    dreamAlarmContent += '<div style="margin-top:10px;">';
+    dreamAlarmContent += '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.solf-arrow\').textContent=p.style.display===\'none\'?\'▶\':\'▼\'" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(138,43,226,0.1);border:1px solid rgba(138,43,226,0.25);border-radius:8px;user-select:none;">';
+    dreamAlarmContent += '<span class="solf-arrow" style="font-size:0.7em;color:#ce93d8;">▶</span>';
+    dreamAlarmContent += '<span style="font-size:0.8em;color:#ce93d8;font-weight:600;">🎵 ' + (currentLang==='es'?'Frecuencias Solfeggio':'Solfeggio Frequencies') + '</span>';
+    dreamAlarmContent += '</div>';
+    dreamAlarmContent += '<div style="display:none;padding:10px 0;">';
+
+    for (var _fi = 0; _fi < _solfFreqs.length; _fi++) {
+        var _f = _solfFreqs[_fi];
+        var _fKey = String(_f.hz);
+        var _fOn = _savedSolf[_fKey] ? _savedSolf[_fKey].on : false;
+        var _fVol = _savedSolf[_fKey] ? _savedSolf[_fKey].vol : 50;
+        dreamAlarmContent += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;background:rgba(255,255,255,' + (_fOn?'0.04':'0.01') + ');border-radius:6px;border:1px solid rgba(255,255,255,' + (_fOn?'0.1':'0.04') + ');">';
+        // Toggle checkbox
+        dreamAlarmContent += '<label style="position:relative;display:inline-block;width:34px;height:18px;flex-shrink:0;"><input type="checkbox" ' + (_fOn?'checked':'') + ' onchange="window._toggleSolfFreq(' + _f.hz + ',this.checked)" style="opacity:0;width:0;height:0;"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:' + (_fOn?'rgba(138,43,226,0.5)':'rgba(255,255,255,0.12)') + ';border-radius:18px;transition:0.3s;"><span style="position:absolute;height:14px;width:14px;left:' + (_fOn?'17px':'2px') + ';bottom:2px;background:white;border-radius:50%;transition:0.3s;display:block;"></span></span></label>';
+        // Frequency label
+        dreamAlarmContent += '<div style="min-width:55px;"><span style="font-size:0.82em;font-weight:700;color:' + _f.color + ';">' + _f.hz + ' Hz</span></div>';
+        // Name
+        dreamAlarmContent += '<div style="flex:1;font-size:0.68em;color:rgba(255,255,255,' + (_fOn?'0.6':'0.3') + ');white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _f.name + '</div>';
+        // Volume slider
+        dreamAlarmContent += '<input type="range" min="10" max="100" value="' + _fVol + '" onchange="window._setSolfVol(' + _f.hz + ',this.value)" style="width:60px;height:3px;accent-color:' + _f.color + ';opacity:' + (_fOn?'1':'0.3') + ';">';
+        dreamAlarmContent += '<span id="solVol' + _f.hz + '" style="font-size:0.6em;color:rgba(255,255,255,0.4);min-width:22px;text-align:right;">' + _fVol + '%</span>';
+        dreamAlarmContent += '</div>';
+    }
+
+    // Test sound button
+    dreamAlarmContent += '<div style="text-align:center;margin-top:8px;">';
+    dreamAlarmContent += '<button onclick="window._testSolfeggioSound()" style="padding:6px 16px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.75em;cursor:pointer;">🔊 ' + (currentLang==='es'?'Probar sonido':'Test sound') + '</button>';
+    dreamAlarmContent += '</div>';
+    dreamAlarmContent += '</div></div>';
+
     sectionsHtml += _s('🌙', currentLang==='es'?'Alarma de Ensueños':'Dream Alarm', '#7ec8ff', dreamAlarmContent);
 
     // ── Mis Mensajes (solo creador) ──
@@ -34149,7 +34254,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v605';
+var APP_VERSION = 'v611';
 var _pendingSW = null;
 
 // What's New removed per user request
