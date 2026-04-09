@@ -19691,9 +19691,8 @@ function renderNatalLunarCal() {
                 signChanges.forEach(function(sc) {
                     astroSymbols += '<div style="color:#7ec8ff;font-weight:bold;line-height:1.1;font-size:0.85em;text-align:right;">' + getPlanetInitial(sc.planet) + '→' + sc.toSign.substring(0, 3) + '</div>';
                 });
-                if (stellium) astroSymbols += '<div style="color:' + (stellium.count === 3 ? '#FFD700' : stellium.count === 4 ? '#f39c12' : '#e74c3c') + ';font-weight:bold;font-size:1.1em;">★</div>';
                 dayPatterns.forEach(function(pat) {
-                    if (pat.type === 'stellium' && stellium) return;
+                    if (pat.type === 'stellium') return;
                     astroSymbols += '<div style="color:' + pat.color + ';font-weight:bold;font-size:0.7em;text-align:right;" title="' + pat.name + '">' + pat.icon + '</div>';
                 });
                 astroSymbols += '</div>';
@@ -21823,10 +21822,9 @@ function renderPersonalCalendar() {
             const _si = sc.toSign ? sc.toSign.substring(0,3) : '';
             _calAstroIcons += `<span style="font-size:0.45em;color:#4ecdc4;" title="${sc.planet} → ${sc.toSign}">${_pi}→${_si}</span>`;
         });
-        if (_calStellium) _calAstroIcons += `<span style="font-size:0.55em;color:#FFD700;" title="Stellium ${_calStellium.sign}">★</span>`;
-        // Dynamic aspect patterns (exclude stelliums already shown by hardcoded data)
+        // Dynamic aspect patterns (skip stelliums — too common, clutters calendar)
         _calPatterns.forEach(function(pat) {
-            if (pat.type === 'stellium' && _calStellium) return; // avoid duplicate stellium icon
+            if (pat.type === 'stellium') return;
             _calAstroIcons += `<span style="font-size:0.5em;color:${pat.color};font-weight:700;" title="${pat.name}: ${pat.planets.join(', ')}">${pat.icon}</span>`;
         });
 
@@ -21869,7 +21867,6 @@ function renderPersonalCalendar() {
             <span style="color:#7ec8ff;">☿☍♄ = ${L?'Aspectos':'Aspects'}</span>
             <span style="color:#ff6b6b;">℞ = ${L?'Retrógrado':'Retrograde'}</span>
             <span style="color:#4ecdc4;">→ = ${L?'Cambio signo':'Sign change'}</span>
-            <span style="color:#FFD700;">★ = Stellium</span>
             <span style="color:#ef5350;">🌑🌕 = ${L?'Luna':'Moon'}</span>
         </div>
     `;
@@ -23974,9 +23971,8 @@ function generateSolarWeeks(sign) {
                                 const scTxt = (tp(sc.planet) + ' → ' + ts(sc.toSign) + (sc.time ? ' ' + sc.time : '')).replace(/'/g, "\\'");
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.7em;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
-                            ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="color: ${stellium.count === 3 ? '#FFD700' : stellium.count === 4 ? '#f39c12' : '#e74c3c'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.1em;" title="Stellium en ${stellium.sign}">★</div>`; })() : ''}
                             ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${dayPatterns.filter(p => p.type !== 'stellium').map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -25858,9 +25854,8 @@ function renderCalendar() {
                                 const scTxt = (tp(sc.planet) + ' → ' + ts(sc.toSign) + (sc.time ? ' ' + sc.time : '')).replace(/'/g, "\\'");
                                 return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${scTxt}')" style="color:#7ec8ff;font-weight:bold;cursor:pointer;line-height:1.1;font-size:0.85em;white-space:nowrap;text-align:right;" title="${sc.planet} → ${sc.toSign}">${planetInit}→${signInit}</div>`;
                             }).join('')}
-                            ${stellium ? (() => { const stTxt = ('Stellium en ' + stellium.sign + ' — ' + stellium.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${stTxt}')" style="color: ${stellium.count === 3 ? '#FFD700' : stellium.count === 4 ? '#f39c12' : '#e74c3c'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.1em;" title="Stellium en ${stellium.sign}">★</div>`; })() : ''}
                             ${majorAspect ? (() => { const maTxt = (majorAspect.type + ' — ' + majorAspect.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${maTxt}')" style="color: ${majorAspect.type === 'T-Square' ? '#ff6b6b' : majorAspect.type === 'Kite' ? '#9b59b6' : '#4ecdc4'}; font-weight: bold; cursor: pointer; line-height: 1; font-size: 1.5em;" title="${majorAspect.type}">${majorAspect.type === 'T-Square' ? '⊥' : majorAspect.type === 'Kite' ? '🪁' : '▭'}</div>`; })() : ''}
-                            ${dayPatterns.filter(p => p.type !== 'stellium' || !stellium).map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
+                            ${dayPatterns.filter(p => p.type !== 'stellium').map(p => { const pTxt = (p.name + ' — ' + p.planets.join(', ')).replace(/'/g, "\\'"); return `<div onclick="event.stopPropagation(); showBannerAspectDetail('${pTxt}')" style="color:${p.color};font-weight:bold;cursor:pointer;line-height:1;font-size:0.8em;text-align:right;" title="${p.name}">${p.icon}</div>`; }).join('')}
                         </div>
                         ` : ''}
                     </div>
@@ -34154,7 +34149,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v604';
+var APP_VERSION = 'v605';
 var _pendingSW = null;
 
 // What's New removed per user request
