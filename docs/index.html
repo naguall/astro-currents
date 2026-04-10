@@ -149,6 +149,8 @@
         .container { width: 100%; margin: 0 auto; padding: 0 8px; box-sizing: border-box; overflow-x: hidden; max-width: 100vw; }
 
         header { text-align: center; margin-bottom: 4px; position: sticky; top: 0; z-index: 100; background: #0a0a2e; padding-top: 6px; padding-bottom: 2px; }
+        .mode-btns::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        .mode-btns { scrollbar-width: none; -ms-overflow-style: none; }
 
         h1 {
             font-family: 'Cinzel', serif;
@@ -739,12 +741,12 @@
             </div>
 
             <!-- Mode buttons: single row, compact to fit screen -->
-            <div class="mode-btns" style="display:flex;flex-direction:row;gap:2px;justify-content:center;align-items:center;flex-wrap:nowrap;margin-bottom:8px;width:100%;overflow-x:auto;padding:0 2px;">
-                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 9px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Lunar</button>
-                <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Solar</button>
-                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="gregorianButtonLabel">Greg</span></button>
-                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="personalButtonLabel">Astrológico</span></button>
-                <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;">Social</button>
+            <div class="mode-btns" style="display:flex;flex-direction:row;gap:3px;justify-content:center;align-items:center;flex-wrap:nowrap;margin-bottom:8px;width:100%;padding:0 2px;overflow:visible;scrollbar-width:none;">
+                <button id="lunarModeBtn" onclick="switchToLunarMode()" style="padding:4px 8px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;border-radius:16px;color:white;font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Lunar</button>
+                <button id="solarModeBtn" onclick="switchToSolarMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Solar</button>
+                <button id="gregorianModeBtn" onclick="switchToGregorianMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;"><span id="gregorianButtonLabel">Greg</span></button>
+                <button id="personalModeBtn" onclick="switchToPersonalMode()" style="padding:4px 7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.72em;flex-shrink:0;"><span id="personalButtonLabel">Astrológico</span></button>
+                <button id="socialModeBtn" onclick="switchToSocialMode()" style="padding:4px 8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.75em;flex-shrink:0;">Social</button>
                 <!-- HIDDEN: Earth and Solar System buttons (kept for future reactivation) -->
                 <button id="earthModeBtn" onclick="switchToEarthMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="earthButtonLabel">Tierra</span></button>
                 <button id="solarSystemModeBtn" onclick="switchToSolarSystemMode()" style="display:none;padding:4px 9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:16px;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;white-space:nowrap;font-size:0.8em;"><span id="ssButtonLabel">S.S</span></button>
@@ -27392,18 +27394,18 @@ function goToCurrentCycle() {
                     { sel: '#gregorianCalendar .day-cell.today,#gregorianCalendar .day-cell:not(.past)', icon: '📅', title: L ? 'Toca un Día' : 'Tap a Day', desc: L ? 'Desliza para cambiar de mes. Haz click en cualquier día para ver aspectos planetarios, escribir en tu diario personal y de sueños, o agregar eventos.' : 'Swipe to change months. Click any day to see planetary aspects, write in your personal and dream diary, or add events.' }
                 ],
                 'personal': [
-                    { sel: '.natal-subtab[onclick*="chart"]', icon: '🪐', title: L ? 'Carta Natal y Elementos' : 'Natal Chart & Elements', desc: L ? 'Rueda zodiacal interactiva, elementos y cualidades de tu carta' : 'Interactive zodiac wheel, elements and qualities of your chart' },
-                    { sel: '.natal-subtab[onclick*="tables"]', icon: '📊', title: L ? 'Tablas' : 'Tables', desc: L ? 'Posiciones detalladas: planetas, signos, casas, grados. Haz click individualmente en cualquiera de ellos para más información' : 'Detailed positions: planets, signs, houses, degrees. Click individually on any of them for more information' },
-                    { sel: '.natal-subtab[onclick*="calendar"]', icon: '📅', title: L ? 'Tránsitos' : 'Transits', desc: L ? 'Calendario personal que empieza en tu cumpleaños. Mira tus solsticios y equinoccios personales, cuántos días han pasado desde tu cumpleaños y cuántos faltan para el próximo, con numerología' : 'Personal calendar starting on your birthday. See your personal solstices and equinoxes, days passed since your birthday and days remaining until the next one, with numerology' },
-                    { sel: '.natal-subtab[onclick*="hoy"]', icon: '🌟', title: L ? 'Hoy' : 'Today', desc: L ? 'Aspectos planetarios que te afectan hoy. Haz click en cualquier aspecto para expandir' : 'Planetary aspects affecting you today. Click on any aspect to expand' },
-                    { sel: '.natal-subtab[onclick*="ciclos"]', icon: '🔄', title: L ? 'Ciclos' : 'Cycles', desc: L ? 'Tus ciclos planetarios activos basados en tu carta natal. Retorno solar, lunar, progresiones, ciclos del mes y más' : 'Your active planetary cycles based on your natal chart. Solar return, lunar return, progressions, monthly cycles and more' },
-                    { sel: '.natal-subtab[onclick*="aspects2026"]', icon: '📆', title: '2026', desc: L ? 'Eventos importantes de todo el año, agrupados por planeta, signo, figuras de aspecto, aspectos mayores y más' : 'Important events for the whole year, grouped by planet, sign, aspect patterns, major aspects and more' },
-                    { sel: '.natal-subtab[onclick*="cartography"]', icon: '🗺️', title: L ? 'Astrocartografía' : 'Astrocartography', desc: L ? 'Tu mapa de energías planetarias en el mundo. Las líneas muestran dónde cada planeta tiene mayor influencia. Mapa mundial con líneas MC/IC/AC/DC' : 'Your map of planetary energies in the world. Lines show where each planet has the greatest influence. World map with MC/IC/AC/DC lines' },
-                    { sel: '.natal-subtab[onclick*="sinastria"]', icon: '💞', title: L ? 'Sinastría' : 'Synastry', desc: L ? 'Compatibilidad entre dos cartas natales' : 'Compatibility between two natal charts' },
-                    { sel: '.natal-subtab[onclick*="compuesta"]', icon: '💫', title: L ? 'Carta Compuesta' : 'Composite Chart', desc: L ? 'Punto medio entre ambas cartas — la relación como entidad. Energía combinada de la relación' : 'Midpoint between both charts — the relationship as an entity. Combined relationship energy' },
-                    { sel: '.natal-subtab[onclick*="davison"]', icon: '🤝', title: 'Davison', desc: L ? 'Punto medio de dos cartas, punto medio en tiempo y espacio — carta real de la relación' : 'Midpoint of two charts, midpoint in time and space — the real chart of the relationship' },
-                    { sel: '.natal-subtab[onclick*="tutor"]', icon: '🤖', title: L ? 'Tutor AI' : 'AI Tutor', desc: L ? 'Chat para aprender astrología. Pregunta y aprende' : 'Chat to learn astrology. Ask and learn' },
-                    { sel: '.natal-subtab[onclick*="mapa"]', icon: '🎓', title: L ? 'Curso Pro' : 'Course Pro', desc: L ? '18 módulos, 130 temas' : '18 modules, 130 topics' },
+                    { sel: '.natal-subtab[onclick*="chart"]', group: 'detalles', icon: '🪐', title: L ? 'Carta Natal y Elementos' : 'Natal Chart & Elements', desc: L ? 'Rueda zodiacal interactiva, elementos y cualidades de tu carta' : 'Interactive zodiac wheel, elements and qualities of your chart' },
+                    { sel: '.natal-subtab[onclick*="tables"]', group: 'detalles', icon: '📊', title: L ? 'Tablas' : 'Tables', desc: L ? 'Posiciones detalladas: planetas, signos, casas, grados. Haz click individualmente en cualquiera de ellos para más información' : 'Detailed positions: planets, signs, houses, degrees. Click individually on any of them for more information' },
+                    { sel: '.natal-subtab[onclick*="calendar"]', group: 'detalles', icon: '📅', title: L ? 'Tránsitos' : 'Transits', desc: L ? 'Calendario personal que empieza en tu cumpleaños. Mira tus solsticios y equinoccios personales, cuántos días han pasado desde tu cumpleaños y cuántos faltan para el próximo, con numerología' : 'Personal calendar starting on your birthday. See your personal solstices and equinoxes, days passed since your birthday and days remaining until the next one, with numerology' },
+                    { sel: '.natal-subtab[onclick*="hoy"]', group: 'detalles', icon: '🌟', title: L ? 'Hoy' : 'Today', desc: L ? 'Aspectos planetarios que te afectan hoy. Haz click en cualquier aspecto para expandir' : 'Planetary aspects affecting you today. Click on any aspect to expand' },
+                    { sel: '.natal-subtab[onclick*="cartography"]', group: 'detalles', icon: '🗺️', title: L ? 'Astrocartografía' : 'Astrocartography', desc: L ? 'Tu mapa de energías planetarias en el mundo. Las líneas muestran dónde cada planeta tiene mayor influencia. Mapa mundial con líneas MC/IC/AC/DC' : 'Your map of planetary energies in the world. Lines show where each planet has the greatest influence. World map with MC/IC/AC/DC lines' },
+                    { sel: '.natal-subtab[onclick*="ciclos"]', group: 'detalles', icon: '🔄', title: L ? 'Ciclos' : 'Cycles', desc: L ? 'Tus ciclos planetarios activos basados en tu carta natal. Retorno solar, lunar, progresiones, ciclos del mes y más' : 'Your active planetary cycles based on your natal chart. Solar return, lunar return, progressions, monthly cycles and more' },
+                    { sel: '.natal-subtab[onclick*="aspects2026"]', group: 'detalles', icon: '📆', title: '2026', desc: L ? 'Eventos importantes de todo el año, agrupados por planeta, signo, figuras de aspecto, aspectos mayores y más' : 'Important events for the whole year, grouped by planet, sign, aspect patterns, major aspects and more' },
+                    { sel: '.natal-subtab[onclick*="sinastria"]', group: 'avanzado', icon: '💞', title: L ? 'Sinastría' : 'Synastry', desc: L ? 'Compatibilidad entre dos cartas natales' : 'Compatibility between two natal charts' },
+                    { sel: '.natal-subtab[onclick*="compuesta"]', group: 'avanzado', icon: '💫', title: L ? 'Carta Compuesta' : 'Composite Chart', desc: L ? 'Punto medio entre ambas cartas — la relación como entidad. Energía combinada de la relación' : 'Midpoint between both charts — the relationship as an entity. Combined relationship energy' },
+                    { sel: '.natal-subtab[onclick*="davison"]', group: 'avanzado', icon: '🤝', title: 'Davison', desc: L ? 'Punto medio de dos cartas, punto medio en tiempo y espacio — carta real de la relación' : 'Midpoint of two charts, midpoint in time and space — the real chart of the relationship' },
+                    { sel: '.natal-subtab[onclick*="tutor"]', group: 'avanzado', icon: '🤖', title: L ? 'Tutor AI' : 'AI Tutor', desc: L ? 'Chat para aprender astrología. Pregunta y aprende' : 'Chat to learn astrology. Ask and learn' },
+                    { sel: '.natal-subtab[onclick*="mapa"]', group: 'avanzado', icon: '🎓', title: L ? 'Curso Pro' : 'Course Pro', desc: L ? '18 módulos, 130 temas' : '18 modules, 130 topics' },
                     { sel: '[onclick*="addNewProfile"]', icon: '＋', title: L ? 'Nuevo Perfil' : 'New Profile', desc: L ? 'Agregar perfiles de nacimiento' : 'Add birth profiles' }
                 ],
                 'social': [
@@ -27432,6 +27434,12 @@ function goToCurrentCycle() {
             var steps = _getWalkthroughSteps(screen);
             if (!steps.length) return;
 
+            // v626: For 'personal' screen, temporarily show avanzado group so validation sees its subtabs
+            if (screen === 'personal') {
+                var _avTmp = document.getElementById('natalGroupAvanzado');
+                if (_avTmp) _avTmp.style.display = 'flex';
+            }
+
             // Filter to only steps whose elements exist in DOM
             var validSteps = [];
             steps.forEach(function(step) {
@@ -27446,14 +27454,22 @@ function goToCurrentCycle() {
                     return;
                 }
                 var sels = step.sel.split(',');
+                // v626: skip offsetParent check for natal-subtab selectors (group may be hidden)
+                var isNatalSub = step.sel.indexOf('.natal-subtab') >= 0;
                 for (var i = 0; i < sels.length; i++) {
                     var el = document.querySelector(sels[i].trim());
-                    if (el && el.offsetParent !== null) {
-                        validSteps.push({ sel: sels[i].trim(), icon: step.icon, title: step.title, desc: step.desc });
+                    if (el && (isNatalSub || el.offsetParent !== null)) {
+                        validSteps.push({ sel: sels[i].trim(), group: step.group, icon: step.icon, title: step.title, desc: step.desc });
                         return;
                     }
                 }
             });
+
+            // v626: Restore avanzado group to hidden after validation
+            if (screen === 'personal') {
+                var _avTmp2 = document.getElementById('natalGroupAvanzado');
+                if (_avTmp2) _avTmp2.style.display = 'none';
+            }
 
             if (!validSteps.length) return;
 
@@ -27658,7 +27674,7 @@ function goToCurrentCycle() {
                         if (skipBtn) skipBtn.onclick = _finishWalkthrough;
                         if (nextBtn) nextBtn.onclick = function() { _showStep(idx + 1); };
                         if (prevBtn) prevBtn.onclick = function() { _showStep(idx - 1); };
-                    }, 400);
+                    }, 120);
                     return;
                 }
 
@@ -27666,16 +27682,46 @@ function goToCurrentCycle() {
                 var el = document.querySelector(step.sel);
                 if (!el) { _showStep(idx + 1); return; }
 
-                // v622: Activate tab if this is a mode button
+                // v622/v626: Activate tab if this is a mode button (+ #currentDayInfo → lunar)
                 var _modeActivateMap = {
                     '#lunarModeBtn': 'switchToLunarMode',
                     '#solarModeBtn': 'switchToSolarMode',
                     '#gregorianModeBtn': 'switchToGregorianMode',
                     '#personalModeBtn': 'switchToPersonalMode',
-                    '#socialModeBtn': 'switchToSocialMode'
+                    '#socialModeBtn': 'switchToSocialMode',
+                    '#currentDayInfo': 'switchToLunarMode'
                 };
                 if (_modeActivateMap[step.sel] && typeof window[_modeActivateMap[step.sel]] === 'function') {
                     window[_modeActivateMap[step.sel]]();
+                }
+
+                // v626: Social subtab activation — switch social tab matching this step
+                var _ocAttr = el.getAttribute('onclick') || '';
+                var _socMatch = _ocAttr.match(/_switchSocialTab\(['"]([^'"]+)['"]/);
+                if (_socMatch && typeof window._switchSocialTab === 'function') {
+                    try { window._switchSocialTab(_socMatch[1]); } catch(e){}
+                }
+
+                // v626: Natal subtab activation — switch group and tab for Astrológico
+                if (step.group && el.classList && el.classList.contains('natal-subtab')) {
+                    var _detDiv = document.getElementById('natalGroupDetalles');
+                    var _avDiv = document.getElementById('natalGroupAvanzado');
+                    var _grpBtns = document.querySelectorAll('.natal-group-tab');
+                    _grpBtns.forEach(function(b) { b.classList.remove('active'); });
+                    if (step.group === 'avanzado') {
+                        if (_detDiv) _detDiv.style.display = 'none';
+                        if (_avDiv) _avDiv.style.display = 'flex';
+                        if (_grpBtns[1]) _grpBtns[1].classList.add('active');
+                    } else {
+                        if (_detDiv) _detDiv.style.display = 'flex';
+                        if (_avDiv) _avDiv.style.display = 'none';
+                        if (_grpBtns[0]) _grpBtns[0].classList.add('active');
+                    }
+                    // Extract tab name from onclick and switch
+                    var _ntMatch = _ocAttr.match(/switchNatalTab\(['"]([^'"]+)['"]/);
+                    if (_ntMatch && typeof window.switchNatalTab === 'function') {
+                        try { window.switchNatalTab(_ntMatch[1], el); } catch(e){}
+                    }
                 }
 
                 // Scroll element into view
@@ -27768,7 +27814,7 @@ function goToCurrentCycle() {
                     if (skipBtn) skipBtn.onclick = function() { _finishWalkthrough(); };
                     if (nextBtn) nextBtn.onclick = function() { _showStep(idx + 1); };
                     if (prevBtn) prevBtn.onclick = function() { _showStep(idx - 1); };
-                }, 350);
+                }, 120);
             }
 
             function _finishWalkthrough() {
@@ -27791,8 +27837,8 @@ function goToCurrentCycle() {
             // Only the tooltip buttons (Next/Prev/Skip) work (z-index 9998)
             clickBlocker.onclick = function(e) { e.stopPropagation(); e.preventDefault(); };
 
-            // Start
-            setTimeout(function() { _showStep(0); }, 600);
+            // Start (v626: faster activation)
+            setTimeout(function() { _showStep(0); }, 100);
         }
 
         // ── Public API ──
@@ -27849,14 +27895,14 @@ function goToCurrentCycle() {
                                 if (el && el.offsetParent !== null) { found++; return; }
                             }
                         });
-                        if (found >= 2 || _tryCount >= 3) {
+                        if (found >= 2 || _tryCount >= 4) {
                             _runWalkthrough(screen);
                         } else {
                             _tryCount++;
-                            setTimeout(_tryRun, 800);
+                            setTimeout(_tryRun, 250);
                         }
                     };
-                    setTimeout(_tryRun, 1200);
+                    setTimeout(_tryRun, 200);
                 };
             }
         }
@@ -34186,7 +34232,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v625';
+var APP_VERSION = 'v626';
 var _pendingSW = null;
 
 // What's New removed per user request
