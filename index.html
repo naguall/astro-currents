@@ -241,7 +241,9 @@
         .perfection-time { color: var(--gold); font-style: italic; white-space: nowrap; }
         .zodiac-sign { color: var(--gold); white-space: nowrap; }
 
-        .days-container { display: grid; grid-template-columns: var(--day-cell-grid-cols, repeat(auto-fill, minmax(90px, 1fr))); gap: var(--day-cell-gap, 3px); padding: 2px 0; width: 100%; }
+        .days-container { display: grid; grid-template-columns: var(--day-cell-grid-cols, repeat(auto-fill, minmax(90px, 1fr))); grid-auto-rows: var(--day-cell-min-height, 100px); gap: var(--day-cell-gap, 3px); padding: 2px 0; width: 100%; }
+        /* v631 Bug #1: force fixed row height so first week cells are not taller than others */
+        .day-cell { height: var(--day-cell-min-height, 100px); }
 
         .day-cell {
             min-width: 0; min-height: var(--day-cell-min-height, 100px);
@@ -634,9 +636,9 @@
             .week-title { font-size: 0.62em; }
             .week-details { display: none; }
             .moon-icon { font-size: 0.7em; display: inline-flex; align-items: center; justify-content: center; line-height: 0; vertical-align: middle; }
-            .days-container { grid-template-columns: var(--day-cell-grid-cols, repeat(auto-fill, minmax(70px, 1fr))); gap: var(--day-cell-gap, 2px); }
+            .days-container { grid-template-columns: var(--day-cell-grid-cols, repeat(auto-fill, minmax(70px, 1fr))); grid-auto-rows: var(--day-cell-min-height, 85px); gap: var(--day-cell-gap, 2px); }
             .lunar-week > div:not(.week-header) { gap: 2px; }
-            .day-cell { min-width: 0; min-height: var(--day-cell-min-height, 85px); font-size: var(--day-cell-font-size, 0.7em); padding: var(--day-cell-padding, 3px); overflow: hidden; word-break: break-word; }
+            .day-cell { min-width: 0; height: var(--day-cell-min-height, 85px); font-size: var(--day-cell-font-size, 0.7em); padding: var(--day-cell-padding, 3px); overflow: hidden; word-break: break-word; }
             .day-number { font-size: 1em; }
             .day-date { font-size: 0.62em; }
             .day-weekday { font-size: 0.52em; }
@@ -652,7 +654,7 @@
 
             /* ── Solar/Gregorian ── */
             body.solar-mode .lunar-week { min-width: unset; }
-            body.solar-mode .day-cell { min-width: 0; min-height: var(--day-cell-min-height, 85px); overflow: hidden; word-break: break-word; }
+            body.solar-mode .day-cell { min-width: 0; height: var(--day-cell-min-height, 85px); overflow: hidden; word-break: break-word; }
             /* Gregorian mobile: horizontally scrollable with larger cells */
             body.gregorian-mode .gregorian-grid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             body.gregorian-mode .gregorian-header-row { min-width: 750px; }
@@ -972,7 +974,7 @@
                     </div>
                     <div class="form-group">
                         <label>Hora (opcional)</label>
-                        <input type="time" id="eventTime">
+                        <span id="eventTimeWrap"></span>
                     </div>
                     <div class="form-group">
                         <label>Descripción</label>
@@ -11007,10 +11009,16 @@ function showEventForm() {
     if (buttons[0]) buttons[0].textContent = t('cancel');
     if (buttons[1]) buttons[1].textContent = typeof window.editingEventIndex !== 'undefined' && window.editingEventIndex !== null ? (currentLang === 'es' ? 'Guardar Cambios' : 'Save Changes') : (currentLang === 'es' ? 'Guardar Evento' : 'Save Event');
 
+    // v631: populate eventTime picker once
+    var _etw = document.getElementById('eventTimeWrap');
+    if (_etw && !document.getElementById('eventTime')) {
+        _etw.innerHTML = buildTimePicker('eventTime', '');
+    }
+
     // Only clear form if not editing
     if (typeof window.editingEventIndex === 'undefined' || window.editingEventIndex === null) {
         document.getElementById('eventTitle').value = '';
-        document.getElementById('eventTime').value = '';
+        if (typeof setTimePickerValue === 'function') setTimePickerValue('eventTime', '');
         document.getElementById('eventDescription').value = '';
         document.getElementById('eventType').value = 'event';
 
@@ -11252,7 +11260,7 @@ function editEvent(index) {
     // Pre-fill the form with event data
     document.getElementById('eventTitle').value = event.title;
     document.getElementById('eventType').value = event.type;
-    document.getElementById('eventTime').value = event.time || '';
+    if (typeof setTimePickerValue === 'function') setTimePickerValue('eventTime', event.time || ''); else document.getElementById('eventTime').value = event.time || '';
     document.getElementById('eventDescription').value = event.description || '';
 
     // Pre-select reminders
@@ -18928,7 +18936,7 @@ function renderPersonalSetupForm() {
             <input type="date" id="natalBirthDate" value="${existing?.date || ''}" />
 
             <label>${L ? 'Hora de nacimiento' : 'Birth time'}</label>
-            <input type="time" id="natalBirthTime" value="${existing?.time || ''}" />
+            <span>${buildTimePicker('natalBirthTime', existing?.time || '')}</span>
             <div style="font-size:0.7em;color:rgba(255,255,255,0.3);margin-top:-8px;margin-bottom:12px;">
                 ${L ? 'Si no sabes la hora exacta, usa 12:00 (mediodía). Las casas y ascendente serán aproximados.' : 'If you don\'t know the exact time, use 12:00 (noon). Houses and ascendant will be approximate.'}
             </div>
@@ -22903,12 +22911,37 @@ function handlePersonalDayClick(year, month, day) {
         const L = currentLang === 'es';
 
         // Calculate aspects count
+        // v632 Bug #8: For personal calendar, also include transits-to-natal and
+        // aspect patterns (T-Square, Grand Trine, etc.) — previously these were
+        // rendered in the cell but not counted, so days with ONLY a T-Square showed 0.
         const signChanges = (typeof getSignChanges === 'function') ? getSignChanges(date) : [];
         const retrogrades = (typeof getRetrogrades === 'function') ? getRetrogrades(date) : [];
         const interAspects = (typeof getInterPlanetaryAspects === 'function') ? getInterPlanetaryAspects(date) : [];
         const eclipse = (typeof getEclipseInfo === 'function') ? getEclipseInfo(date) : null;
         const moonEvent = getMoonEventForDate(date);
-        const allEvents = signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0);
+        var _personalTransitCount = 0;
+        try {
+            var _natalForCount = (typeof getNatalData === 'function') ? getNatalData() : null;
+            if (_natalForCount) {
+                var _natalChartForCount = null;
+                try {
+                    var _pc = localStorage.getItem('natalChart_' + _natalForCount.id);
+                    _natalChartForCount = _pc ? JSON.parse(_pc) : JSON.parse(localStorage.getItem('natalChart'));
+                } catch(e) {}
+                if (_natalChartForCount && typeof calculateTransitsToNatal === 'function') {
+                    var _tr = calculateTransitsToNatal(date, _natalChartForCount) || [];
+                    // Exclude fast (Moon/Mercury) from count to match the "major events" feel
+                    _personalTransitCount = _tr.filter(function(t){ return t.tier !== 'fast'; }).length;
+                }
+            }
+        } catch(e) {}
+        var _patternCount = 0;
+        try {
+            if (typeof detectAspectPatterns === 'function') {
+                _patternCount = (detectAspectPatterns(date) || []).length;
+            }
+        } catch(e) {}
+        const allEvents = signChanges.length + retrogrades.length + interAspects.length + (eclipse ? 1 : 0) + (moonEvent ? 1 : 0) + _personalTransitCount + _patternCount;
 
         const modal = document.getElementById('dayOptionsModal');
         const aspectsBtn = document.getElementById('aspectsOptionBtn');
@@ -27695,16 +27728,20 @@ function goToCurrentCycle() {
                 var el = document.querySelector(step.sel);
                 if (!el) { _showStep(idx + 1); return; }
 
-                // v622/v626: Activate tab if this is a mode button (+ #currentDayInfo → lunar)
+                // v631 Bug #2: Do NOT auto-switch modes during HEADER tour.
+                // Previously each step auto-triggered switchToXMode(), and the last step
+                // (#currentDayInfo) forced switchToLunarMode — so after highlighting Solar,
+                // tapping felt like it opened Lunar. Now header tour only highlights buttons
+                // without switching modes. Sub-tours (lunar/solar/gregorian) still run when
+                // the user actually enters that mode.
                 var _modeActivateMap = {
                     '#lunarModeBtn': 'switchToLunarMode',
                     '#solarModeBtn': 'switchToSolarMode',
                     '#gregorianModeBtn': 'switchToGregorianMode',
                     '#personalModeBtn': 'switchToPersonalMode',
-                    '#socialModeBtn': 'switchToSocialMode',
-                    '#currentDayInfo': 'switchToLunarMode'
+                    '#socialModeBtn': 'switchToSocialMode'
                 };
-                if (_modeActivateMap[step.sel] && typeof window[_modeActivateMap[step.sel]] === 'function') {
+                if (screen !== 'header' && _modeActivateMap[step.sel] && typeof window[_modeActivateMap[step.sel]] === 'function') {
                     window[_modeActivateMap[step.sel]]();
                 }
 
@@ -28231,6 +28268,93 @@ function goToToday() {
     window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
+// v631: Notification diagnostic modal — shows exact state to debug missing notifications
+function showNotifDiagnostic() {
+    try {
+        var L = currentLang === 'es';
+        buildPhaseTimesCache();
+        var cache = window._phaseTimesCache;
+        var now = new Date();
+        var html = '<div style="font-family:monospace;font-size:0.78em;line-height:1.5;">';
+        html += '<div style="color:#ffd700;font-weight:bold;margin-bottom:8px;">🔔 DIAGNÓSTICO DE NOTIFICACIONES</div>';
+        html += '<div style="color:#aaa;margin-bottom:12px;">' + now.toLocaleString() + '</div>';
+
+        // Section 1: Permissions & enabled state
+        html += '<div style="color:#7ec8ff;font-weight:bold;margin-top:10px;">1. Estado general</div>';
+        html += 'Notification API: ' + ('Notification' in window ? '✅' : '❌') + '<br>';
+        html += 'Permission: <b style="color:' + (Notification.permission==='granted'?'#4ecdc4':'#ff6b6b') + ';">' + Notification.permission + '</b><br>';
+        var enabled = localStorage.getItem('notificationsEnabled') !== 'false';
+        html += 'notificationsEnabled: <b style="color:' + (enabled?'#4ecdc4':'#ff6b6b') + ';">' + enabled + '</b><br>';
+        var notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || '{"lunarPhases":true}');
+        html += 'notifPrefs.lunarPhases: <b style="color:' + (notifPrefs.lunarPhases?'#4ecdc4':'#ff6b6b') + ';">' + notifPrefs.lunarPhases + '</b><br>';
+        html += 'SW registrado: ' + (('serviceWorker' in navigator) && navigator.serviceWorker.controller ? '✅' : '❌') + '<br>';
+        html += 'App visible: ' + (document.hidden ? '❌ hidden' : '✅ visible') + '<br>';
+
+        // Section 2: Phase cache
+        html += '<div style="color:#7ec8ff;font-weight:bold;margin-top:12px;">2. Caché de fases lunares</div>';
+        if (!cache || !cache.times) {
+            html += '<span style="color:#ff6b6b;">❌ Caché vacío</span>';
+        } else {
+            html += 'Construido: ' + new Date(cache.builtAt).toLocaleString() + '<br>';
+            html += 'Fases: ' + cache.times.length + '<br>';
+            cache.times.forEach(function(t) {
+                var dt = t.exactTime;
+                var delta = dt.getTime() - now.getTime();
+                var deltaStr = '';
+                if (delta > 0) {
+                    var d = Math.floor(delta/86400000);
+                    var h = Math.floor((delta%86400000)/3600000);
+                    var m = Math.floor((delta%3600000)/60000);
+                    deltaStr = 'en ' + (d>0?d+'d ':'') + h + 'h ' + m + 'm';
+                } else {
+                    var past = -delta;
+                    var d2 = Math.floor(past/86400000);
+                    var h2 = Math.floor((past%86400000)/3600000);
+                    var m2 = Math.floor((past%3600000)/60000);
+                    deltaStr = 'hace ' + (d2>0?d2+'d ':'') + h2 + 'h ' + m2 + 'm';
+                }
+                var color = (delta > 0 && delta < 48*3600000) ? '#ffd700' : (delta < 0 && delta > -48*3600000 ? '#ff9800' : '#aaa');
+                html += '<div style="color:' + color + ';margin:2px 0 2px 8px;">' + t.icon + ' ' + (L?t.es:t.en) + '<br>&nbsp;&nbsp;' + dt.toLocaleString() + '<br>&nbsp;&nbsp;<b>' + deltaStr + '</b></div>';
+            });
+        }
+
+        // Section 3: localStorage notification keys
+        html += '<div style="color:#7ec8ff;font-weight:bold;margin-top:12px;">3. Keys guardadas (ya notificadas)</div>';
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf('notif-lunarPhases-') === 0) keys.push(k);
+        }
+        if (keys.length === 0) {
+            html += '<span style="color:#aaa;">ninguna</span>';
+        } else {
+            keys.sort().forEach(function(k) {
+                html += '<div style="color:#4ecdc4;margin-left:8px;font-size:0.72em;">' + k + '</div>';
+            });
+        }
+
+        // Section 4: Botones de test
+        html += '<div style="color:#7ec8ff;font-weight:bold;margin-top:12px;">4. Tests</div>';
+        html += '<button onclick="sendNotif(\'🧪 Test\',{body:\'Si ves esto, las notificaciones funcionan\'});" style="margin:4px 2px;padding:6px 10px;background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.4);border-radius:5px;color:#4ecdc4;font-size:0.85em;cursor:pointer;">Enviar test</button> ';
+        html += '<button onclick="(function(){var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(\'notif-lunarPhases-\')===0)ks.push(k);}ks.forEach(function(k){localStorage.removeItem(k);});window._phaseTimesCache=null;showNotifDiagnostic();})()" style="margin:4px 2px;padding:6px 10px;background:rgba(255,152,0,0.15);border:1px solid rgba(255,152,0,0.4);border-radius:5px;color:#ff9800;font-size:0.85em;cursor:pointer;">Reset keys</button> ';
+        html += '<button onclick="checkNotifications();setTimeout(showNotifDiagnostic,200);" style="margin:4px 2px;padding:6px 10px;background:rgba(126,200,255,0.15);border:1px solid rgba(126,200,255,0.4);border-radius:5px;color:#7ec8ff;font-size:0.85em;cursor:pointer;">Forzar check</button>';
+
+        html += '</div>';
+
+        // Build modal overlay
+        var existing = document.getElementById('notifDiagModal');
+        if (existing) existing.remove();
+        var overlay = document.createElement('div');
+        overlay.id = 'notifDiagModal';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:15px;';
+        overlay.innerHTML = '<div style="max-width:520px;max-height:85vh;overflow-y:auto;background:#0a0f2e;border:1px solid rgba(126,200,255,0.4);border-radius:12px;padding:18px;color:white;">' + html + '<button onclick="document.getElementById(\'notifDiagModal\').remove()" style="margin-top:14px;width:100%;padding:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:white;cursor:pointer;">Cerrar</button></div>';
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+        document.body.appendChild(overlay);
+    } catch(e) {
+        alert('Error: ' + e.message);
+    }
+}
+
 // Build cache of lunar phase times for the current/next cycles
 function buildPhaseTimesCache() {
     if (window._phaseTimesCache && window._phaseTimesCache.builtAt && (Date.now() - window._phaseTimesCache.builtAt < 86400000)) return;
@@ -28653,12 +28777,13 @@ function checkNotifications() {
                 var phaseName = L ? times[pi].es : times[pi].en;
                 var phaseId = times[pi].es.replace(/\s+/g, '-');
                 
+                // v631: widened window ±5 minutes (was ±1 min) so 15s polling never misses
                 // Check 12-hour before
                 var time12hBefore = new Date(phaseTime.getTime() - 12*3600000);
-                var min12hBefore = new Date(time12hBefore.getTime() - 60000);
-                var max12hBefore = new Date(time12hBefore.getTime() + 60000);
+                var min12hBefore = new Date(time12hBefore.getTime() - 5*60000);
+                var max12hBefore = new Date(time12hBefore.getTime() + 5*60000);
                 var key12h = 'notif-lunarPhases-' + phaseId + '-12h';
-                
+
                 if (now >= min12hBefore && now <= max12hBefore && !localStorage.getItem(key12h)) {
                     var enrich = getLunarPhaseEnrichment(phaseTime);
                     var body12h = L 
@@ -28673,10 +28798,10 @@ function checkNotifications() {
                     console.log('🌙 12h before lunar phase:', phaseName);
                 }
                 
-                // Check 5 minutes before
+                // Check 5 minutes before (widened to ±3 min window)
                 var time5mBefore = new Date(phaseTime.getTime() - 5*60000);
-                var min5m = new Date(time5mBefore.getTime() - 60000);
-                var max5m = new Date(time5mBefore.getTime() + 60000);
+                var min5m = new Date(time5mBefore.getTime() - 3*60000);
+                var max5m = new Date(time5mBefore.getTime() + 3*60000);
                 var key5m = 'notif-lunarPhases-' + phaseId + '-5m';
                 
                 if (now >= min5m && now <= max5m && !localStorage.getItem(key5m)) {
@@ -28691,9 +28816,13 @@ function checkNotifications() {
                     console.log('🌙 5min before lunar phase:', phaseName);
                 }
                 
-                // Catch-up on app open (if both were missed)
+                // v631: Catch-up on app open — fires if phase happened in last 48h
+                // and user was never notified (only checks catchup flag, not 12h/5m).
+                // Also fires ALSO if phase is within next 2h (imminent) and user missed windows.
                 var keyCatchup = 'notif-lunarPhases-' + phaseId + '-catchup';
-                if (!localStorage.getItem(key12h) && !localStorage.getItem(key5m) && phaseTime < now && phaseTime > new Date(now.getTime() - 24*3600000)) {
+                var catchupWindow = (phaseTime < now && phaseTime > new Date(now.getTime() - 48*3600000)) ||
+                                    (phaseTime > now && phaseTime < new Date(now.getTime() + 2*3600000) && !localStorage.getItem(key5m));
+                if (catchupWindow) {
                     if (!localStorage.getItem(keyCatchup)) {
                         var enrich3 = getLunarPhaseEnrichment(phaseTime);
                         var bodyCatch = phaseName + ' en ' + enrich3.zodiacSign + ' | ' + enrich3.distance + ' km' + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '');
@@ -29100,8 +29229,8 @@ function openMyMessagesEditor(tab) {
         html += '<div style="display:flex;gap:8px;margin-bottom:8px;">';
         html += '<div style="flex:1;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (L?'Fecha':'Date') + '</label>';
         html += '<input type="date" id="msgDate" value="' + todayStr + '" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;"></div>';
-        html += '<div style="width:80px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (L?'Hora':'Time') + '</label>';
-        html += '<input type="time" id="msgTime" value="08:00" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;"></div>';
+        html += '<div><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (L?'Hora':'Time') + '</label>';
+        html += buildTimePicker('msgTime','08:00') + '</div>';
         html += '</div>';
         html += '<div style="margin-bottom:8px;"><label style="font-size:0.68em;color:rgba(255,255,255,0.4);display:block;margin-bottom:3px;">' + (L?'Titulo (opcional)':'Title (optional)') + '</label>';
         html += '<input type="text" id="msgTitle" placeholder="FieldWeaver" style="width:100%;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:white;font-size:0.85em;box-sizing:border-box;"></div>';
@@ -29797,6 +29926,8 @@ function openPreferencesModal() {
         notifContent += '<div style="padding:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:6px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="' + c[0] + '" checked onchange="handleNotifCategoryToggle(\'' + c[1] + '\',this.checked);openPreferencesModal();" style="cursor:pointer;"><label for="' + c[0] + '" style="cursor:pointer;font-size:0.72em;color:#e8eaf6;">' + c[2] + '</label></div>';
     });
     notifContent += '</div>';
+    // v631: Botón diagnóstico de notificaciones
+    notifContent += '<button onclick="showNotifDiagnostic()" style="margin-top:10px;width:100%;padding:8px;background:rgba(126,200,255,0.08);border:1px solid rgba(126,200,255,0.3);border-radius:6px;color:#7ec8ff;font-size:0.78em;cursor:pointer;">🔍 ' + (currentLang==='es'?'Diagnóstico de notificaciones':'Notifications diagnostic') + '</button>';
     sectionsHtml += _s(notifEnabled?'🔔':'🔕', currentLang==='es'?'Notificaciones':'Notifications', '#7ec8ff', notifContent);
 
     // ── Alarma de Ensueños ──
@@ -29810,7 +29941,7 @@ function openPreferencesModal() {
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
     dreamAlarmContent += '<span style="color:rgba(255,255,255,0.5);font-size:0.78em;">' + (currentLang==='es'?'Hora:':'Time:') + '</span>';
-    dreamAlarmContent += '<input type="time" id="dreamAlarmTimeInput" value="' + _daTime + '" onchange="setDreamAlarmTime(this.value)" style="padding:6px 10px;background:rgba(0,0,0,0.3);border:1px solid rgba(138,43,226,0.3);border-radius:8px;color:#ce93d8;font-size:0.85em;cursor:pointer;outline:none;">';
+    dreamAlarmContent += buildTimePicker('dreamAlarmTimeInput', _daTime, "setDreamAlarmTime(document.getElementById('dreamAlarmTimeInput').value)");
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '<div id="dreamAlarmStatus" style="font-size:0.72em;color:rgba(255,255,255,0.3);"></div>';
     dreamAlarmContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;">' + (currentLang==='es'?'Suena 1 minuto, abre el diario de sueños y activa el micrófono. Se detiene al hablar o tocar la pantalla.':'Rings for 1 minute, opens dream journal and activates microphone. Stops when you speak or tap the screen.') + '</div>';
@@ -30127,7 +30258,7 @@ function openPreferencesModal() {
     var _dqPrefs = JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":false,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
     var _dqTimesHtml = '';
     for (var _dqi = 0; _dqi < (_dqPrefs.hours||['09:00']).length; _dqi++) {
-        _dqTimesHtml += '<input type="time" value="' + (_dqPrefs.hours[_dqi]||'09:00') + '" onchange="updateDailyQuizTime(' + _dqi + ',this.value)" style="padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,215,0,0.3);border-radius:6px;color:#ffd700;font-size:0.82em;" />';
+        _dqTimesHtml += buildTimePicker('dqHour_' + _dqi, (_dqPrefs.hours[_dqi]||'09:00'), "updateDailyQuizTime(" + _dqi + ",document.getElementById('dqHour_" + _dqi + "').value)");
     }
     sectionsHtml += _s('🧠', currentLang==='es'?'Quiz Diario de Repaso':'Daily Review Quiz', '#7ec8ff',
         '<div style="font-size:0.72em;color:rgba(255,255,255,0.4);margin-bottom:10px;">' + (currentLang==='es'?'Recibe quizzes diarios para repasar lo que ya estudiaste con el tutor o el curso.':'Receive daily quizzes to review what you\'ve already studied with the tutor or course.') + '</div>' +
@@ -34295,7 +34426,45 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v630';
+var APP_VERSION = 'v632';
+
+// v631: Custom time picker (replaces native <input type="time"> which gets cut off on Android)
+// Builds two <select> dropdowns for hour/minute and keeps a hidden input in sync
+// so existing code reading document.getElementById(id).value still works.
+function buildTimePicker(id, value, extraOnChange) {
+    value = value || '';
+    var parts = value.split(':');
+    var h = parseInt(parts[0], 10); if (isNaN(h)) h = 0;
+    var m = parseInt(parts[1], 10); if (isNaN(m)) m = 0;
+    var hOpts = '', mOpts = '';
+    for (var i = 0; i < 24; i++) {
+        var hh = (i < 10 ? '0' : '') + i;
+        hOpts += '<option value="' + hh + '"' + (i === h ? ' selected' : '') + '>' + hh + '</option>';
+    }
+    for (var j = 0; j < 60; j++) {
+        var mm = (j < 10 ? '0' : '') + j;
+        mOpts += '<option value="' + mm + '"' + (j === m ? ' selected' : '') + '>' + mm + '</option>';
+    }
+    var selStyle = 'padding:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:white;font-size:0.95em;outline:none;';
+    var sync = "(function(){var h=document.getElementById('" + id + "_h');var m=document.getElementById('" + id + "_m');var hid=document.getElementById('" + id + "');if(h&&m&&hid){hid.value=h.value+':'+m.value;" + (extraOnChange ? "try{" + extraOnChange + "}catch(e){}" : "") + "}})()";
+    var initVal = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+    return '<input type="hidden" id="' + id + '" value="' + initVal + '">' +
+        '<span style="display:inline-flex;gap:4px;align-items:center;">' +
+        '<select id="' + id + '_h" onchange="' + sync + '" style="' + selStyle + '">' + hOpts + '</select>' +
+        '<span style="color:#aaa;font-weight:bold;">:</span>' +
+        '<select id="' + id + '_m" onchange="' + sync + '" style="' + selStyle + '">' + mOpts + '</select>' +
+        '</span>';
+}
+// Helper to set time picker value programmatically
+function setTimePickerValue(id, value) {
+    var parts = (value || '00:00').split(':');
+    var h = document.getElementById(id + '_h');
+    var m = document.getElementById(id + '_m');
+    var hid = document.getElementById(id);
+    if (h) h.value = parts[0] || '00';
+    if (m) m.value = parts[1] || '00';
+    if (hid) hid.value = (parts[0] || '00') + ':' + (parts[1] || '00');
+}
 var _pendingSW = null;
 
 // What's New removed per user request
