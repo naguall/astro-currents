@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fieldweaver-v629';
+const CACHE_NAME = 'fieldweaver-v630';
 const ASSETS = [
   '/astro-currents/',
   '/astro-currents/index.html',
@@ -55,6 +55,9 @@ self.addEventListener('notificationclick', e => {
       var url = '/astro-currents/';
       if (e.notification.data && e.notification.data.dreamAlarm) {
         url = '/astro-currents/?dreamAlarm=1';
+      }
+      if (e.notification.data && e.notification.data.dailyQuiz) {
+        url = '/astro-currents/?dailyQuiz=1';
       }
       return clients.matchAll({type: 'window', includeUncontrolled: true}).then(cls => {
         if (cls.length > 0) {

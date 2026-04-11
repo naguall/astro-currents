@@ -253,6 +253,10 @@
             transition: all 0.2s; cursor: pointer; padding: var(--day-cell-padding, 5px);
             position: relative; overflow: hidden; word-break: break-word;
         }
+        /* v630: Block inner clicks so tapping anywhere in a day cell opens the day menu,
+           not individual aspect interpretations. Interpretations are still accessible from
+           inside the day-options modal. */
+        .day-cell * { pointer-events: none !important; }
         .day-cell:hover {
             background: rgba(12,16,58,0.98);
             border-color: rgba(74,158,255,0.50);
@@ -8890,8 +8894,8 @@ function openDiarioModal(date, lunarDay) {
     // Update dream alarm UI
     updateDreamAlarmUI();
 
-    // Initialize GPS tracking for diary metadata
-    initDiaryGps();
+    // v630: NO auto-request GPS — only on explicit location button tap
+    // initDiaryGps() removed here — called only from the location button in Preferences/Lunar/Solar
 
     // Show existing metadata
     updateDiaryMetaDisplay(dateKey, 'personal');
@@ -9810,6 +9814,15 @@ if (_dreamAlarmEnabled) {
         setTimeout(function() {
             openDreamRecorder();
         }, 1500);
+    }
+    // v630: Check for daily quiz auto-open
+    if (params.get('dailyQuiz') === '1') {
+        var url2 = new URL(window.location);
+        url2.searchParams.delete('dailyQuiz');
+        window.history.replaceState({}, '', url2);
+        setTimeout(function() {
+            if (typeof launchDailyQuiz === 'function') launchDailyQuiz();
+        }, 1800);
     }
 })();
 
@@ -16043,9 +16056,9 @@ function updateCurrentDayInfoForMode(mode) {
         }
 
         currentDayInfoDiv.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
+            <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; grid-auto-rows: 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
                 <!-- Eventos -->
-                <div style="background: ${bannerEvtBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerEvtColor2}44; border-top: 2px solid ${bannerEvtColor2}; min-width: 0; overflow: hidden;">
+                <div style="background: ${bannerEvtBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerEvtColor2}44; border-top: 2px solid ${bannerEvtColor2}; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerEvtColor2}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
                         📅 ${currentLang === 'es' ? 'Eventos' : 'Events'}${todayEvents.length > 0 ? ` (${todayEvents.length})` : ''}
                     </div>
@@ -16060,7 +16073,7 @@ function updateCurrentDayInfoForMode(mode) {
                     ` : `<div style="font-size: 0.6em; color: ${bannerEvtColor2}77; font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
                 </div>
                 <!-- HOY Centro -->
-                <div onclick="goToToday()" style="display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder2}50;background:${bannerHoyBg2};box-shadow:0 0 20px ${bannerHoyBorder2}25;">
+                <div onclick="goToToday()" style="display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder2}50;background:${bannerHoyBg2};box-shadow:0 0 20px ${bannerHoyBorder2}25;height:100%;box-sizing:border-box;">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: ${bannerHoyText2}; text-transform: uppercase; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid ${bannerHoyBorder2}30;">— HOY —</div>
                     ${mode === 'lunar' ? `
                     <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
@@ -16082,7 +16095,7 @@ function updateCurrentDayInfoForMode(mode) {
                     `}
                 </div>
                 <!-- Info según modo -->
-                <div style="background: ${bannerAspBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor2}44; border-top: 2px solid ${bannerAspColor2}88; min-width: 0; overflow: hidden;">
+                <div style="background: ${bannerAspBg2}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor2}44; border-top: 2px solid ${bannerAspColor2}88; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerAspColor2}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
                         <span style="font-size: 1em;">${displayEmoji}</span>
                         ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
@@ -25785,10 +25798,10 @@ function renderCalendar() {
         const bannerAspBg = calendarMode === 'lunar' ? 'rgba(10,20,45,0.85)' : 'rgba(20,10,40,0.85)';
 
         document.getElementById('currentDayInfo').innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
+            <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; grid-auto-rows: 1fr; gap: 5px; align-items: stretch; font-size: 0.7em; padding: 2px;">
 
                 <!-- Eventos -->
-                <div style="background: ${bannerEvtBg}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerEvtColor}44; border-top: 2px solid ${bannerEvtColor}; min-width: 0; overflow: hidden;">
+                <div style="background: ${bannerEvtBg}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerEvtColor}44; border-top: 2px solid ${bannerEvtColor}; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerEvtColor}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
                         <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" rx="1.5" fill="none" stroke="${bannerEvtColor}" stroke-width="1"/><line x1="3" y1="0" x2="3" y2="3" stroke="${bannerEvtColor}" stroke-width="1"/><line x1="7" y1="0" x2="7" y2="3" stroke="${bannerEvtColor}" stroke-width="1"/><line x1="2" y1="5" x2="8" y2="5" stroke="${bannerEvtColor}" stroke-width="0.8" opacity="0.6"/><line x1="2" y1="7" x2="6" y2="7" stroke="${bannerEvtColor}" stroke-width="0.8" opacity="0.6"/></svg>
                         ${currentLang === 'es' ? 'Eventos' : 'Events'}${todayEvents.length > 0 ? ` (${todayEvents.length})` : ''}
@@ -25805,7 +25818,7 @@ function renderCalendar() {
                     ` : `<div style="font-size: 0.6em; color: ${bannerEvtColor}77; font-style: italic; padding: 4px 0;">${currentLang==='es'?'Sin eventos':'No events'}</div>`}
                 </div>
                 <!-- HOY Centro -->
-                <div onclick="goToCurrentCycle()" style="display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder}50;background:${bannerHoyBg};box-shadow:0 0 20px ${bannerHoyBorder}25;"
+                <div onclick="goToCurrentCycle()" style="display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;cursor:pointer;transition:all 0.2s;padding:6px 4px;border-radius:10px;border:1px solid ${bannerHoyBorder}50;background:${bannerHoyBg};box-shadow:0 0 20px ${bannerHoyBorder}25;height:100%;box-sizing:border-box;"
                      onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 0 28px ${bannerHoyBorder}40';"
                      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px ${bannerHoyBorder}25';">
                     <div style="font-size: 0.50em; font-weight: 800; letter-spacing: 3px; color: ${bannerHoyText}; text-transform: uppercase; margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid ${bannerHoyBorder}30;">— HOY —</div>
@@ -25828,7 +25841,7 @@ function renderCalendar() {
                 </div>
 
                 <!-- Luna/Sol/Info Hoy -->
-                <div style="background: ${bannerAspBg}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor}44; border-top: 2px solid ${bannerAspColor}88; min-width: 0; overflow: hidden;">
+                <div style="background: ${bannerAspBg}; padding: 6px 7px; border-radius: 8px; border: 1px solid ${bannerAspColor}44; border-top: 2px solid ${bannerAspColor}88; min-width: 0; overflow: hidden; height: 100%; box-sizing: border-box;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size: 0.62em; color: ${bannerAspColor}; font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing:0.5px;">
                         <span style="font-size: 1em;">${calendarMode === 'lunar' ? '☽' : calendarMode === 'solar' ? '☉' : '📅'}</span>
                         ${displayTitle}${allPlanetaryEvents.length > 0 ? ` (${allPlanetaryEvents.length})` : ''}
@@ -28598,7 +28611,8 @@ function checkDailyQuizNotification() {
                 sendNotif('🧠 ' + (L ? 'Quiz de Repaso' : 'Review Quiz'), {
                     body: L ? '¡Es hora de tu repaso diario de astrología!' : 'Time for your daily astrology review!',
                     tag: 'daily-quiz-' + todayKey + '-' + idx,
-                    requireInteraction: true
+                    requireInteraction: true,
+                    data: { dailyQuiz: true }  // v630: so sw.js can detect and open quiz
                 });
             }
             // Also show in-app if app is visible
@@ -34281,7 +34295,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v629';
+var APP_VERSION = 'v630';
 var _pendingSW = null;
 
 // What's New removed per user request
