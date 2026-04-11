@@ -736,7 +736,7 @@
             <!-- Header row: title left, utility buttons right — always same line -->
             <div id="headerTitleRow" style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:6px;padding:0 4px;flex-wrap:nowrap;">
                 <h1 id="calendarTitle" style="margin:0;font-size:clamp(1em,3.5vw,1.5em);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🌙 Lunar</h1>
-                <span id="versionBadge" style="position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:0.6em;color:rgba(102,126,234,0.7);font-weight:600;pointer-events:none;opacity:1;transition:opacity 2s ease;"></span>
+                <span id="versionBadge" style="position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:0.62em;color:rgba(102,126,234,0.95);font-weight:700;background:rgba(102,126,234,0.12);border:1px solid rgba(102,126,234,0.35);border-radius:8px;padding:1px 7px;pointer-events:none;opacity:1;z-index:10;"></span>
                 <div id="headerUtilBtns" style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px;">
                     <button id="notifHistoryBtn" onclick="openNotifHistoryModal()" style="position:relative;background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.8);line-height:1;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:#FF3B30;color:#fff;font-size:0.65em;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;padding:0 3px;box-sizing:border-box;box-shadow:0 2px 6px rgba(255,59,48,0.6);border:2px solid #0a0a2e;">0</span></button>
                     <button id="savedReadingsBtn" onclick="openSavedReadingsModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 6px;cursor:pointer;font-size:0.85em;color:rgba(255,255,255,0.7);line-height:1;">📚</button>
@@ -34449,7 +34449,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v633';
+var APP_VERSION = 'v634';
 
 // v631: Custom time picker (replaces native <input type="time"> which gets cut off on Android)
 // Builds two <select> dropdowns for hour/minute and keeps a hidden input in sync
@@ -34492,17 +34492,47 @@ var _pendingSW = null;
 
 // What's New removed per user request
 
-// Show version badge on load — fades after 10 seconds
+// v634: Version badge — ALWAYS visible, tap to force-update
 (function showVersionOnLoad() {
     setTimeout(function() {
         var badge = document.getElementById('versionBadge');
         if (badge) {
             badge.textContent = APP_VERSION;
-            // Fade out after 10 seconds
-            setTimeout(function() {
-                badge.style.opacity = '0';
-                setTimeout(function() { badge.textContent = ''; }, 2000);
-            }, 10000);
+            badge.style.opacity = '1';
+            badge.style.pointerEvents = 'auto';
+            badge.style.cursor = 'pointer';
+            badge.title = 'Toca para forzar actualización';
+            // Tap to force-update: wipe all caches + unregister SW + reload
+            badge.onclick = function() {
+                var L = (typeof currentLang !== 'undefined' && currentLang === 'es');
+                var ok = confirm(L
+                    ? 'Forzar actualización?\n\nEsto va a:\n• Borrar todos los cachés\n• Desregistrar el Service Worker\n• Recargar la app\n\nTus datos (eventos, notas, perfiles natales) NO se borran.'
+                    : 'Force update?\n\nThis will:\n• Clear all caches\n• Unregister the Service Worker\n• Reload the app\n\nYour data (events, notes, natal profiles) will NOT be lost.');
+                if (!ok) return;
+                Promise.resolve()
+                    .then(function(){
+                        if (window.caches) {
+                            return caches.keys().then(function(ks){
+                                return Promise.all(ks.map(function(k){ return caches.delete(k); }));
+                            });
+                        }
+                    })
+                    .then(function(){
+                        if ('serviceWorker' in navigator) {
+                            return navigator.serviceWorker.getRegistrations().then(function(regs){
+                                return Promise.all(regs.map(function(r){ return r.unregister(); }));
+                            });
+                        }
+                    })
+                    .then(function(){
+                        // Add cache-busting query to force fresh fetch
+                        window.location.href = window.location.pathname + '?v=' + Date.now();
+                    })
+                    .catch(function(e){
+                        alert('Error: ' + e.message);
+                        window.location.reload();
+                    });
+            };
         }
     }, 500);
 })();
@@ -34586,13 +34616,23 @@ if ('serviceWorker' in navigator) {
         });
     }, 1800000);
 
-    // Force clear old caches
+    // v634: FIXED — was deleting the SW's current cache because of name mismatch.
+    // The SW cache is 'fieldweaver-vXXX' but this code was checking against
+    // 'astro-currents-vXXX', so it wiped the active cache on every page load.
+    // That interfered with the SW update lifecycle and caused the app to
+    // appear "stuck" on old versions until a full reinstall.
+    // Now: only delete caches that are clearly old fieldweaver-* versions.
     if (caches) {
         caches.keys().then(function(keys) {
             keys.forEach(function(key) {
-                if (key !== 'astro-currents-' + APP_VERSION) {
+                // Keep the current fieldweaver cache, delete only older ones
+                if (key.indexOf('fieldweaver-') === 0 && key !== 'fieldweaver-' + APP_VERSION) {
                     caches.delete(key);
                     console.log('🗑️ Deleted old cache:', key);
+                } else if (key.indexOf('astro-currents-') === 0) {
+                    // Legacy cache from older versions — always safe to delete
+                    caches.delete(key);
+                    console.log('🗑️ Deleted legacy cache:', key);
                 }
             });
         });
