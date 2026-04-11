@@ -27954,6 +27954,28 @@ if (typeof google !== 'undefined' && google.accounts) {
     });
 }
 
+// v628: Pre-initialize Firebase (AstroConnect) on app startup so Social tab opens fast
+// Firebase SDK loads async — wait until firebase global exists, then init in background
+(function _preInitAstroConnect() {
+    var _tries = 0;
+    function _try() {
+        if (typeof firebase !== 'undefined' && firebase.initializeApp) {
+            if (typeof _initFirebase === 'function') {
+                try {
+                    _initFirebase();
+                    console.log('✨ AstroConnect Firebase pre-initialized on startup');
+                } catch(e) {
+                    console.log('AstroConnect pre-init deferred:', e && e.message);
+                }
+            }
+            return;
+        }
+        _tries++;
+        if (_tries < 20) setTimeout(_try, 500);
+    }
+    setTimeout(_try, 1200);
+})();
+
 // Preload TTS voices (needed for voice selector in preferences)
 if (window.speechSynthesis) {
     window.speechSynthesis.getVoices();
@@ -34239,7 +34261,7 @@ if (localStorage.getItem('calendarMode') === 'social') {
 })();
 
 // Register Service Worker with update notification
-var APP_VERSION = 'v627';
+var APP_VERSION = 'v628';
 var _pendingSW = null;
 
 // What's New removed per user request
