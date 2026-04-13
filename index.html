@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v637';</script>
+    <script>window.APP_VERSION = 'v638';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -7717,7 +7717,8 @@ window._readingChatSend = function(chatId) {
         try { reply = data.candidates[0].content.parts[0].text; } catch(e) { reply = L?'Error al obtener respuesta.':'Error getting response.'; }
         state.history.push({ role: 'model', parts: [{ text: reply }] });
         var formatted = reply.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/\n/g, '<br>');
-        areaEl.innerHTML += '<div style="text-align:left;margin:6px 0;"><span style="display:inline-block;max-width:92%;background:rgba(102,126,234,0.06);border:1px solid rgba(102,126,234,0.12);color:#ccc;padding:10px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;line-height:1.5;">' + formatted + '</span></div>';
+        var _readRespId = 'aiMsg_reading_' + Date.now();
+        areaEl.innerHTML += '<div style="text-align:left;margin:6px 0;"><span id="' + _readRespId + '" style="display:inline-block;max-width:92%;background:rgba(102,126,234,0.06);border:1px solid rgba(102,126,234,0.12);color:#ccc;padding:10px 12px;border-radius:12px 12px 12px 2px;font-size:0.8em;line-height:1.5;">' + formatted + '</span></div>';
         state.html = areaEl.innerHTML;
         areaEl.scrollTop = areaEl.scrollHeight;
     }).catch(function(err) {
@@ -8135,7 +8136,7 @@ function openInterpretationChat(readingKey, chatId, btn) {
 
     // Input area
     html += '<div style="display:flex;gap:6px;align-items:center;">';
-    html += '<button onclick="readAloudLastMsg(\'interpChatMsgs_' + chatId + '\')" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1em;cursor:pointer;flex-shrink:0;line-height:1;" title="' + (L ? 'Leer en voz alta' : 'Read aloud') + '">🔊</button>';
+    html += '<button onclick="readAloudLastMsg(\'interpChatMessages_' + chatId + '\')" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1em;cursor:pointer;flex-shrink:0;line-height:1;" title="' + (L ? 'Leer en voz alta' : 'Read aloud') + '">🔊</button>';
     html += '<textarea rows="1" id="interpChatInput_' + chatId + '" placeholder="' + (L ? 'Pregunta sobre esta lectura...' : 'Ask about this reading...') + '" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendInterpChatMessage(\'' + chatId + '\',\'' + readingKey + '\');}" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(201,168,64,0.25);border-radius:20px;color:rgba(255,255,255,0.9);font-size:0.85em;outline:none;resize:none;overflow-y:auto;max-height:80px;font-family:inherit;"></textarea>';
     html += '<button onclick="sendInterpChatMessage(\'' + chatId + '\',\'' + readingKey + '\')" style="padding:8px 14px;background:rgba(201,168,64,0.2);border:1px solid rgba(201,168,64,0.4);border-radius:20px;color:#c9a840;font-size:0.85em;cursor:pointer;font-weight:600;">→</button>';
     html += '</div>';
@@ -9801,6 +9802,139 @@ function updateDreamAlarmUI() {
         }
     }
 }
+
+// ── Dream Alarm Spotlight/Walkthrough ──
+window.runDreamAlarmSpotlight = function() {
+    var L = currentLang === 'es';
+    var steps = [
+        { sel: '#daToggleRow', icon: '🌙', title: L ? 'Alarma de Ensue\u00f1os' : 'Dream Alarm',
+          desc: L ? 'Pensada para personas que no recuerdan sus sue\u00f1os. Te despierta suavemente con frecuencias Solfeggio. Al sonar, abre tu Diario de Sue\u00f1os autom\u00e1ticamente, activa el micr\u00f3fono y transcribe tu voz. Despu\u00e9s de 1 minuto sin recibir sonido, se guarda y se cierra solo.' : 'Designed for people who don\u2019t remember their dreams. Gently wakes you with Solfeggio frequencies. When it rings, it auto-opens your Dream Journal, activates the microphone and transcribes your voice. After 1 minute of silence, it saves and closes automatically.' },
+        { sel: '#daToggleSwitch', icon: '🔘', title: L ? 'Activar / Desactivar' : 'Enable / Disable',
+          desc: L ? 'Enciende o apaga la alarma. Cuando est\u00e1 activa, suena cada noche a la hora que programes.' : 'Turn the alarm on or off. When active, it rings every night at your scheduled time.' },
+        { sel: '#daTimeRow', icon: '🕐', title: L ? 'Hora de la Alarma' : 'Alarm Time',
+          desc: L ? 'Elige cu\u00e1ndo sonar. Lo ideal: entre 3:00\u20135:00 AM, durante tu ciclo REM, para maximizar el recuerdo de sue\u00f1os.' : 'Choose when to ring. Ideal: between 3:00\u20135:00 AM, during your REM cycle, to maximize dream recall.' },
+        { sel: '#daSolfeggioSection', icon: '🎵', title: L ? 'Frecuencias Solfeggio' : 'Solfeggio Frequencies',
+          desc: L ? 'Personaliza el sonido de la alarma. Son tonos ancestrales de sanaci\u00f3n. Activa varias frecuencias a la vez y ajusta el volumen de cada una independientemente.' : 'Customize the alarm sound. Ancient healing tones. Enable multiple frequencies at once and adjust each one\u2019s volume independently.' },
+        { sel: '#daSolfeggioTest', icon: '🔊', title: L ? 'Probar Sonido' : 'Test Sound',
+          desc: L ? 'Escucha c\u00f3mo suena tu combinaci\u00f3n de frecuencias antes de dormir.' : 'Preview how your frequency combination sounds before sleep.' }
+    ];
+
+    // Find the preferences modal scroll container
+    var prefModal = document.getElementById('preferencesModal');
+    if (!prefModal) return;
+    var scrollContainer = prefModal.querySelector('div[style*="overflow"]') || prefModal;
+
+    var currentIdx = 0;
+    var backdrop = document.createElement('div');
+    backdrop.id = 'daSpotBackdrop';
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:10010;background:rgba(0,0,0,0.65);transition:opacity 0.3s;';
+
+    var clickBlocker = document.createElement('div');
+    clickBlocker.style.cssText = 'position:fixed;inset:0;z-index:10015;background:transparent;';
+
+    var tooltip = document.createElement('div');
+    tooltip.id = 'daSpotTooltip';
+    tooltip.style.cssText = 'position:fixed;z-index:10020;max-width:320px;width:calc(100% - 24px);background:linear-gradient(170deg,rgba(15,17,55,0.98),rgba(8,10,35,0.98));border:1.5px solid rgba(138,43,226,0.5);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.7);padding:0;overflow:hidden;animation:tooltipAppear 0.35s cubic-bezier(0.34,1.56,0.64,1);';
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(clickBlocker);
+    document.body.appendChild(tooltip);
+
+    var prevEl = null;
+    var prevStyles = {};
+
+    function unhighlight() {
+        if (prevEl) {
+            prevEl.style.position = prevStyles.position || '';
+            prevEl.style.zIndex = prevStyles.zIndex || '';
+            prevEl.style.boxShadow = prevStyles.boxShadow || '';
+            prevEl.style.outline = prevStyles.outline || '';
+            prevEl.style.outlineOffset = prevStyles.outlineOffset || '';
+            prevEl.style.animation = prevStyles.animation || '';
+            prevEl.style.filter = prevStyles.filter || '';
+            prevEl = null;
+        }
+    }
+
+    function showStep(idx) {
+        if (idx >= steps.length) { finish(); return; }
+        unhighlight();
+        currentIdx = idx;
+        var step = steps[idx];
+        var el = document.getElementById(step.sel.replace('#',''));
+        if (!el) { showStep(idx + 1); return; }
+
+        // Scroll element into view within preferences modal
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(function() {
+            // Save original styles
+            prevStyles = { position: el.style.position, zIndex: el.style.zIndex, boxShadow: el.style.boxShadow, outline: el.style.outline, outlineOffset: el.style.outlineOffset, animation: el.style.animation, filter: el.style.filter };
+            prevEl = el;
+
+            // Highlight
+            el.style.position = 'relative';
+            el.style.zIndex = '10018';
+            el.style.boxShadow = '0 0 0 4px rgba(138,43,226,1), 0 0 15px 8px rgba(138,43,226,0.6), 0 0 40px 15px rgba(138,43,226,0.3)';
+            el.style.outline = '2px solid rgba(206,147,216,0.8)';
+            el.style.outlineOffset = '3px';
+            el.style.animation = 'spotlightPulse 2s ease-in-out infinite';
+            el.style.filter = 'brightness(1.4)';
+
+            // Tooltip content
+            var counter = (idx + 1) + ' / ' + steps.length;
+            var html = '<div style="padding:12px 16px 8px;display:flex;align-items:center;justify-content:space-between;">' +
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="font-size:1.4em;">' + step.icon + '</span>' +
+                '<span style="font-weight:700;font-size:0.95em;color:#fff;">' + step.title + '</span>' +
+                '</div>' +
+                '<span style="font-size:0.7em;color:rgba(255,255,255,0.3);font-weight:600;">' + counter + '</span>' +
+                '</div>';
+            html += '<div style="padding:0 16px 12px;font-size:0.82em;color:rgba(255,255,255,0.65);line-height:1.5;">' + step.desc + '</div>';
+            var pct = ((idx + 1) / steps.length * 100);
+            html += '<div style="height:3px;background:rgba(255,255,255,0.06);"><div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#9b59b6,#ce93d8);border-radius:3px;transition:width 0.3s;"></div></div>';
+            html += '<div style="display:flex;gap:8px;padding:10px 16px;justify-content:space-between;align-items:center;">' +
+                '<button onclick="window._daSpotFinish()" style="background:none;border:none;color:rgba(255,255,255,0.35);font-size:0.78em;cursor:pointer;padding:4px 8px;">' + (L ? 'Saltar' : 'Skip') + '</button>' +
+                '<div style="display:flex;gap:8px;">';
+            if (idx > 0) {
+                html += '<button onclick="window._daSpotPrev()" style="padding:7px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:rgba(255,255,255,0.6);font-size:0.8em;font-weight:600;cursor:pointer;">\u2190 ' + (L ? 'Ant' : 'Prev') + '</button>';
+            }
+            if (idx < steps.length - 1) {
+                html += '<button onclick="window._daSpotNext()" style="padding:7px 16px;background:linear-gradient(135deg,#9b59b6,#ce93d8);border:none;border-radius:20px;color:#fff;font-size:0.8em;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(138,43,226,0.4);">' + (L ? 'Siguiente \u2192' : 'Next \u2192') + '</button>';
+            } else {
+                html += '<button onclick="window._daSpotFinish()" style="padding:7px 16px;background:linear-gradient(135deg,#9b59b6,#ce93d8);border:none;border-radius:20px;color:#fff;font-size:0.8em;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(138,43,226,0.4);">\u2713 ' + (L ? '\u00a1Listo!' : 'Done!') + '</button>';
+            }
+            html += '</div></div>';
+            tooltip.innerHTML = html;
+
+            // Position tooltip
+            var rect = el.getBoundingClientRect();
+            var ttW = Math.min(320, window.innerWidth - 24);
+            var ttLeft = Math.max(12, (window.innerWidth - ttW) / 2);
+            var spBelow = window.innerHeight - rect.bottom;
+            var ttTop;
+            if (spBelow > 220) { ttTop = rect.bottom + 14; }
+            else if (rect.top > 220) { ttTop = rect.top - 200; }
+            else { ttTop = Math.max(10, (window.innerHeight - 200) / 2); }
+            ttTop = Math.max(10, Math.min(ttTop, window.innerHeight - 210));
+            tooltip.style.left = ttLeft + 'px';
+            tooltip.style.top = ttTop + 'px';
+        }, 250);
+    }
+
+    function finish() {
+        unhighlight();
+        if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+        if (clickBlocker.parentNode) clickBlocker.parentNode.removeChild(clickBlocker);
+        if (tooltip.parentNode) tooltip.parentNode.removeChild(tooltip);
+    }
+
+    window._daSpotNext = function() { showStep(currentIdx + 1); };
+    window._daSpotPrev = function() { showStep(currentIdx - 1); };
+    window._daSpotFinish = finish;
+
+    showStep(0);
+};
 
 // Initialize dream alarm on page load
 if (_dreamAlarmEnabled) {
@@ -15922,9 +16056,10 @@ function updateCurrentDayInfoForMode(mode) {
             ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         const monthName = monthNames[today.getMonth()];
         displayDay = currentLang === 'es' ? today.getDate() + ' ' + monthName : monthName + ' ' + today.getDate();
-        const startOfYear = new Date(today.getFullYear(), 0, 1);
-        const dayOfYear = Math.ceil((today - startOfYear) / 86400000);
-        displayInfo = `<span style="font-size:1.4em;font-weight:800;color:#e8c84a;">${dayOfYear}/365</span>`;
+        const endOfYear = new Date(today.getFullYear(), 11, 31);
+        const daysRemaining = Math.ceil((endOfYear - today) / 86400000);
+        const daysRemainingLabel = currentLang === 'es' ? 'faltan' : 'left';
+        displayInfo = `<span style="font-size:1.1em;font-weight:800;color:#e8c84a;">${daysRemaining} ${currentLang === 'es' ? 'días' : 'days'}</span><span style="font-size:0.7em;color:rgba(255,255,255,0.4);display:block;">${daysRemainingLabel}</span>`;
     } else {
         // Lunar mode
         const elongation = calculateLunarPhase(today);
@@ -19638,21 +19773,24 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
         <div class="natal-group-tabs">
             <button class="natal-group-tab active" onclick="switchNatalGroup('detalles',this)">📋 ${L?'Detalles':'Details'}</button>
             <button class="natal-group-tab" onclick="switchNatalGroup('avanzado',this)">🔮 ${L?'Avanzado':'Advanced'}</button>
+            <button class="natal-group-tab" onclick="switchNatalGroup('curso',this)">🎓 ${L?'Curso':'Course'}</button>
         </div>
         <div id="natalGroupDetalles" class="natal-subtabs">
             <button class="natal-subtab" onclick="switchNatalTab('chart',this)">${L?'Carta':'Chart'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${L?'Tablas':'Tables'}</button>
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${L?'Calend':'Calend'}</span><span class="subtab-full">${L?'Calendario':'Calendar'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('aspects2026',this)">2026</button>
         </div>
         <div id="natalGroupAvanzado" class="natal-subtabs" style="display:none;">
             <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${L?'Sinastría':'Synastry'}</span><span class="subtab-full">${L?'Sinastría':'Synastry'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${L?'Compuesta':'Composite'}</span><span class="subtab-full">${L?'Carta Compuesta':'Composite Chart'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${L?'Carta Davison':'Davison Chart'}</span></button>
-            <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;">🤖 Tutor</button>
+            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('aspects2026',this)">2026</button>
+        </div>
+        <div id="natalGroupCurso" class="natal-subtabs" style="display:none;">
+            <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;">🤖 ${L?'Tutor AI':'AI Tutor'}</button>
             <button class="natal-subtab" onclick="switchNatalTab('mapa',this)" style="color:#ffd700;">🎓 ${L?'Curso Pro':'Course Pro'}</button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
@@ -19753,16 +19891,18 @@ function switchNatalTab(tabName, btn) {
     }
 }
 
-// v623: Switch between Detalles / Avanzado group tabs
+// v623/v638: Switch between Detalles / Avanzado / Curso group tabs
 function switchNatalGroup(group, btn) {
     document.querySelectorAll('.natal-group-tab').forEach(function(el) { el.classList.remove('active'); });
     if (btn) btn.classList.add('active');
     var detallesDiv = document.getElementById('natalGroupDetalles');
     var avanzadoDiv = document.getElementById('natalGroupAvanzado');
+    var cursoDiv = document.getElementById('natalGroupCurso');
     if (detallesDiv) detallesDiv.style.display = group === 'detalles' ? 'flex' : 'none';
     if (avanzadoDiv) avanzadoDiv.style.display = group === 'avanzado' ? 'flex' : 'none';
+    if (cursoDiv) cursoDiv.style.display = group === 'curso' ? 'flex' : 'none';
     // Activate first subtab of the selected group
-    var targetGroup = group === 'detalles' ? detallesDiv : avanzadoDiv;
+    var targetGroup = group === 'detalles' ? detallesDiv : (group === 'avanzado' ? avanzadoDiv : cursoDiv);
     if (targetGroup) {
         var firstBtn = targetGroup.querySelector('.natal-subtab');
         if (firstBtn) firstBtn.click();
@@ -26981,6 +27121,7 @@ function goToCurrentCycle() {
             '<div style="font-size:0.65em;color:rgba(255,255,255,0.35);">' + (isES ? 'Expande temas, pide ejemplos, aclara dudas' : 'Expand topics, ask for examples, clarify doubts') + '</div></div></div>' +
             '<div id="courseAIChatMsgs" style="max-height:300px;overflow-y:auto;padding:8px 12px;"></div>' +
             '<div style="padding:8px 12px;border-top:1px solid rgba(102,126,234,0.15);display:flex;gap:6px;align-items:flex-end;">' +
+            '<button onclick="readAloudLastMsg(\'courseAIChatMsgs\')" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(102,126,234,0.3);color:#667eea;font-size:1em;cursor:pointer;flex-shrink:0;line-height:1;" title="' + (isES ? 'Leer en voz alta' : 'Read aloud') + '">🔊</button>' +
             '<textarea id="courseAIChatInput" rows="1" placeholder="' + (isES ? 'Pregunta sobre ' + lessonTitle + '...' : 'Ask about ' + lessonTitle + '...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);border-radius:10px;color:white;padding:8px 10px;font-size:0.82em;resize:none;outline:none;font-family:inherit;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendCourseAIChat();}"></textarea>' +
             '<button onclick="sendCourseAIChat()" style="background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#667eea;padding:8px 12px;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>' +
             '</div></div>';
@@ -27036,7 +27177,8 @@ function goToCurrentCycle() {
                 var reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : (isES ? 'Sin respuesta' : 'No response');
                 _courseAIChatHistory.push({role: 'model', parts: [{text: reply}]});
                 var formatted = reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-                msgs.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.5;"><p>' + formatted + '</p></div></div>';
+                var _courseRespId = 'courseResp_' + Date.now();
+                msgs.innerHTML += '<div style="margin-bottom:8px;"><div id="' + _courseRespId + '" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.5;"><p>' + formatted + '</p></div></div>';
             } else {
                 msgs.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ Error</div></div>';
             }
@@ -27459,14 +27601,14 @@ function goToCurrentCycle() {
                     { sel: '.natal-subtab[onclick*="tables"]', group: 'detalles', icon: '📊', title: L ? 'Tablas' : 'Tables', desc: L ? 'Posiciones detalladas: planetas, signos, casas, grados. Haz click individualmente en cualquiera de ellos para más información' : 'Detailed positions: planets, signs, houses, degrees. Click individually on any of them for more information' },
                     { sel: '.natal-subtab[onclick*="calendar"]', group: 'detalles', icon: '📅', title: L ? 'Tránsitos' : 'Transits', desc: L ? 'Calendario personal que empieza en tu cumpleaños. Mira tus solsticios y equinoccios personales, cuántos días han pasado desde tu cumpleaños y cuántos faltan para el próximo, con numerología' : 'Personal calendar starting on your birthday. See your personal solstices and equinoxes, days passed since your birthday and days remaining until the next one, with numerology' },
                     { sel: '.natal-subtab[onclick*="hoy"]', group: 'detalles', icon: '🌟', title: L ? 'Hoy' : 'Today', desc: L ? 'Aspectos planetarios que te afectan hoy. Haz click en cualquier aspecto para expandir' : 'Planetary aspects affecting you today. Click on any aspect to expand' },
-                    { sel: '.natal-subtab[onclick*="cartography"]', group: 'detalles', icon: '🗺️', title: L ? 'Astrocartografía' : 'Astrocartography', desc: L ? 'Tu mapa de energías planetarias en el mundo. Las líneas muestran dónde cada planeta tiene mayor influencia. Mapa mundial con líneas MC/IC/AC/DC' : 'Your map of planetary energies in the world. Lines show where each planet has the greatest influence. World map with MC/IC/AC/DC lines' },
-                    { sel: '.natal-subtab[onclick*="ciclos"]', group: 'detalles', icon: '🔄', title: L ? 'Ciclos' : 'Cycles', desc: L ? 'Tus ciclos planetarios activos basados en tu carta natal. Retorno solar, lunar, progresiones, ciclos del mes y más' : 'Your active planetary cycles based on your natal chart. Solar return, lunar return, progressions, monthly cycles and more' },
-                    { sel: '.natal-subtab[onclick*="aspects2026"]', group: 'detalles', icon: '📆', title: '2026', desc: L ? 'Eventos importantes de todo el año, agrupados por planeta, signo, figuras de aspecto, aspectos mayores y más' : 'Important events for the whole year, grouped by planet, sign, aspect patterns, major aspects and more' },
                     { sel: '.natal-subtab[onclick*="sinastria"]', group: 'avanzado', icon: '💞', title: L ? 'Sinastría' : 'Synastry', desc: L ? 'Compatibilidad entre dos cartas natales' : 'Compatibility between two natal charts' },
                     { sel: '.natal-subtab[onclick*="compuesta"]', group: 'avanzado', icon: '💫', title: L ? 'Carta Compuesta' : 'Composite Chart', desc: L ? 'Punto medio entre ambas cartas — la relación como entidad. Energía combinada de la relación' : 'Midpoint between both charts — the relationship as an entity. Combined relationship energy' },
                     { sel: '.natal-subtab[onclick*="davison"]', group: 'avanzado', icon: '🤝', title: 'Davison', desc: L ? 'Punto medio de dos cartas, punto medio en tiempo y espacio — carta real de la relación' : 'Midpoint of two charts, midpoint in time and space — the real chart of the relationship' },
-                    { sel: '.natal-subtab[onclick*="tutor"]', group: 'avanzado', icon: '🤖', title: L ? 'Tutor AI' : 'AI Tutor', desc: L ? 'Chat para aprender astrología. Pregunta y aprende' : 'Chat to learn astrology. Ask and learn' },
-                    { sel: '.natal-subtab[onclick*="mapa"]', group: 'avanzado', icon: '🎓', title: L ? 'Curso Pro' : 'Course Pro', desc: L ? '18 módulos, 130 temas' : '18 modules, 130 topics' },
+                    { sel: '.natal-subtab[onclick*="cartography"]', group: 'avanzado', icon: '🗺️', title: L ? 'Astrocartografía' : 'Astrocartography', desc: L ? 'Tu mapa de energías planetarias en el mundo. Las líneas muestran dónde cada planeta tiene mayor influencia' : 'Your map of planetary energies in the world. Lines show where each planet has the greatest influence' },
+                    { sel: '.natal-subtab[onclick*="ciclos"]', group: 'avanzado', icon: '🔄', title: L ? 'Ciclos' : 'Cycles', desc: L ? 'Tus ciclos planetarios activos basados en tu carta natal. Retorno solar, lunar, progresiones y más' : 'Your active planetary cycles based on your natal chart. Solar return, lunar return, progressions and more' },
+                    { sel: '.natal-subtab[onclick*="aspects2026"]', group: 'avanzado', icon: '📆', title: '2026', desc: L ? 'Eventos importantes de todo el año, agrupados por planeta, signo, figuras de aspecto y aspectos mayores' : 'Important events for the whole year, grouped by planet, sign, aspect patterns, major aspects' },
+                    { sel: '.natal-subtab[onclick*="tutor"]', group: 'curso', icon: '🤖', title: L ? 'Tutor AI' : 'AI Tutor', desc: L ? 'Chat para aprender astrología. Pregunta y aprende' : 'Chat to learn astrology. Ask and learn' },
+                    { sel: '.natal-subtab[onclick*="mapa"]', group: 'curso', icon: '🎓', title: L ? 'Curso Pro' : 'Course Pro', desc: L ? '18 módulos, 130 temas de astrología completa' : '18 modules, 130 complete astrology topics' },
                     { sel: '[onclick*="addNewProfile"]', icon: '＋', title: L ? 'Nuevo Perfil' : 'New Profile', desc: L ? 'Agregar perfiles de nacimiento' : 'Add birth profiles' }
                 ],
                 'social': [
@@ -27495,10 +27637,12 @@ function goToCurrentCycle() {
             var steps = _getWalkthroughSteps(screen);
             if (!steps.length) return;
 
-            // v626: For 'personal' screen, temporarily show avanzado group so validation sees its subtabs
+            // v626/v638: For 'personal' screen, temporarily show avanzado+curso groups so validation sees their subtabs
             if (screen === 'personal') {
                 var _avTmp = document.getElementById('natalGroupAvanzado');
                 if (_avTmp) _avTmp.style.display = 'flex';
+                var _cuTmp = document.getElementById('natalGroupCurso');
+                if (_cuTmp) _cuTmp.style.display = 'flex';
             }
 
             // Filter to only steps whose elements exist in DOM
@@ -27526,10 +27670,12 @@ function goToCurrentCycle() {
                 }
             });
 
-            // v626: Restore avanzado group to hidden after validation
+            // v626/v638: Restore avanzado+curso groups to hidden after validation
             if (screen === 'personal') {
                 var _avTmp2 = document.getElementById('natalGroupAvanzado');
                 if (_avTmp2) _avTmp2.style.display = 'none';
+                var _cuTmp2 = document.getElementById('natalGroupCurso');
+                if (_cuTmp2) _cuTmp2.style.display = 'none';
             }
 
             if (!validSteps.length) return;
@@ -27775,15 +27921,22 @@ function goToCurrentCycle() {
                 if (step.group && el.classList && el.classList.contains('natal-subtab')) {
                     var _detDiv = document.getElementById('natalGroupDetalles');
                     var _avDiv = document.getElementById('natalGroupAvanzado');
+                    var _cuDiv = document.getElementById('natalGroupCurso');
                     var _grpBtns = document.querySelectorAll('.natal-group-tab');
                     _grpBtns.forEach(function(b) { b.classList.remove('active'); });
+                    // Hide all groups first
+                    if (_detDiv) _detDiv.style.display = 'none';
+                    if (_avDiv) _avDiv.style.display = 'none';
+                    if (_cuDiv) _cuDiv.style.display = 'none';
+                    // Show the target group
                     if (step.group === 'avanzado') {
-                        if (_detDiv) _detDiv.style.display = 'none';
                         if (_avDiv) _avDiv.style.display = 'flex';
                         if (_grpBtns[1]) _grpBtns[1].classList.add('active');
+                    } else if (step.group === 'curso') {
+                        if (_cuDiv) _cuDiv.style.display = 'flex';
+                        if (_grpBtns[2]) _grpBtns[2].classList.add('active');
                     } else {
                         if (_detDiv) _detDiv.style.display = 'flex';
-                        if (_avDiv) _avDiv.style.display = 'none';
                         if (_grpBtns[0]) _grpBtns[0].classList.add('active');
                     }
                     // Extract tab name from onclick and switch
@@ -30016,17 +30169,19 @@ function openPreferencesModal() {
     var _daEnabled = localStorage.getItem('dreamAlarmEnabled') === 'true';
     var _daTime = localStorage.getItem('dreamAlarmTime') || '03:00';
     var dreamAlarmContent = '';
-    dreamAlarmContent += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-bottom:10px;">';
+    // v638: Help button for Dream Alarm spotlight
+    dreamAlarmContent += '<div style="text-align:right;margin-bottom:6px;"><button onclick="event.stopPropagation();runDreamAlarmSpotlight();" style="background:rgba(138,43,226,0.15);border:1px solid rgba(138,43,226,0.35);border-radius:50%;width:28px;height:28px;color:#ce93d8;font-size:0.82em;font-weight:700;cursor:pointer;line-height:28px;padding:0;" title="' + (currentLang==='es'?'Como funciona':'How it works') + '">?</button></div>';
+    dreamAlarmContent += '<div id="daToggleRow" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;margin-bottom:10px;">';
     dreamAlarmContent += '<span style="font-size:1.3em;">🌙</span>';
     dreamAlarmContent += '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;color:' + (_daEnabled?'#ce93d8':'rgba(255,255,255,0.5)') + ';">' + (_daEnabled?(currentLang==='es'?'Activada':'Enabled'):(currentLang==='es'?'Desactivada':'Disabled')) + '</div></div>';
-    dreamAlarmContent += '<label style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;"><input type="checkbox" ' + (_daEnabled?'checked':'') + ' onchange="toggleDreamAlarm();openPreferencesModal();" style="opacity:0;width:0;height:0;"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:' + (_daEnabled?'rgba(138,43,226,0.5)':'rgba(255,255,255,0.15)') + ';border-radius:26px;transition:0.3s;"><span style="position:absolute;height:20px;width:20px;left:' + (_daEnabled?'24px':'3px') + ';bottom:3px;background:white;border-radius:50%;transition:0.3s;display:block;"></span></span></label>';
+    dreamAlarmContent += '<label id="daToggleSwitch" style="position:relative;display:inline-block;width:48px;height:26px;flex-shrink:0;"><input type="checkbox" ' + (_daEnabled?'checked':'') + ' onchange="toggleDreamAlarm();openPreferencesModal();" style="opacity:0;width:0;height:0;"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:' + (_daEnabled?'rgba(138,43,226,0.5)':'rgba(255,255,255,0.15)') + ';border-radius:26px;transition:0.3s;"><span style="position:absolute;height:20px;width:20px;left:' + (_daEnabled?'24px':'3px') + ';bottom:3px;background:white;border-radius:50%;transition:0.3s;display:block;"></span></span></label>';
     dreamAlarmContent += '</div>';
-    dreamAlarmContent += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
+    dreamAlarmContent += '<div id="daTimeRow" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">';
     dreamAlarmContent += '<span style="color:rgba(255,255,255,0.5);font-size:0.78em;">' + (currentLang==='es'?'Hora:':'Time:') + '</span>';
     dreamAlarmContent += buildTimePicker('dreamAlarmTimeInput', _daTime, "setDreamAlarmTime(document.getElementById('dreamAlarmTimeInput').value)");
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '<div id="dreamAlarmStatus" style="font-size:0.72em;color:rgba(255,255,255,0.3);"></div>';
-    dreamAlarmContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;">' + (currentLang==='es'?'Suena 1 minuto, abre el diario de sueños y activa el micrófono. Se detiene al hablar o tocar la pantalla.':'Rings for 1 minute, opens dream journal and activates microphone. Stops when you speak or tap the screen.') + '</div>';
+    dreamAlarmContent += '<div style="font-size:0.68em;color:rgba(255,255,255,0.25);margin-top:6px;line-height:1.4;">' + (currentLang==='es'?'Para personas que no recuerdan sus sue\u00f1os. Te despierta con frecuencias Solfeggio, abre el diario de sue\u00f1os, activa el micr\u00f3fono y transcribe tu voz. Tras 1 min de silencio se guarda y cierra solo.':'For people who don\u2019t remember their dreams. Wakes you with Solfeggio frequencies, opens dream journal, activates mic and transcribes your voice. After 1 min of silence it saves and closes.') + '</div>';
 
     // ── Solfeggio Frequencies Panel ──
     var _solfFreqs = [
@@ -30043,7 +30198,7 @@ function openPreferencesModal() {
     var _savedSolf = JSON.parse(localStorage.getItem('dreamAlarmSolfeggio') || 'null');
     if (!_savedSolf) _savedSolf = { '396': { on: true, vol: 50 }, '417': { on: true, vol: 50 }, '528': { on: true, vol: 50 } };
 
-    dreamAlarmContent += '<div style="margin-top:10px;">';
+    dreamAlarmContent += '<div id="daSolfeggioSection" style="margin-top:10px;">';
     dreamAlarmContent += '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.solf-arrow\').textContent=p.style.display===\'none\'?\'▶\':\'▼\'" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 10px;background:rgba(138,43,226,0.1);border:1px solid rgba(138,43,226,0.25);border-radius:8px;user-select:none;">';
     dreamAlarmContent += '<span class="solf-arrow" style="font-size:0.7em;color:#ce93d8;">▶</span>';
     dreamAlarmContent += '<span style="font-size:0.8em;color:#ce93d8;font-weight:600;">🎵 ' + (currentLang==='es'?'Frecuencias Solfeggio':'Solfeggio Frequencies') + '</span>';
@@ -30070,7 +30225,7 @@ function openPreferencesModal() {
 
     // Test sound button
     dreamAlarmContent += '<div style="text-align:center;margin-top:8px;">';
-    dreamAlarmContent += '<button onclick="window._testSolfeggioSound()" style="padding:6px 16px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.75em;cursor:pointer;">🔊 ' + (currentLang==='es'?'Probar sonido':'Test sound') + '</button>';
+    dreamAlarmContent += '<button id="daSolfeggioTest" onclick="window._testSolfeggioSound()" style="padding:6px 16px;background:rgba(138,43,226,0.2);border:1px solid rgba(138,43,226,0.4);border-radius:8px;color:#ce93d8;font-size:0.75em;cursor:pointer;">🔊 ' + (currentLang==='es'?'Probar sonido':'Test sound') + '</button>';
     dreamAlarmContent += '</div>';
     dreamAlarmContent += '</div></div>';
 
@@ -34607,11 +34762,13 @@ function buildTimePicker(id, value, extraOnChange) {
         var hh = (i < 10 ? '0' : '') + i;
         hOpts += '<option value="' + hh + '"' + (i === h ? ' selected' : '') + '>' + hh + '</option>';
     }
-    for (var j = 0; j < 60; j++) {
+    // Minutes in 5-minute increments (0,5,10,...55) for compact dropdown
+    var mRounded = Math.round(m / 5) * 5; if (mRounded >= 60) mRounded = 55;
+    for (var j = 0; j < 60; j += 5) {
         var mm = (j < 10 ? '0' : '') + j;
-        mOpts += '<option value="' + mm + '"' + (j === m ? ' selected' : '') + '>' + mm + '</option>';
+        mOpts += '<option value="' + mm + '"' + (j === mRounded ? ' selected' : '') + '>' + mm + '</option>';
     }
-    var selStyle = 'padding:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:white;font-size:0.95em;outline:none;';
+    var selStyle = 'padding:6px 4px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:white;font-size:0.82em;outline:none;-webkit-appearance:none;appearance:none;text-align:center;min-width:44px;';
     var sync = "(function(){var h=document.getElementById('" + id + "_h');var m=document.getElementById('" + id + "_m');var hid=document.getElementById('" + id + "');if(h&&m&&hid){hid.value=h.value+':'+m.value;" + (extraOnChange ? "try{" + extraOnChange + "}catch(e){}" : "") + "}})()";
     var initVal = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
     return '<input type="hidden" id="' + id + '" value="' + initVal + '">' +
@@ -35973,7 +36130,7 @@ window.readAloudLastMsg = function(containerId) {
     var container = document.getElementById(containerId);
     if (!container) return;
     // Find the last AI response element (has an id starting with interpResp_, interpFollowUp_, hoyResp_, aiMsg_)
-    var allMsgs = container.querySelectorAll('[id^="interpResp_"],[id^="interpFollowUp_"],[id^="hoyResp_"],[id^="aiMsg_"]');
+    var allMsgs = container.querySelectorAll('[id^="interpResp_"],[id^="interpFollowUp_"],[id^="hoyResp_"],[id^="aiMsg_"],[id^="mapaResp_"],[id^="courseResp_"]');
     if (allMsgs.length === 0) {
         // Try getting last .assistant or text-align:left bubble
         var bubbles = container.querySelectorAll('.assistant, [class*="ai-msg"]');
@@ -36126,7 +36283,7 @@ function _escHTML(str) {
         var parentEl = anchor ? (anchor.nodeType === 3 ? anchor.parentElement : anchor) : null;
         _savedSel.targetId = '';
         if (parentEl) {
-            var t = parentEl.closest('[id^="interpResp_"],[id^="interpFollowUp_"],[id^="hoyResp_"],[id^="aiMsg_"]');
+            var t = parentEl.closest('[id^="interpResp_"],[id^="interpFollowUp_"],[id^="hoyResp_"],[id^="aiMsg_"],[id^="mapaResp_"],[id^="courseResp_"]');
             if (!t) {
                 var p = parentEl;
                 while (p && p !== document.body) {
@@ -37890,9 +38047,31 @@ function buildSystemPrompt(contextLevel) {
         : '\n\n═══ MANDATORY RESPONSE FORMAT ═══\nAll your interpretations MUST follow this format:\n1. Organize by clear THEMATIC SECTIONS using **bold** headers (e.g.: **Symbolic Layer**, **Astrological Layer**, **Psychological Layer**, **Synthesis**).\n2. Leave ONE BLANK LINE between each section/theme.\n3. Use **bold** for key concepts, planet names, signs, aspects, and important terms.\n4. Each section should be a coherent paragraph, NOT bullet lists.\n5. The last section should always be a **Synthesis** or **Final Message** that integrates everything.\nThis is MANDATORY in ALL responses.';
 
     // ── CRITICAL: DO NOT HALLUCINATE — ask when unsure ──
-    base += isEs
-        ? '\n\n═══ REGLA CRÍTICA: NUNCA INVENTAR INFORMACIÓN ═══\nSi NO tienes un dato específico (grado exacto, casa, aspecto, posición planetaria), NO LO INVENTES. Es mejor decir "No tengo ese dato disponible en este momento" o "¿Puedes verificar eso en tu carta?" que dar información incorrecta. Si no estás seguro de algo, PREGUNTA antes de asumir. La credibilidad de esta app depende de la precisión. Inventar datos astrológicos es peor que no responder.\n\nSi los datos de la carta natal no están cargados o están incompletos, avisa al usuario: "No encuentro tu carta natal completa. ¿Podrías verificar que tus datos de nacimiento estén guardados en la app?"'
-        : '\n\n═══ CRITICAL RULE: NEVER MAKE UP INFORMATION ═══\nIf you do NOT have a specific data point (exact degree, house, aspect, planetary position), DO NOT INVENT IT. It is better to say "I don\'t have that data available right now" or "Can you verify that in your chart?" than to give incorrect information. If you are unsure about something, ASK before assuming. This app\'s credibility depends on accuracy. Inventing astrological data is worse than not answering.\n\nIf natal chart data is not loaded or incomplete, tell the user: "I don\'t find your complete natal chart. Could you verify that your birth data is saved in the app?"';
+    // v638: Improved instruction — tell AI to USE the chart data that IS present, only warn if truly missing
+    var _hasChartData = false;
+    try {
+        var _checkProfiles = JSON.parse(localStorage.getItem('natalProfiles') || '[]');
+        var _checkActiveId = localStorage.getItem('activeProfileId');
+        if (_checkProfiles.length > 0) {
+            _checkProfiles.forEach(function(p) {
+                var ck = localStorage.getItem('natalChart_' + p.id);
+                if (!ck && p.id === _checkActiveId) ck = localStorage.getItem('natalChart');
+                if (ck) _hasChartData = true;
+            });
+        } else {
+            if (localStorage.getItem('natalChart')) _hasChartData = true;
+        }
+    } catch(e) {}
+
+    if (_hasChartData) {
+        base += isEs
+            ? '\n\n═══ REGLA CRÍTICA: NUNCA INVENTAR INFORMACIÓN ═══\nSi NO tienes un dato específico (grado exacto, casa, aspecto), NO LO INVENTES. Es mejor omitir un detalle que inventarlo.\n\nIMPORTANTE: Los datos de la carta natal del usuario YA ESTÁN incluidos arriba en la sección "DATOS DEL USUARIO Y LA APP". DEBES usarlos para personalizar TODAS tus interpretaciones. Relaciona los aspectos del día con las posiciones natales, casas y aspectos natales del usuario. Tienes acceso completo a su carta — NO digas que no tienes acceso o que la carta está incompleta.'
+            : '\n\n═══ CRITICAL RULE: NEVER MAKE UP INFORMATION ═══\nIf you do NOT have a specific data point (exact degree, house, aspect), DO NOT INVENT IT. It is better to omit a detail than to invent it.\n\nIMPORTANT: The user\'s natal chart data IS ALREADY included above in the "USER AND APP DATA" section. You MUST use it to personalize ALL your interpretations. Relate today\'s aspects to the user\'s natal positions, houses and natal aspects. You have full access to their chart — DO NOT say you don\'t have access or that the chart is incomplete.';
+    } else {
+        base += isEs
+            ? '\n\n═══ REGLA CRÍTICA: NUNCA INVENTAR INFORMACIÓN ═══\nSi NO tienes un dato específico (grado exacto, casa, aspecto, posición planetaria), NO LO INVENTES. La carta natal del usuario NO está disponible en este momento. Puedes dar una interpretación general del aspecto, pero indica que para una lectura personalizada necesitan guardar sus datos de nacimiento en Preferencias.'
+            : '\n\n═══ CRITICAL RULE: NEVER MAKE UP INFORMATION ═══\nIf you do NOT have a specific data point (exact degree, house, aspect, planetary position), DO NOT INVENT IT. The user\'s natal chart is NOT available right now. You can give a general interpretation of the aspect, but note that for a personalized reading they need to save their birth data in Preferences.';
+    }
 
     // ── Multi-profile awareness ──
     try {
