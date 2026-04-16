@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v639';</script>
+    <script>window.APP_VERSION = 'v640';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -14756,7 +14756,7 @@ function _renderSigns2026View(es) {
         signAspects.forEach(function(asp) {
             var aspDataIdx = window._signs2026Data.length;
             var dateStr = (typeof formatShortDate === 'function') ? formatShortDate(asp.date) : (asp.date ? asp.date.toLocaleDateString() : '');
-            var planetLabel = es ? (typeof tp === 'function' ? tp(asp.planet) : asp.planet) : asp.planet;
+            var planetLabel = typeof tp === 'function' ? tp(asp.planet) : asp.planet;
             var withLabel = asp.with;
             if (typeof ts === 'function') withLabel = ts(asp.with) || (typeof tp === 'function' ? tp(asp.with) : asp.with) || asp.with;
 
@@ -14856,7 +14856,7 @@ function _renderMajor2026View(es) {
                 dateLabel = item.dates;
                 var dParts = item.dates.split('-'); itemPast = isPastDate(dParts[dParts.length-1].trim());
             } else if (cat.key === 'grandTrines') {
-                clickTxt = ('Gran Trígono: ' + item.planets.join(' - ') + ' en ' + item.element + ' (' + item.dates + ')').replace(/'/g, "\\'");
+                clickTxt = ((es ? 'Gran Trígono: ' : 'Grand Trine: ') + item.planets.join(' - ') + (es ? ' en ' : ' in ') + item.element + ' (' + item.dates + ')').replace(/'/g, "\\'");
                 label = item.planets.join(' △ ');
                 sublabel = (es ? 'Elemento: ' : 'Element: ') + item.element;
                 dateLabel = item.dates;
@@ -14934,8 +14934,8 @@ function _renderMajor2026View(es) {
             groupedPatterns[yp.type].push(yp);
         });
 
-        // Render each type
-        var patOrder = ['grandCross','tSquare','grandTrine','yod','kite','mysticRect','cradle','grandSextile'];
+        // Render each type — exclude tSquare and grandTrine (already shown in static categories section above)
+        var patOrder = ['grandCross','yod','kite','mysticRect','cradle','grandSextile'];
         var dynCIdx = categories.length;
         patOrder.forEach(function(pType) {
             var items = groupedPatterns[pType];
@@ -15214,11 +15214,11 @@ function _renderAsteroids2026View(es) {
         // Render asteroid card
         html += '<div style="margin-bottom:10px;padding:10px;background:rgba(5,7,30,0.95);border:1px solid ' + ast.colorBg + '0.25);border-radius:12px;border-top:2px solid ' + ast.colorBg + '0.6);">';
 
-        // Header with photo
+        // Header with photo (symbol shown as background, image overlaid — so symbol always visible if img fails)
         html += '<div onclick="toggleAsteroid2026Details(' + astIdx + ')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">'
-            + '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid ' + ast.colorBg + '0.4);box-shadow:0 0 12px ' + ast.colorBg + '0.3);flex-shrink:0;">'
-            + '<img src="' + ast.photo + '" alt="' + ast.symbol + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
-            + '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:radial-gradient(circle,' + ast.colorBg + '0.5),' + ast.colorBg + '0.2));font-size:1.6em;">' + ast.symbol + '</div>'
+            + '<div style="width:44px;height:44px;border-radius:50%;overflow:visible;border:2px solid ' + ast.colorBg + '0.4);box-shadow:0 0 12px ' + ast.colorBg + '0.3);flex-shrink:0;position:relative;background:radial-gradient(circle,' + ast.colorBg + '0.5),' + ast.colorBg + '0.2));display:flex;align-items:center;justify-content:center;">'
+            + '<span style="font-size:1.6em;z-index:1;">' + ast.symbol + '</span>'
+            + '<img src="' + ast.photo + '" alt="' + ast.symbol + '" class="planet-spin" style="--spin-duration:30s;position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:2;" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'"/>'
             + '</div>'
             + '<div style="flex:1;">'
             + '<div style="font-family:\'Cinzel\',serif;color:' + ast.color + ';font-size:0.9em;font-weight:700;letter-spacing:1px;">' + ast.symbol + ' ' + ast.name.toUpperCase() + '</div>'
@@ -15588,12 +15588,12 @@ function renderAspects2026Panel() {
 
         // Planet header with photo
         html += '<div onclick="toggleAspect2026Details(' + idx + ')" style="cursor:pointer;display:flex;align-items:center;gap:10px;">'
-            + '<div style="width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid ' + p.colorBg + '0.4);box-shadow:0 0 12px ' + p.colorBg + '0.3);flex-shrink:0;">'
-            + '<img src="' + p.photo + '" alt="' + p.icon + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"/>'
-            + '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;background:radial-gradient(circle,' + p.colorBg + '0.5),' + p.colorBg + '0.2));font-size:1.6em;">' + p.icon + '</div>'
+            + '<div style="width:44px;height:44px;border-radius:50%;overflow:visible;border:2px solid ' + p.colorBg + '0.4);box-shadow:0 0 12px ' + p.colorBg + '0.3);flex-shrink:0;position:relative;background:radial-gradient(circle,' + p.colorBg + '0.5),' + p.colorBg + '0.2));display:flex;align-items:center;justify-content:center;">'
+            + '<span style="font-size:1.4em;z-index:1;">' + p.icon + '</span>'
+            + '<img src="' + p.photo + '" alt="' + p.icon + '" class="planet-spin" style="--spin-duration:30s;position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:2;" referrerpolicy="no-referrer" onerror="this.style.display=\'none\'"/>'
             + '</div>'
             + '<div style="flex:1;">'
-            + '<div style="font-family:\'Cinzel\',serif;color:' + p.color + ';font-size:0.9em;font-weight:700;letter-spacing:1px;">' + (es ? tp(pName) : pName).toUpperCase() + '</div>'
+            + '<div style="font-family:\'Cinzel\',serif;color:' + p.color + ';font-size:0.9em;font-weight:700;letter-spacing:1px;">' + tp(pName).toUpperCase() + '</div>'
             + '<div style="font-size:0.68em;color:rgba(255,255,255,0.4);">'
             + aspectCount + ' ' + (es ? 'eventos' : 'events')
             + (retros > 0 ? ' • ' + retros + ' ' + (es ? 'retrógrados' : 'retrogrades') : '')
@@ -15638,7 +15638,7 @@ function renderAspects2026Panel() {
         // Planet large photo
         html += '<div style="text-align:center;margin-bottom:8px;padding:12px;background:radial-gradient(circle,' + p.colorBg + '0.1) 0%,rgba(0,0,0,0) 70%);border-radius:10px;">'
             + '<div style="width:120px;height:120px;margin:0 auto;perspective:300px;">'
-            + '<img src="' + p.photo + '" alt="' + (es ? tp(pName) : pName) + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;border-radius:50%;box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);" referrerpolicy="no-referrer"/>'
+            + '<img src="' + p.photo + '" alt="' + tp(pName) + '" class="planet-spin" style="--spin-duration:30s;width:100%;height:100%;object-fit:cover;border-radius:50%;box-shadow:0 0 25px ' + p.colorBg + '0.3),0 0 50px ' + p.colorBg + '0.15);" referrerpolicy="no-referrer"/>'
             + '</div>'
             + '</div>';
 
@@ -15655,7 +15655,7 @@ function renderAspects2026Panel() {
                 const meaning = translateMeaning(asp.meaning) || '';
                 const dateStr = formatShortDate(asp.date);
                 const isPast = new Date(asp.date) < now;
-                const planetLabel = es ? tp(pName) : pName;
+                const planetLabel = tp(pName);
 
                 // Store aspect data in global array and reference by index
                 const aspDataIdx = window._asp2026Data.length;
@@ -19787,18 +19787,18 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
             <button class="natal-subtab" onclick="switchNatalTab('tables',this)">${L?'Tablas':'Tables'}</button>
             <button class="natal-subtab active" onclick="switchNatalTab('calendar',this)"><span class="subtab-short">${L?'Calend':'Calend'}</span><span class="subtab-full">${L?'Calendario':'Calendar'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('hoy',this)">${L?'Hoy':'Today'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
         </div>
         <div id="natalGroupAvanzado" class="natal-subtabs" style="display:none;">
+            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('aspects2026',this)">2026</button>
             <button class="natal-subtab" onclick="switchNatalTab('sinastria',this)"><span class="subtab-short">${L?'Sinastría':'Synastry'}</span><span class="subtab-full">${L?'Sinastría':'Synastry'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('compuesta',this)"><span class="subtab-short">${L?'Compuesta':'Composite'}</span><span class="subtab-full">${L?'Carta Compuesta':'Composite Chart'}</span></button>
             <button class="natal-subtab" onclick="switchNatalTab('davison',this)"><span class="subtab-short">Davison</span><span class="subtab-full">${L?'Carta Davison':'Davison Chart'}</span></button>
-            <button class="natal-subtab" onclick="switchNatalTab('cartography',this)">${L?'Mapa':'Map'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('ciclos',this)">${L?'Ciclos':'Cycles'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('aspects2026',this)">2026</button>
         </div>
         <div id="natalGroupCurso" class="natal-subtabs" style="display:none;">
             <button class="natal-subtab" onclick="switchNatalTab('tutor',this)" style="color:#667eea;">🤖 ${L?'Tutor AI':'AI Tutor'}</button>
-            <button class="natal-subtab" onclick="switchNatalTab('mapa',this)" style="color:#ffd700;">🎓 ${L?'Curso Pro':'Course Pro'}</button>
+            <button class="natal-subtab" onclick="switchNatalTab('curso',this)" style="color:#ffd700;">🎓 ${L?'Curso Pro':'Course Pro'}</button>
         </div>
         <div id="natalTabChart" class="natal-tab-content" style="display:none;">${chartTab}</div>
         <div id="natalTabTables" class="natal-tab-content" style="display:none;">${tablesTab}</div>
@@ -26508,15 +26508,15 @@ function goToCurrentCycle() {
     }
 
     // ── Render Target: inline tab or modal ──
-    var _courseTargetId = 'natalTabCurso'; // Default: render inside Astro sub-tab
+    var _courseTargetId = 'natalTabMapa'; // Default: render inside Astro sub-tab (natalTabMapa is the Curso Pro tab)
 
     function _getTarget() {
-        return document.getElementById(_courseTargetId) || document.getElementById('natalTabCurso');
+        return document.getElementById(_courseTargetId) || document.getElementById('natalTabMapa');
     }
 
     // ── Render Curso inside Astro sub-tab ──
     window.renderCursoInTab = function() {
-        _courseTargetId = 'natalTabCurso';
+        _courseTargetId = 'natalTabMapa';
         openAstroCourse();
     };
 
@@ -28655,15 +28655,12 @@ function _gatherQuizQuestions(count) {
     var LP = (typeof LearnerProfile !== 'undefined') ? LearnerProfile : null;
     if (LP) try { LP.load(); } catch(e) {}
 
-    // 1. From Knowledge Graph — only studied/attempted topics
+    // 1. From Knowledge Graph — all topics (v640: removed no_expuesto filter so new users can also take the quiz)
     if (typeof ASTRO_KNOWLEDGE_GRAPH !== 'undefined') {
         var G = ASTRO_KNOWLEDGE_GRAPH;
         var nodeIds = Object.keys(G.nodes);
         nodeIds.forEach(function(nid) {
             var node = G.nodes[nid];
-            // Only include if user has interacted with this topic
-            var level = LP ? LP.getNodeLevel(nid) : 'no_expuesto';
-            if (level === 'no_expuesto') return; // Skip unstudied topics
             if (node.questions && node.questions.length > 0) {
                 node.questions.forEach(function(q) {
                     allQs.push({ q: q.q, options: q.options, correct: q.correct, explanation: q.explanation || '', source: node.title, nodeId: nid, type: 'review' });
@@ -28671,14 +28668,10 @@ function _gatherQuizQuestions(count) {
             }
         });
     }
-    // 2. From Course curriculum — only completed lessons
+    // 2. From Course curriculum — all lessons (v640: removed completed-only filter)
     if (typeof CURRICULUM !== 'undefined') {
-        var doneLessons = {};
-        try { var stored = JSON.parse(localStorage.getItem('astroCurrents_courseDone') || '{}'); doneLessons = stored; } catch(e) {}
         CURRICULUM.forEach(function(mod) {
             (mod.lessons || []).forEach(function(lesson) {
-                // Only include lessons the user has completed
-                if (!doneLessons[lesson.id]) return;
                 if (lesson.questions && lesson.questions.length > 0) {
                     lesson.questions.forEach(function(q) {
                         var isES = currentLang === 'es';
@@ -33183,7 +33176,7 @@ function _updateNotifBadges() {
             if (!existingBadge) {
                 var sp = document.createElement('span');
                 sp.className = 'notif-badge-inline';
-                sp.style.cssText = 'background:#ff4444;color:#fff;border-radius:8px;padding:1px 5px;font-size:0.8em;margin-left:2px;';
+                sp.style.cssText = 'background:#ff4444;color:#fff;border-radius:10px;padding:2px 6px;font-size:0.75em;margin-left:2px;min-width:18px;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;font-weight:700;';
                 sp.textContent = _unreadCount;
                 btn.appendChild(sp);
             } else {
@@ -33419,11 +33412,14 @@ function _renderMainSocial(container, isES) {
     ];
     tabs.forEach(function(tab) {
         var isActive = _socialView === tab.id;
-        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-size:0.62em;white-space:nowrap;min-width:0;overflow:hidden;' +
+        var showMsgBadge = tab.id === 'messages' && _unreadCount > 0;
+        var showActBadge = tab.id === 'activity' && _unreadCount > 0;
+        var badgeHtml = showMsgBadge
+            ? '<span style="position:absolute;top:-2px;right:0px;background:#ff4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:0.72em;font-weight:700;min-width:16px;line-height:1.4;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.4);">' + _unreadCount + '</span>'
+            : (showActBadge ? '<span style="position:absolute;top:-2px;right:0px;background:#ff9800;color:#fff;border-radius:10px;padding:1px 5px;font-size:0.72em;font-weight:700;min-width:16px;line-height:1.4;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.4);">' + _unreadCount + '</span>' : '');
+        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-size:0.62em;white-space:nowrap;min-width:0;position:relative;' +
             (isActive ? 'background:rgba(0,188,212,0.2);color:#00bcd4;font-weight:700;' : 'background:transparent;color:rgba(255,255,255,0.4);font-weight:500;') +
-            '">' + tab.icon + '<br>' + tab.label +
-            (tab.id === 'messages' && _unreadCount > 0 ? ' <span style="background:#ff4444;color:#fff;border-radius:8px;padding:1px 4px;font-size:0.75em;">' + _unreadCount + '</span>' : '') +
-            (tab.id === 'activity' && _unreadCount > 0 ? ' <span style="background:#ff9800;color:#fff;border-radius:8px;padding:1px 4px;font-size:0.75em;">' + _unreadCount + '</span>' : '') +
+            '">' + tab.icon + '<br>' + tab.label + badgeHtml +
             '</button>';
     });
     navHtml += '</div>';
@@ -34681,7 +34677,9 @@ function _renderProfile(content, isES) {
     var p = _socialProfile || {};
     content.innerHTML =
         '<div style="text-align:center;margin-bottom:16px;">' +
-            '<div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#00bcd4,#0097a7);display:flex;align-items:center;justify-content:center;font-size:1.5em;color:#fff;margin:0 auto 8px;">' + (p.displayName ? p.displayName.charAt(0).toUpperCase() : '?') + '</div>' +
+            ((_socialUser && _socialUser.photoURL)
+                ? '<div style="width:60px;height:60px;border-radius:50%;overflow:hidden;margin:0 auto 8px;border:2px solid rgba(0,188,212,0.5);"><img src="' + _socialUser.photoURL + '" style="width:100%;height:100%;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=\'' + (p.displayName ? p.displayName.charAt(0).toUpperCase() : '?') + '\'"/></div>'
+                : '<div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#00bcd4,#0097a7);display:flex;align-items:center;justify-content:center;font-size:1.5em;color:#fff;margin:0 auto 8px;">' + (p.displayName ? p.displayName.charAt(0).toUpperCase() : '?') + '</div>') +
             '<div style="font-weight:700;color:#fff;font-size:1.1em;">' + (p.displayName || '') + '</div>' +
             '<div style="font-size:0.8em;color:rgba(255,255,255,0.4);">' +
                 '☀️ ' + (p.sunSign || '?') + ' · 🌙 ' + (p.moonSign || '?') + ' · ⬆️ ' + (p.ascSign || '?') +
