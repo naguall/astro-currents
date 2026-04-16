@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v640';</script>
+    <script>window.APP_VERSION = 'v641';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2838,12 +2838,15 @@ const signChanges2026 = [
     { planet: 'Venus', symbol: '♀', date: crDate('2026-03-06'), toSign: 'Aries', meaning: 'La energía relacional adquiere cualidad de iniciativa y coraje. El principio venusino se encuentra con la cualidad marcial. Disponibilidad para expresión directa de deseo. Tensión natural entre autonomía y vínculo.', color: '#e91e63' },
     { planet: 'Venus', symbol: '♀', date: crDate('2026-03-30'), toSign: 'Tauro', meaning: 'La energía venusina en su domicilio natural. Anclaje sensorial y tangibilidad disponibles. Encuentro entre placer y materia. Ritmo más lento en procesos relacionales y de valor.', color: '#e91e63' },
     
-    // MARTE
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-02-05'), toSign: 'Leo', meaning: 'La energía marcial busca visibilidad y expresión. Disponibilidad para acción que requiere escenario. El impulso se encuentra con la creatividad. Tensión entre hacer y ser visto haciendo.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-04-18'), toSign: 'Virgo', meaning: 'Refinamiento de la energía de acción. El impulso encuentra el análisis y la precisión. Disponibilidad para acción detallada y específica. Posible fricción entre perfeccionismo e impulso.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-05-31'), toSign: 'Libra', meaning: 'La acción mediada por consideración del otro. Energía marcial en campo relacional. Disponibilidad para acción equilibrada. Tensión entre iniciativa personal y búsqueda de armonía.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-07-16'), toSign: 'Escorpio', meaning: 'Intensidad y profundidad en la energía de acción. El impulso se encuentra con lo oculto y transformativo. Disponibilidad para acción estratégica. Exploración de dinámicas de poder.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-09-04'), toSign: 'Sagitario', meaning: 'Expansión de la energía marcial. El impulso busca horizonte y significado. Disponibilidad para acción exploratoria. Posible dispersión de energía direccional.', color: '#ff6b6b' },
+    // MARTE — v641: corrected sign change dates (were all wrong, showing Leo/Virgo/Libra/Scorpio/Sag)
+    // Verified against interPlanetaryAspects2026: Mars in Aquarius Jan 27, Pisces Mar 21, Aries Apr 12-20, Taurus May 25, Gemini Jul 3, Cancer Sep 1, Leo Oct 3, Virgo Dec 4
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-03-03'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. El impulso marcial se disuelve en lo fluido. Energía disponible para arte, espiritualidad y compasión activa. Posible confusión sobre dirección.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-04-09'), toSign: 'Aries', meaning: 'MARTE EN DOMICILIO: máxima potencia marcial. Acción directa, iniciativa pura, coraje instintivo. Energía de guerrero disponible para empezar lo nuevo. Cuidado con impulsividad.', color: '#ff6b6b', isImportant: true },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-05-17'), toSign: 'Tauro', meaning: 'La acción encuentra la estabilidad material. Persistencia y resistencia marcial. El impulso se enfoca en lo concreto y tangible. Ritmo más lento pero más sostenido y productivo.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-06-30'), toSign: 'Géminis', meaning: 'Energía dispersa en múltiples direcciones. La acción se vuelve mental y comunicativa. Velocidad y versatilidad marciales. Tensión entre multitarea e impacto concentrado.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-08-11'), toSign: 'Cáncer', meaning: 'La acción se filtra por la emoción y la protección. El impulso marcial defiende el hogar y lo íntimo. Energía protectora intensa. Posible reactividad emocional y defensividad.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-09-28'), toSign: 'Leo', meaning: 'La acción busca visibilidad y expresión creativa. Impulso hacia el liderazgo y el escenario. Energía generosa y dramática disponible. La voluntad de brillar se activa.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-11-27'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. El impulso marcial encuentra el detalle y la mejora. Energía para trabajo meticuloso y corrección continua. Posible hipercriticismo.', color: '#ff6b6b' },
     
     // JÚPITER (MUY IMPORTANTE)
     { planet: 'Júpiter', symbol: '♃', date: crDate('2026-06-29'), toSign: 'Leo', meaning: 'CICLO ANUAL. Expansión a través de expresión y creatividad. El crecimiento busca visibilidad y generosidad. Disponibilidad para confianza en lo personal. El significado se encuentra con el ego. (2026-2027)', color: '#9b59b6', isImportant: true, badgeInfo: 'Júpiter cambia de signo cada ~12 meses. Define el tono de expansión y oportunidades del año.', lastTime: 'Júpiter en Leo: Ago 2014-Ago 2015' },
@@ -13768,6 +13771,9 @@ function switchToLunarMode() {
     if (cdi) cdi.style.display = '';
 
     updateModeButtons();
+
+    // v641: Always reset to current lunar cycle when switching to Lunar mode
+    currentCycleStart = findNearestNewMoon(new Date());
 
     // Defer heavy rendering to next frame so the button state updates instantly
     requestAnimationFrame(function() {
@@ -27359,6 +27365,9 @@ function goToCurrentCycle() {
             '</div></div>';
     };
 
+    // v641: Expose CURRICULUM globally so _gatherQuizQuestions() can access course lessons
+    window.CURRICULUM = CURRICULUM;
+
 })();
 
 // ==============================================
@@ -28629,7 +28638,7 @@ function getLunarPhaseEnrichment(phaseDate) {
 // ═══════════════════════════════════════════════════════
 
 function _getDailyQuizPrefs() {
-    return JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":false,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
+    return JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":true,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
 }
 function _saveDailyQuizPrefs(p) { localStorage.setItem('dailyQuizPrefs', JSON.stringify(p)); }
 
@@ -30492,7 +30501,7 @@ function openPreferencesModal() {
     sectionsHtml += _sectionHeader('🎓', currentLang==='es'?'Aprendizaje':'Learning');
 
     // ── Quiz Diario / Daily Quiz ──
-    var _dqPrefs = JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":false,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
+    var _dqPrefs = JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":true,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
     var _dqTimesHtml = '';
     for (var _dqi = 0; _dqi < (_dqPrefs.hours||['09:00']).length; _dqi++) {
         _dqTimesHtml += buildTimePicker('dqHour_' + _dqi, (_dqPrefs.hours[_dqi]||'09:00'), "updateDailyQuizTime(" + _dqi + ",document.getElementById('dqHour_" + _dqi + "').value)");
