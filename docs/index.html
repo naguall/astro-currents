@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v641';</script>
+    <script>window.APP_VERSION = 'v642';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2854,8 +2854,10 @@ const signChanges2026 = [
     // SATURNO (CRÍTICO)
     { planet: 'Saturno', symbol: '♄', date: crDate('2026-02-13'), toSign: 'Aries', meaning: 'CICLO MAYOR. Encuentro tenso entre estructura y autonomía. El límite se aplica a la identidad y el impulso. Disponibilidad para aprender sobre autoridad personal. Fricción natural entre disciplina y espontaneidad. (hasta 2028-2029)', color: '#3498db', isCritical: true, lastTime: 'Saturno en Aries: 1996-1999' },
 
-    // URANO (GENERACIONAL)
-    { planet: 'Urano', symbol: '♅', date: crDate('2026-07-07'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Revolución en comunicación e información. Disponibilidad para conexiones inesperadas. El cambio opera en el nivel mental y social. Aceleración en intercambios y tecnología.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Última vez en Géminis: 1941-1949.', lastTime: 'Urano en Géminis: 1941-1949' },
+    // URANO (GENERACIONAL) — v641: corrected from 2026-07-07 (was the 2025 first-ingress date copy-pasted wrong).
+    // Uranus entered Gemini first on Jul 7, 2025, retrograded to Taurus Nov 2025, permanent re-ingress Apr 26, 2026.
+    // Confirmed by internal data: Mars-Uranus conjunction already at 3°52 Gemini on Jul 3, 2026 (aspect line ~2892).
+    { planet: 'Urano', symbol: '♅', date: crDate('2026-04-26'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Ingreso permanente en Géminis. Revolución en comunicación, información e intercambios. Aceleración en tecnología y redes sociales. El cambio opera a nivel mental y colectivo.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Primera entrada Jul 7 2025, reingreso permanente Abr 26 2026. Última vez en Géminis: 1941-1949.', lastTime: 'Urano en Géminis: 1941-1949' },
 
     // NEPTUNO (MEGA IMPORTANTE)
     { planet: 'Neptuno', symbol: '♆', date: crDate('2026-01-26'), toSign: 'Aries', meaning: 'CAMBIO GENERACIONAL. Lo místico se encuentra con la acción. Idealismo aplicado a la identidad y el impulso. Disponibilidad para confusión sobre quién soy. El guerrero espiritual como arquetipo disponible. (hasta 2039)', color: '#5dade2', isGenerational: true, badgeInfo: 'Neptuno cambia de signo cada ~14 años. Última vez en Aries: 1861-1875.', lastTime: 'Neptuno en Aries: 1861-1875' },
@@ -28644,6 +28646,12 @@ function _saveDailyQuizPrefs(p) { localStorage.setItem('dailyQuizPrefs', JSON.st
 
 function toggleDailyQuiz(enabled) {
     var p = _getDailyQuizPrefs(); p.enabled = enabled; _saveDailyQuizPrefs(p);
+    // v641: track explicit user choice so migration doesn't override it
+    if (!enabled) {
+        localStorage.setItem('dailyQuiz_explicitlyDisabled', 'true');
+    } else {
+        localStorage.removeItem('dailyQuiz_explicitlyDisabled');
+    }
 }
 function updateDailyQuizPref(key, val) {
     var p = _getDailyQuizPrefs(); p[key] = val;
@@ -28797,7 +28805,7 @@ function launchDailyQuiz() {
         modal = document.createElement('div');
         modal.id = 'dailyQuizModal';
         modal.className = 'modal';
-        modal.style.zIndex = '1300';
+        modal.style.zIndex = '10003'; // v641: must be above preferencesModal (10002)
         modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
         modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
         document.body.appendChild(modal);
@@ -28950,10 +28958,10 @@ function checkDailyQuizNotification() {
         var h = parseInt(parts[0]), m = parseInt(parts[1] || 0);
         var quizKey = 'dailyQuiz_sent_' + todayKey + '_' + idx;
 
-        // Check if within 2-minute window of scheduled time
+        // v641: widened to ±5 min window (was ±1) so 30s polling never misses the slot
         var nowMins = now.getHours() * 60 + now.getMinutes();
         var targetMins = h * 60 + m;
-        if (Math.abs(nowMins - targetMins) <= 1 && !localStorage.getItem(quizKey)) {
+        if (Math.abs(nowMins - targetMins) <= 5 && !localStorage.getItem(quizKey)) {
             localStorage.setItem(quizKey, 'true');
             var L = currentLang === 'es';
             // Send notification
@@ -29799,6 +29807,21 @@ function checkLunarPhaseStart(date) {
 
 // Check notifications every 15 seconds for better precision on event reminders
 setInterval(checkNotifications, 15 * 1000);
+
+// v641: One-time migration — enable quiz for users who had the old default:false
+// Only resets if user never explicitly disabled it themselves
+(function() {
+    var saved = localStorage.getItem('dailyQuizPrefs');
+    if (!saved) return; // No saved prefs → default true kicks in
+    try {
+        var p = JSON.parse(saved);
+        if (p.enabled === false && !localStorage.getItem('dailyQuiz_explicitlyDisabled')) {
+            p.enabled = true;
+            localStorage.setItem('dailyQuizPrefs', JSON.stringify(p));
+            console.log('v641: Daily quiz enabled by migration');
+        }
+    } catch(e) {}
+})();
 
 // Daily quiz check (every 30 seconds)
 setInterval(checkDailyQuizNotification, 30 * 1000);
