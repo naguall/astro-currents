@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v640';</script>
+    <script>window.APP_VERSION = 'v643';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2838,12 +2838,15 @@ const signChanges2026 = [
     { planet: 'Venus', symbol: '♀', date: crDate('2026-03-06'), toSign: 'Aries', meaning: 'La energía relacional adquiere cualidad de iniciativa y coraje. El principio venusino se encuentra con la cualidad marcial. Disponibilidad para expresión directa de deseo. Tensión natural entre autonomía y vínculo.', color: '#e91e63' },
     { planet: 'Venus', symbol: '♀', date: crDate('2026-03-30'), toSign: 'Tauro', meaning: 'La energía venusina en su domicilio natural. Anclaje sensorial y tangibilidad disponibles. Encuentro entre placer y materia. Ritmo más lento en procesos relacionales y de valor.', color: '#e91e63' },
     
-    // MARTE
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-02-05'), toSign: 'Leo', meaning: 'La energía marcial busca visibilidad y expresión. Disponibilidad para acción que requiere escenario. El impulso se encuentra con la creatividad. Tensión entre hacer y ser visto haciendo.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-04-18'), toSign: 'Virgo', meaning: 'Refinamiento de la energía de acción. El impulso encuentra el análisis y la precisión. Disponibilidad para acción detallada y específica. Posible fricción entre perfeccionismo e impulso.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-05-31'), toSign: 'Libra', meaning: 'La acción mediada por consideración del otro. Energía marcial en campo relacional. Disponibilidad para acción equilibrada. Tensión entre iniciativa personal y búsqueda de armonía.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-07-16'), toSign: 'Escorpio', meaning: 'Intensidad y profundidad en la energía de acción. El impulso se encuentra con lo oculto y transformativo. Disponibilidad para acción estratégica. Exploración de dinámicas de poder.', color: '#ff6b6b' },
-    { planet: 'Marte', symbol: '♂', date: crDate('2026-09-04'), toSign: 'Sagitario', meaning: 'Expansión de la energía marcial. El impulso busca horizonte y significado. Disponibilidad para acción exploratoria. Posible dispersión de energía direccional.', color: '#ff6b6b' },
+    // MARTE — v641: corrected sign change dates (were all wrong, showing Leo/Virgo/Libra/Scorpio/Sag)
+    // Verified against interPlanetaryAspects2026: Mars in Aquarius Jan 27, Pisces Mar 21, Aries Apr 12-20, Taurus May 25, Gemini Jul 3, Cancer Sep 1, Leo Oct 3, Virgo Dec 4
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-03-03'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. El impulso marcial se disuelve en lo fluido. Energía disponible para arte, espiritualidad y compasión activa. Posible confusión sobre dirección.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-04-09'), toSign: 'Aries', meaning: 'MARTE EN DOMICILIO: máxima potencia marcial. Acción directa, iniciativa pura, coraje instintivo. Energía de guerrero disponible para empezar lo nuevo. Cuidado con impulsividad.', color: '#ff6b6b', isImportant: true },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-05-17'), toSign: 'Tauro', meaning: 'La acción encuentra la estabilidad material. Persistencia y resistencia marcial. El impulso se enfoca en lo concreto y tangible. Ritmo más lento pero más sostenido y productivo.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-06-30'), toSign: 'Géminis', meaning: 'Energía dispersa en múltiples direcciones. La acción se vuelve mental y comunicativa. Velocidad y versatilidad marciales. Tensión entre multitarea e impacto concentrado.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-08-11'), toSign: 'Cáncer', meaning: 'La acción se filtra por la emoción y la protección. El impulso marcial defiende el hogar y lo íntimo. Energía protectora intensa. Posible reactividad emocional y defensividad.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-09-28'), toSign: 'Leo', meaning: 'La acción busca visibilidad y expresión creativa. Impulso hacia el liderazgo y el escenario. Energía generosa y dramática disponible. La voluntad de brillar se activa.', color: '#ff6b6b' },
+    { planet: 'Marte', symbol: '♂', date: crDate('2026-11-27'), toSign: 'Virgo', meaning: 'La acción se vuelve analítica y precisa. El impulso marcial encuentra el detalle y la mejora. Energía para trabajo meticuloso y corrección continua. Posible hipercriticismo.', color: '#ff6b6b' },
     
     // JÚPITER (MUY IMPORTANTE)
     { planet: 'Júpiter', symbol: '♃', date: crDate('2026-06-29'), toSign: 'Leo', meaning: 'CICLO ANUAL. Expansión a través de expresión y creatividad. El crecimiento busca visibilidad y generosidad. Disponibilidad para confianza en lo personal. El significado se encuentra con el ego. (2026-2027)', color: '#9b59b6', isImportant: true, badgeInfo: 'Júpiter cambia de signo cada ~12 meses. Define el tono de expansión y oportunidades del año.', lastTime: 'Júpiter en Leo: Ago 2014-Ago 2015' },
@@ -2851,8 +2854,10 @@ const signChanges2026 = [
     // SATURNO (CRÍTICO)
     { planet: 'Saturno', symbol: '♄', date: crDate('2026-02-13'), toSign: 'Aries', meaning: 'CICLO MAYOR. Encuentro tenso entre estructura y autonomía. El límite se aplica a la identidad y el impulso. Disponibilidad para aprender sobre autoridad personal. Fricción natural entre disciplina y espontaneidad. (hasta 2028-2029)', color: '#3498db', isCritical: true, lastTime: 'Saturno en Aries: 1996-1999' },
 
-    // URANO (GENERACIONAL)
-    { planet: 'Urano', symbol: '♅', date: crDate('2026-07-07'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Revolución en comunicación e información. Disponibilidad para conexiones inesperadas. El cambio opera en el nivel mental y social. Aceleración en intercambios y tecnología.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Última vez en Géminis: 1941-1949.', lastTime: 'Urano en Géminis: 1941-1949' },
+    // URANO (GENERACIONAL) — v641: corrected from 2026-07-07 (was the 2025 first-ingress date copy-pasted wrong).
+    // Uranus entered Gemini first on Jul 7, 2025, retrograded to Taurus Nov 2025, permanent re-ingress Apr 26, 2026.
+    // Confirmed by internal data: Mars-Uranus conjunction already at 3°52 Gemini on Jul 3, 2026 (aspect line ~2892).
+    { planet: 'Urano', symbol: '♅', date: crDate('2026-04-26'), toSign: 'Géminis', meaning: 'CAMBIO GENERACIONAL (7 años). Ingreso permanente en Géminis. Revolución en comunicación, información e intercambios. Aceleración en tecnología y redes sociales. El cambio opera a nivel mental y colectivo.', color: '#1abc9c', isGenerational: true, badgeInfo: 'Urano cambia de signo cada ~7 años. Primera entrada Jul 7 2025, reingreso permanente Abr 26 2026. Última vez en Géminis: 1941-1949.', lastTime: 'Urano en Géminis: 1941-1949' },
 
     // NEPTUNO (MEGA IMPORTANTE)
     { planet: 'Neptuno', symbol: '♆', date: crDate('2026-01-26'), toSign: 'Aries', meaning: 'CAMBIO GENERACIONAL. Lo místico se encuentra con la acción. Idealismo aplicado a la identidad y el impulso. Disponibilidad para confusión sobre quién soy. El guerrero espiritual como arquetipo disponible. (hasta 2039)', color: '#5dade2', isGenerational: true, badgeInfo: 'Neptuno cambia de signo cada ~14 años. Última vez en Aries: 1861-1875.', lastTime: 'Neptuno en Aries: 1861-1875' },
@@ -13769,6 +13774,9 @@ function switchToLunarMode() {
 
     updateModeButtons();
 
+    // v641: Always reset to current lunar cycle when switching to Lunar mode
+    currentCycleStart = findNearestNewMoon(new Date());
+
     // Defer heavy rendering to next frame so the button state updates instantly
     requestAnimationFrame(function() {
         renderCalendar();
@@ -18969,6 +18977,47 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
         <div style="font-size:0.65em;color:rgba(255,255,255,0.25);margin-top:2px;">${natal.date || ''} · ${natal.time || ''} · ${natal.cityName || ''}</div>`;
     }
 
+    // v643: Build AI personas row
+    var personasHTML = '';
+    if (typeof _aiPersonas !== 'undefined' && _aiPersonas.length > 0) {
+        var personaBtns = _aiPersonas.map(function(p) {
+            var isAct = p.id === (typeof _activePersonaId !== 'undefined' ? _activePersonaId : 'energy-reader');
+            return '<button onclick="setActivePersona(\'' + p.id + '\');document.querySelectorAll(\'.persona-pill\').forEach(function(b){b.style.background=\'rgba(102,126,234,0.06)\';b.style.borderColor=\'rgba(102,126,234,0.2)\';b.style.color=\'rgba(255,255,255,0.5)\'});this.style.background=\'rgba(102,126,234,0.25)\';this.style.borderColor=\'#667eea\';this.style.color=\'#667eea\';" class="persona-pill" style="padding:3px 8px;font-size:0.7em;border-radius:12px;border:1px solid ' + (isAct?'#667eea':'rgba(102,126,234,0.2)') + ';background:' + (isAct?'rgba(102,126,234,0.25)':'rgba(102,126,234,0.06)') + ';color:' + (isAct?'#667eea':'rgba(255,255,255,0.5)') + ';cursor:pointer;white-space:nowrap;">' + p.icon + ' ' + (L ? p.name_es : p.name_en) + '</button>';
+        }).join('');
+        personasHTML = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;margin-bottom:2px;align-items:center;"><span style="font-size:0.65em;color:rgba(255,255,255,0.3);flex-shrink:0;">🧠</span>' + personaBtns + '</div>';
+    }
+
+    // v643: Build saved interpretations panel for this profile
+    var interpItems = '';
+    var interpPrefix = 'interp_' + activeId + '_';
+    var interpCount = 0;
+    try {
+        for (var ki = 0; ki < localStorage.length; ki++) {
+            var kk = localStorage.key(ki);
+            if (!kk || !kk.startsWith(interpPrefix)) continue;
+            try {
+                var ikData = JSON.parse(localStorage.getItem(kk));
+                if (!ikData) continue;
+                var ikKey = kk.slice(interpPrefix.length);
+                var ikDate = ikData.ts ? new Date(ikData.ts).toLocaleDateString(L?'es':'en',{day:'numeric',month:'short'}) : '';
+                var ikLabel = ikKey.length > 40 ? ikKey.substring(0,38)+'…' : ikKey;
+                interpItems += '<div onclick="openSavedInterpretation(\'' + kk.replace(/'/g,"\\'") + '\')" style="padding:5px 8px;margin-bottom:3px;background:rgba(201,168,64,0.05);border:1px solid rgba(201,168,64,0.12);border-radius:7px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px;" title="' + (L?'Ver interpretación guardada':'View saved interpretation') + '">'
+                    + '<span style="font-size:0.72em;color:rgba(255,255,255,0.65);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">✨ ' + ikLabel + '</span>'
+                    + (ikDate ? '<span style="font-size:0.62em;color:rgba(255,255,255,0.3);flex-shrink:0;">' + ikDate + '</span>' : '')
+                    + '</div>';
+                interpCount++;
+            } catch(ike) {}
+        }
+    } catch(ike2) {}
+
+    var interpPanelHTML = '';
+    if (interpCount > 0) {
+        interpPanelHTML = '<div style="margin-top:6px;">'
+            + '<button onclick="var p=document.getElementById(\'profileInterpPanel_' + activeId + '\');p.style.display=p.style.display===\'none\'?\'block\':\'none\';" style="width:100%;text-align:left;padding:4px 6px;background:rgba(201,168,64,0.06);border:1px solid rgba(201,168,64,0.15);border-radius:7px;color:rgba(201,168,64,0.7);font-size:0.72em;cursor:pointer;">📚 ' + (L?'Interpretaciones guardadas':'Saved interpretations') + ' (' + interpCount + ')</button>'
+            + '<div id="profileInterpPanel_' + activeId + '" style="display:none;margin-top:4px;max-height:160px;overflow-y:auto;">' + interpItems + '</div>'
+            + '</div>';
+    }
+
     return `<div class="profile-header-bar">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <select id="profileDropdown" onchange="switchProfile(this.value)" class="profile-dropdown">${options}</select>
@@ -18977,7 +19026,50 @@ function buildProfileSelector(natal, sunSign, moonSign, ascSign, mcSign) {
             <button onclick="shareNatalProfile()" class="profile-action-btn" title="${L?'Compartir':'Share'}">📤</button>
         </div>
         ${chartInfo}
+        ${personasHTML}
+        ${interpPanelHTML}
     </div>`;
+}
+
+// v643: Open a saved interpretation in the hoyInterpModal
+function openSavedInterpretation(storageKey) {
+    try {
+        var cached = JSON.parse(localStorage.getItem(storageKey));
+        if (!cached) return;
+        var isES = currentLang === 'es';
+        // Restore into hoyInterpMessages (reuse the existing interp panel)
+        var container = document.getElementById('hoyInterpMessages');
+        if (!container) return;
+        hoyInterpHistory = cached.history || [];
+        currentInterpCacheKey = storageKey;
+        if (cached.html) {
+            container.innerHTML = cached.html;
+        } else if (cached.history && cached.history.length > 0) {
+            // Rebuild from history
+            var rebuildHtml = '';
+            cached.history.forEach(function(msg) {
+                var txt = (msg.parts && msg.parts[0]) ? msg.parts[0].text : '';
+                if (msg.role === 'user') {
+                    rebuildHtml += '<div class="ai-msg user">' + txt.replace(/</g,'&lt;') + '</div>';
+                } else if (msg.role === 'model') {
+                    var fmt = txt.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+                    rebuildHtml += '<div class="ai-msg assistant"><div id="hoyResp_' + Date.now() + Math.random() + '"><p>' + fmt + '</p></div></div>';
+                }
+            });
+            container.innerHTML = rebuildHtml;
+        }
+        container.scrollTop = 0;
+        // Set title and date
+        var keyPart = storageKey.replace(/^interp_[^_]+_/, '');
+        var titleEl = document.getElementById('hoyInterpTitle');
+        var dateEl = document.getElementById('hoyInterpDate');
+        if (titleEl) titleEl.textContent = isES ? 'Interpretación guardada' : 'Saved interpretation';
+        if (dateEl) dateEl.textContent = keyPart + (cached.ts ? ' · ' + new Date(cached.ts).toLocaleDateString(isES?'es':'en',{day:'numeric',month:'short',year:'numeric'}) : '');
+        // Show the hoyInterpModal
+        var modal = document.getElementById('hoyInterpModal');
+        if (modal) modal.classList.add('show');
+        if (typeof updateDeleteBtnVisibility === 'function') updateDeleteBtnVisibility(true);
+    } catch(e) { console.warn('[openSavedInterpretation]', e); }
 }
 
 function shareNatalProfile() {
@@ -26521,6 +26613,7 @@ function goToCurrentCycle() {
     };
 
     // ── Tutor Memory System ──
+    window._tutorAbortCtrl = null; // v643: streaming abort controller for tutor
     var TUTOR_STORAGE_KEY = 'tutorSessions';
     var TUTOR_ACTIVE_KEY = 'tutorActiveSession';
     var TUTOR_PROFILE_KEY = 'tutorLearnerProfile';
@@ -26548,11 +26641,29 @@ function goToCurrentCycle() {
         try { localStorage.setItem(TUTOR_PROFILE_KEY, JSON.stringify(profile)); } catch(e) {}
     }
     // Save current chat to active session
+    // v643: Rebuild tutor chat HTML from message history (avoids storing large HTML in localStorage)
+    function _tutorRebuildHTMLFromHistory(history) {
+        var isES = L();
+        var html = '';
+        history.forEach(function(msg) {
+            var txt = (msg.parts && msg.parts[0]) ? msg.parts[0].text : '';
+            if (msg.role === 'user') {
+                html += '<div style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:12px 12px 4px 12px;font-size:0.82em;color:rgba(255,255,255,0.85);text-align:left;">' + txt.replace(/</g,'&lt;') + '</div></div>';
+            } else if (msg.role === 'model') {
+                var fmt = txt.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+                var mid = 'aiMsg_tutor_r' + Math.random().toString(36).substr(2,8);
+                html += '<div class="tutorAIReply" style="margin-bottom:8px;"><div id="' + mid + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES?'Doble click para leer desde aquí':'Double click to read from here') + '"><p>' + fmt + '</p></div></div>';
+            }
+        });
+        return html;
+    }
+
     function _tutorPersistChat(history, htmlContent) {
         if (!history || history.length === 0) return;
         var active = _tutorGetActiveSession() || {id: Date.now(), date: new Date().toISOString(), messages: [], topics: [], html: ''};
         active.messages = history;
-        active.html = htmlContent || '';
+        // v643: Don't save HTML (too large for localStorage); rebuild on restore from messages
+        active.html = '';
         active.lastUpdate = new Date().toISOString();
         // Extract topics from last AI response
         if (history.length >= 2) {
@@ -26652,7 +26763,11 @@ function goToCurrentCycle() {
         // Check for active (ongoing) session to restore
         var activeSession = _tutorGetActiveSession();
         var restoredHistory = (activeSession && activeSession.messages && activeSession.messages.length > 0) ? activeSession.messages : [];
+        // v643: Rebuild HTML from messages if no HTML saved (avoids localStorage size limits)
         var restoredHTML = (activeSession && activeSession.html) ? activeSession.html : '';
+        if (!restoredHTML && restoredHistory.length > 0) {
+            restoredHTML = _tutorRebuildHTMLFromHistory(restoredHistory);
+        }
         var prevSessions = _tutorLoadSessions();
 
         // History panel HTML
@@ -26732,7 +26847,7 @@ function goToCurrentCycle() {
             // Line 1: textarea + send
             '<div style="display:flex;gap:6px;align-items:flex-end;">' +
             '<textarea id="tutorInput" rows="1" placeholder="' + (isES ? 'Pregúntale al tutor...' : 'Ask the tutor...') + '" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(102,126,234,0.2);border-radius:10px;color:white;padding:8px 10px;font-size:0.85em;resize:none;outline:none;font-family:inherit;" oninput="this.style.height=\'auto\';this.style.height=Math.min(this.scrollHeight,80)+\'px\';" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendTutorAIMsg();}"></textarea>' +
-            '<button onclick="sendTutorAIMsg()" style="background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#667eea;padding:8px 14px;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>' +
+            '<button id="tutorSendBtn" onclick="sendTutorAIMsg()" style="background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(102,126,234,0.1));border:1px solid rgba(102,126,234,0.4);border-radius:10px;color:#667eea;padding:8px 14px;font-size:1em;cursor:pointer;flex-shrink:0;">➤</button>' +
             '</div>' +
             // Line 2: ALL icons in one row (mic, speaker, conversation, save, share, delete)
             '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:6px;">' +
@@ -26919,7 +27034,9 @@ function goToCurrentCycle() {
     // ── Tutor AI Send Message ──
     window.sendTutorAIMsg = async function() {
         var tab = document.getElementById('natalTabTutor');
-        if (!tab || tab._tutorTyping) return;
+        if (!tab) return;
+        // v643: if streaming in progress, abort it
+        if (tab._tutorTyping) { if (window._tutorAbortCtrl) { window._tutorAbortCtrl.abort(); } return; }
         var input = document.getElementById('tutorInput');
         var area = document.getElementById('tutorAIChatArea');
         if (!input || !area) return;
@@ -26929,75 +27046,130 @@ function goToCurrentCycle() {
         input.style.height = 'auto';
         var isES = L();
 
-        // Clear placeholder
         var placeholder = area.querySelector('div[style*="text-align:center"]');
         if (placeholder && area.children.length === 1) area.innerHTML = '';
 
-        // Add user message (use insertAdjacentHTML to preserve existing listeners)
         area.insertAdjacentHTML('beforeend', '<div style="margin-bottom:8px;text-align:right;"><div style="display:inline-block;max-width:85%;padding:8px 12px;background:rgba(102,126,234,0.15);border:1px solid rgba(102,126,234,0.3);border-radius:12px 12px 4px 12px;font-size:0.82em;color:rgba(255,255,255,0.85);text-align:left;">' + text.replace(/</g,'&lt;') + '</div></div>');
         area.scrollTop = area.scrollHeight;
-
         tab._tutorHistory.push({role: 'user', parts: [{text: text}]});
 
-        // Loading
-        area.insertAdjacentHTML('beforeend', '<div id="tutorAILoading" style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;font-size:0.82em;color:rgba(255,255,255,0.4);">⏳ ' + (isES ? 'Pensando...' : 'Thinking...') + '</div></div>');
-        area.scrollTop = area.scrollHeight;
+        if (typeof aiIsConfigured !== 'function' || !aiIsConfigured()) {
+            area.insertAdjacentHTML('beforeend', '<div style="margin-bottom:8px;"><div style="display:inline-block;max-width:85%;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">' + (isES ? 'Configura tu API key de Gemini en ⚙️ Preferencias.' : 'Set up your Gemini API key in ⚙️ Preferences.') + '</div></div>');
+            return;
+        }
 
         tab._tutorTyping = true;
-        try {
-            if (typeof aiIsConfigured !== 'function' || !aiIsConfigured()) {
-                var ld = document.getElementById('tutorAILoading'); if (ld) ld.remove();
-                area.insertAdjacentHTML('beforeend', '<div style="margin-bottom:8px;"><div style="display:inline-block;max-width:85%;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">' + (isES ? 'Configura tu API key de Gemini en ⚙️ Preferencias.' : 'Set up your Gemini API key in ⚙️ Preferences.') + '</div></div>');
-                tab._tutorTyping = false; return;
-            }
-            var personalKey = typeof getGeminiKey === 'function' ? getGeminiKey() : null;
-            var apiUrl = personalKey
-                ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey
-                : (typeof AI_PROXY_URL !== 'undefined' ? AI_PROXY_URL : '');
-            var resp = await fetch(apiUrl, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    system_instruction: {parts: [{text: tab._tutorSysPrompt}]},
-                    contents: tab._tutorHistory,
-                    generationConfig: {temperature: 0.7, maxOutputTokens: 8192}
-                })
-            });
-            var ld = document.getElementById('tutorAILoading'); if (ld) ld.remove();
-            if (resp.ok) {
-                var data = await resp.json();
-                var reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) ? data.candidates[0].content.parts[0].text : (isES ? 'Sin respuesta' : 'No response');
-                tab._tutorHistory.push({role: 'model', parts: [{text: reply}]});
-                var fmt = reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-                var _tutorMsgId = 'aiMsg_tutor_' + Date.now();
-                area.insertAdjacentHTML('beforeend', '<div class="tutorAIReply" style="margin-bottom:8px;"><div id="' + _tutorMsgId + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES ? 'Doble click para leer desde aquí' : 'Double click to read from here') + '"><p>' + fmt + '</p></div></div>');
-                // Scroll last reply into view smoothly (karaoke-style follow)
-                setTimeout(function() {
-                    var lastReply = area.querySelector('.tutorAIReply:last-child');
-                    if (lastReply) lastReply.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 50);
-                // Voice conversation: read aloud with karaoke, then re-activate mic
-                if (tab._tutorVoiceConvo && typeof readAloud === 'function') {
-                    var lastReplyEl = area.querySelector('.tutorAIReply:last-child');
-                    if (lastReplyEl) {
-                        readAloud(lastReplyEl, function() {
-                            if (tab._tutorVoiceConvo) {
-                                setTimeout(function() { startGenericVoice('tutorInput','sendTutorAIMsg()','tutorVoiceBtn'); }, 500);
-                            }
-                        });
+        var personalKey = typeof getGeminiKey === 'function' ? getGeminiKey() : null;
+        var sendBtn = document.getElementById('tutorSendBtn');
+        var requestBody = { system_instruction: {parts: [{text: tab._tutorSysPrompt}]}, contents: tab._tutorHistory, generationConfig: {temperature: 0.7, maxOutputTokens: 8192} };
+
+        if (personalKey) {
+            // ── v643 TUTOR STREAMING MODE ──
+            if (sendBtn) sendBtn.innerHTML = '⏹';
+            window._tutorAbortCtrl = new AbortController();
+            var _tutorStreamId = 'aiMsg_tutor_' + Date.now();
+            area.insertAdjacentHTML('beforeend', '<div class="tutorAIReply" id="tutorReplyWrap_' + _tutorStreamId + '" style="margin-bottom:8px;"><div id="' + _tutorStreamId + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES ? 'Doble click para leer desde aquí' : 'Double click to read from here') + '"><p><span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div></div>');
+            area.scrollTop = area.scrollHeight;
+            var tutorFullText = '';
+            try {
+                var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+                var resp = await fetch(apiUrl, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(requestBody), signal: window._tutorAbortCtrl.signal });
+                if (resp.ok) {
+                    var reader = resp.body.getReader();
+                    var decoder = new TextDecoder();
+                    var buf = '';
+                    while (true) {
+                        var rd = await reader.read();
+                        if (rd.done) break;
+                        buf += decoder.decode(rd.value, {stream: true});
+                        var lines = buf.split('\n'); buf = lines.pop() || '';
+                        for (var li2 = 0; li2 < lines.length; li2++) {
+                            var ln = lines[li2];
+                            if (!ln.startsWith('data: ')) continue;
+                            var jj = ln.slice(6).trim();
+                            if (!jj || jj === '[DONE]') continue;
+                            try {
+                                var dd = JSON.parse(jj);
+                                var ck = (dd.candidates && dd.candidates[0] && dd.candidates[0].content && dd.candidates[0].content.parts && dd.candidates[0].content.parts[0] && dd.candidates[0].content.parts[0].text) || '';
+                                if (ck) {
+                                    tutorFullText += ck;
+                                    var el2 = document.getElementById(_tutorStreamId);
+                                    if (el2) {
+                                        var fmt2 = tutorFullText.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+                                        el2.innerHTML = '<p>' + fmt2 + '<span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p>';
+                                        area.scrollTop = area.scrollHeight;
+                                    }
+                                }
+                            } catch(pe2) {}
+                        }
                     }
+                    // Finalize
+                    var el3 = document.getElementById(_tutorStreamId);
+                    if (el3 && tutorFullText) {
+                        var fmt3 = tutorFullText.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+                        el3.innerHTML = '<p>' + fmt3 + '</p>';
+                    }
+                    tab._tutorHistory.push({role: 'model', parts: [{text: tutorFullText}]});
+                    if (tab._tutorVoiceConvo && typeof readAloud === 'function') {
+                        var wrapEl = document.getElementById('tutorReplyWrap_' + _tutorStreamId);
+                        if (wrapEl) readAloud(wrapEl, function() { if (tab._tutorVoiceConvo) setTimeout(function() { startGenericVoice('tutorInput','sendTutorAIMsg()','tutorVoiceBtn'); }, 500); });
+                    }
+                } else {
+                    var wrapEl2 = document.getElementById('tutorReplyWrap_' + _tutorStreamId); if (wrapEl2) wrapEl2.remove();
+                    area.insertAdjacentHTML('beforeend','<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ Error</div></div>');
                 }
-            } else {
-                area.insertAdjacentHTML('beforeend', '<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ Error</div></div>');
+            } catch(err2) {
+                if (err2.name === 'AbortError') {
+                    // Keep accumulated text
+                    var el4 = document.getElementById(_tutorStreamId);
+                    if (el4 && tutorFullText) {
+                        var fmt4 = tutorFullText.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+                        el4.innerHTML = '<p>' + fmt4 + (isES ? ' <em style="opacity:0.5">[detenido]</em>' : ' <em style="opacity:0.5">[stopped]</em>') + '</p>';
+                        tab._tutorHistory.push({role: 'model', parts: [{text: tutorFullText}]});
+                    } else if (!tutorFullText) {
+                        var wrapEl3 = document.getElementById('tutorReplyWrap_' + _tutorStreamId); if (wrapEl3) wrapEl3.remove();
+                        tab._tutorHistory.pop();
+                    }
+                } else {
+                    var wrapEl4 = document.getElementById('tutorReplyWrap_' + _tutorStreamId); if (wrapEl4) wrapEl4.remove();
+                    area.insertAdjacentHTML('beforeend','<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ ' + (err2.message || 'Error') + '</div></div>');
+                }
             }
-        } catch(e) {
-            var ld = document.getElementById('tutorAILoading'); if (ld) ld.remove();
-            area.insertAdjacentHTML('beforeend', '<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ ' + (e.message || 'Error') + '</div></div>');
+            window._tutorAbortCtrl = null;
+            if (sendBtn) sendBtn.innerHTML = '➤';
+
+        } else {
+            // ── NON-STREAMING MODE (proxy) ──
+            area.insertAdjacentHTML('beforeend', '<div id="tutorAILoading" style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;font-size:0.82em;color:rgba(255,255,255,0.4);">⏳ ' + (isES ? 'Pensando...' : 'Thinking...') + '</div></div>');
+            area.scrollTop = area.scrollHeight;
+            try {
+                var apiUrlP = typeof AI_PROXY_URL !== 'undefined' ? AI_PROXY_URL : '';
+                var respP = await fetch(apiUrlP, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(requestBody) });
+                var ldP = document.getElementById('tutorAILoading'); if (ldP) ldP.remove();
+                if (respP.ok) {
+                    var dataP = await respP.json();
+                    var replyP = (dataP.candidates && dataP.candidates[0] && dataP.candidates[0].content && dataP.candidates[0].content.parts && dataP.candidates[0].content.parts[0]) ? dataP.candidates[0].content.parts[0].text : (isES ? 'Sin respuesta' : 'No response');
+                    tab._tutorHistory.push({role: 'model', parts: [{text: replyP}]});
+                    var fmtP = replyP.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+                    var _tidP = 'aiMsg_tutor_' + Date.now();
+                    area.insertAdjacentHTML('beforeend','<div class="tutorAIReply" style="margin-bottom:8px;"><div id="' + _tidP + '" class="tutor-ai-bubble" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(102,126,234,0.08);border:1px solid rgba(102,126,234,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.55;cursor:pointer;" title="' + (isES ? 'Doble click para leer desde aquí' : 'Double click to read from here') + '"><p>' + fmtP + '</p></div></div>');
+                    setTimeout(function() { var lr = area.querySelector('.tutorAIReply:last-child'); if (lr) lr.scrollIntoView({behavior:'smooth',block:'start'}); }, 50);
+                    if (tab._tutorVoiceConvo && typeof readAloud === 'function') {
+                        var lrEl = area.querySelector('.tutorAIReply:last-child');
+                        if (lrEl) readAloud(lrEl, function() { if (tab._tutorVoiceConvo) setTimeout(function() { startGenericVoice('tutorInput','sendTutorAIMsg()','tutorVoiceBtn'); }, 500); });
+                    }
+                } else {
+                    area.insertAdjacentHTML('beforeend','<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ Error</div></div>');
+                }
+            } catch(ep) {
+                var ldP2 = document.getElementById('tutorAILoading'); if (ldP2) ldP2.remove();
+                area.insertAdjacentHTML('beforeend','<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ ' + (ep.message || 'Error') + '</div></div>');
+            }
         }
+
         tab._tutorTyping = false;
-        // Smooth scroll to bottom after response
         setTimeout(function() { area.scrollTop = area.scrollHeight; }, 100);
-        // Persist chat to localStorage
-        try { _tutorPersistChat(tab._tutorHistory, area.innerHTML); } catch(e) {}
+        try { _tutorPersistChat(tab._tutorHistory, area.innerHTML); } catch(ep2) {}
     };
 
     // Voice conversation toggle for tutor
@@ -27358,6 +27530,9 @@ function goToCurrentCycle() {
             '<button onclick="openCourseModule(' + modIdx + ')" style="padding:12px 20px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:10px;color:#c9a840;font-size:0.85em;font-weight:600;cursor:pointer;">← ' + (isES ? 'Volver al módulo' : 'Back to module') + '</button>' +
             '</div></div>';
     };
+
+    // v641: Expose CURRICULUM globally so _gatherQuizQuestions() can access course lessons
+    window.CURRICULUM = CURRICULUM;
 
 })();
 
@@ -28629,12 +28804,18 @@ function getLunarPhaseEnrichment(phaseDate) {
 // ═══════════════════════════════════════════════════════
 
 function _getDailyQuizPrefs() {
-    return JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":false,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
+    return JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":true,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
 }
 function _saveDailyQuizPrefs(p) { localStorage.setItem('dailyQuizPrefs', JSON.stringify(p)); }
 
 function toggleDailyQuiz(enabled) {
     var p = _getDailyQuizPrefs(); p.enabled = enabled; _saveDailyQuizPrefs(p);
+    // v641: track explicit user choice so migration doesn't override it
+    if (!enabled) {
+        localStorage.setItem('dailyQuiz_explicitlyDisabled', 'true');
+    } else {
+        localStorage.removeItem('dailyQuiz_explicitlyDisabled');
+    }
 }
 function updateDailyQuizPref(key, val) {
     var p = _getDailyQuizPrefs(); p[key] = val;
@@ -28788,7 +28969,7 @@ function launchDailyQuiz() {
         modal = document.createElement('div');
         modal.id = 'dailyQuizModal';
         modal.className = 'modal';
-        modal.style.zIndex = '1300';
+        modal.style.zIndex = '10003'; // v641: must be above preferencesModal (10002)
         modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
         modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
         document.body.appendChild(modal);
@@ -28941,10 +29122,10 @@ function checkDailyQuizNotification() {
         var h = parseInt(parts[0]), m = parseInt(parts[1] || 0);
         var quizKey = 'dailyQuiz_sent_' + todayKey + '_' + idx;
 
-        // Check if within 2-minute window of scheduled time
+        // v641: widened to ±5 min window (was ±1) so 30s polling never misses the slot
         var nowMins = now.getHours() * 60 + now.getMinutes();
         var targetMins = h * 60 + m;
-        if (Math.abs(nowMins - targetMins) <= 1 && !localStorage.getItem(quizKey)) {
+        if (Math.abs(nowMins - targetMins) <= 5 && !localStorage.getItem(quizKey)) {
             localStorage.setItem(quizKey, 'true');
             var L = currentLang === 'es';
             // Send notification
@@ -29791,6 +29972,21 @@ function checkLunarPhaseStart(date) {
 // Check notifications every 15 seconds for better precision on event reminders
 setInterval(checkNotifications, 15 * 1000);
 
+// v641: One-time migration — enable quiz for users who had the old default:false
+// Only resets if user never explicitly disabled it themselves
+(function() {
+    var saved = localStorage.getItem('dailyQuizPrefs');
+    if (!saved) return; // No saved prefs → default true kicks in
+    try {
+        var p = JSON.parse(saved);
+        if (p.enabled === false && !localStorage.getItem('dailyQuiz_explicitlyDisabled')) {
+            p.enabled = true;
+            localStorage.setItem('dailyQuizPrefs', JSON.stringify(p));
+            console.log('v641: Daily quiz enabled by migration');
+        }
+    } catch(e) {}
+})();
+
 // Daily quiz check (every 30 seconds)
 setInterval(checkDailyQuizNotification, 30 * 1000);
 setTimeout(checkDailyQuizNotification, 5000);
@@ -30492,7 +30688,7 @@ function openPreferencesModal() {
     sectionsHtml += _sectionHeader('🎓', currentLang==='es'?'Aprendizaje':'Learning');
 
     // ── Quiz Diario / Daily Quiz ──
-    var _dqPrefs = JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":false,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
+    var _dqPrefs = JSON.parse(localStorage.getItem('dailyQuizPrefs') || '{"enabled":true,"timesPerDay":1,"questionsPerQuiz":5,"daysPerWeek":7,"hours":["09:00"],"newConcepts":false,"newConceptsPerDay":2}');
     var _dqTimesHtml = '';
     for (var _dqi = 0; _dqi < (_dqPrefs.hours||['09:00']).length; _dqi++) {
         _dqTimesHtml += buildTimePicker('dqHour_' + _dqi, (_dqPrefs.hours[_dqi]||'09:00'), "updateDailyQuizTime(" + _dqi + ",document.getElementById('dqHour_" + _dqi + "').value)");
@@ -35711,7 +35907,7 @@ DOMTokenList.prototype.add = function() {
     <div class="ai-chat-input-bar" style="flex-direction:column;gap:6px;">
         <div style="display:flex;gap:8px;align-items:flex-end;width:100%;">
             <textarea id="aiChatInput" rows="1" placeholder="Escribe aquí..." data-i18n-ph="typeHere" style="text-align:center;" oninput="this.style.textAlign=this.value?'left':'center';this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';" onfocus="if(!this.value)this.style.textAlign='left';" onblur="if(!this.value)this.style.textAlign='center';" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}"></textarea>
-            <button onclick="sendAIMessage()">➤</button>
+            <button id="aiSendBtn" onclick="sendAIMessage()">➤</button>
         </div>
         <div style="display:flex;justify-content:center;align-items:center;gap:8px;">
             <button id="aiVoiceBtn" onclick="toggleAIChatVoice()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:1em;cursor:pointer;flex-shrink:0;" title="Voice input">🎙️</button>
@@ -35743,6 +35939,7 @@ function saveAIChatState() {
     } catch(e) { /* storage full, ignore */ }
 }
 let aiIsTyping = false;
+let _aiAbortCtrl = null; // v643: streaming abort controller
 let aiTTSEnabled = false;
 let aiVoiceRecognition = null;
 let aiVoiceIsListening = false;
@@ -36058,8 +36255,26 @@ window._ttsHighlightChunk = function(idx) {
         var cur = document.getElementById(p.spanIds[idx]);
         if (cur) {
             cur.classList.add('tts-active');
-            // Scroll the highlighted span into view smoothly
-            cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // v643: Scroll within the nearest scrollable container (chat areas have overflow-y:auto)
+            try {
+                var scrollEl = cur.parentElement;
+                while (scrollEl && scrollEl !== document.body) {
+                    var style = window.getComputedStyle(scrollEl);
+                    if (style.overflowY === 'auto' || style.overflowY === 'scroll' || scrollEl.id === 'tutorAIChatArea' || scrollEl.id === 'aiChatMessages' || scrollEl.id === 'hoyInterpMessages') break;
+                    scrollEl = scrollEl.parentElement;
+                }
+                if (scrollEl && scrollEl !== document.body) {
+                    var curRect = cur.getBoundingClientRect();
+                    var contRect = scrollEl.getBoundingClientRect();
+                    var relTop = curRect.top - contRect.top + scrollEl.scrollTop;
+                    var targetScroll = relTop - (scrollEl.clientHeight / 2) + (curRect.height / 2);
+                    scrollEl.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+                } else {
+                    cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } catch(se) {
+                cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     }
 };
@@ -36840,8 +37055,12 @@ function interpretarHoyCompleto() {
 }
 
 function closeHoyInterp() {
-    // Legacy: close natalDetailModal (hoyInterpModal migrated)
-    document.getElementById('natalDetailModal').classList.remove('show');
+    // v643: close hoyInterpModal (was natalDetailModal)
+    var hm = document.getElementById('hoyInterpModal');
+    if (hm) hm.classList.remove('show');
+    // Also close natalDetailModal for backwards compat
+    var nm = document.getElementById('natalDetailModal');
+    if (nm) nm.classList.remove('show');
 }
 
 function addHoyInterpMessage(role, html, scrollToBottom) {
@@ -38309,8 +38528,89 @@ function removeTypingIndicator() {
     if (el) el.remove();
 }
 
+// v643: Process AI action tags in reply text (events/diary creation)
+function _processAIActionTags(reply) {
+    var actionsExecuted = [];
+    var eventRegex = /\[CREATE_EVENT\|([^|]+)\|([^|]+)(?:\|([^|]*))?(?:\|([^|]*))?(?:\|([^\]]*))?\]/g;
+    var diaryRegex = /\[CREATE_DIARY\|([^|]+)\|([^\]]+)\]/g;
+    var match;
+    while ((match = eventRegex.exec(reply)) !== null) {
+        try {
+            var evDate = match[1].trim(); var evTitle = match[2].trim();
+            var evTime = (match[3] || '').trim(); var evType = (match[4] || 'otro').trim(); var evDesc = (match[5] || '').trim();
+            if (!events[evDate]) events[evDate] = [];
+            events[evDate].push({ title: evTitle, type: evType, time: evTime, description: evDesc, created: new Date().toISOString() });
+            saveEvents();
+            actionsExecuted.push((currentLang === 'es' ? '✅ Evento creado: ' : '✅ Event created: ') + evTitle + ' (' + evDate + ')');
+        } catch(ae) { console.warn('AI create event error:', ae); }
+    }
+    while ((match = diaryRegex.exec(reply)) !== null) {
+        try {
+            var diDate = match[1].trim(); var diText = match[2].trim();
+            var existingDiary = localStorage.getItem('diary_' + diDate) || '';
+            localStorage.setItem('diary_' + diDate, existingDiary + (existingDiary ? '\n\n' : '') + '✨ ' + diText);
+            if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
+            actionsExecuted.push((currentLang === 'es' ? '✅ Nota de diario creada: ' : '✅ Diary note created: ') + diDate);
+        } catch(ae) { console.warn('AI create diary error:', ae); }
+    }
+    var cleanReply = reply.replace(/\[CREATE_EVENT\|[^\]]+\]/g, '').replace(/\[CREATE_DIARY\|[^\]]+\]/g, '').trim();
+    if (actionsExecuted.length > 0) cleanReply += '\n\n---\n' + actionsExecuted.join('\n');
+    return cleanReply;
+}
+
+// v643: Update streaming bubble with partial or final text
+function _updateStreamBubble(elemId, wrapperDiv, rawText, isFinal) {
+    var el = document.getElementById(elemId);
+    if (!el) return;
+    var html = rawText
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+    el.innerHTML = '<p>' + html + (isFinal ? '' : '<span id="_aiStreamCursor" style="opacity:0.6;animation:blink 0.8s infinite;">▌</span>') + '</p>';
+    var container = document.getElementById('aiChatMessages');
+    if (container) container.scrollTop = container.scrollHeight;
+    if (isFinal) {
+        // Add copy/share bar + button bar
+        el.title = currentLang === 'es' ? 'Doble click para leer desde aquí' : 'Double click to read from here';
+        el.style.cursor = 'pointer';
+        el.addEventListener('dblclick', function(e) {
+            e.stopPropagation();
+            var sel = window.getSelection();
+            var clickedText = '';
+            if (sel && sel.anchorNode) {
+                var node = sel.anchorNode;
+                while (node && node !== el && node.nodeType !== 1) node = node.parentNode;
+                clickedText = (sel.anchorNode.textContent || '').trim();
+            }
+            if (clickedText && clickedText.length > 3) window.readAloud(el.id, clickedText);
+            else window.readAloud(el.id);
+        });
+        var rawText2 = rawText;
+        var btnBar = document.createElement('div');
+        btnBar.style.cssText = 'display:flex;gap:6px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap;';
+        var copyBtn = document.createElement('button');
+        copyBtn.innerHTML = '📋 ' + (currentLang === 'es' ? 'Copiar' : 'Copy');
+        copyBtn.style.cssText = 'padding:4px 10px;font-size:0.72em;background:rgba(102,126,234,0.2);border:1px solid rgba(102,126,234,0.35);border-radius:6px;color:#c4b5fd;cursor:pointer;font-weight:600;';
+        copyBtn.onclick = function() { navigator.clipboard.writeText(rawText2).then(function() { copyBtn.innerHTML = '✅ ' + (currentLang === 'es' ? 'Copiado' : 'Copied'); setTimeout(function() { copyBtn.innerHTML = '📋 ' + (currentLang === 'es' ? 'Copiar' : 'Copy'); }, 2000); }); };
+        btnBar.appendChild(copyBtn);
+        if (navigator.share) {
+            var shareBtn = document.createElement('button');
+            shareBtn.innerHTML = '📤 ' + (currentLang === 'es' ? 'Compartir' : 'Share');
+            shareBtn.style.cssText = 'padding:4px 10px;font-size:0.72em;background:rgba(78,205,196,0.2);border:1px solid rgba(78,205,196,0.35);border-radius:6px;color:#7dd3c8;cursor:pointer;font-weight:600;';
+            shareBtn.onclick = function() { navigator.share({ title: 'AstroAtlas', text: rawText2 }).catch(function(){}); };
+            btnBar.appendChild(shareBtn);
+        }
+        wrapperDiv.appendChild(btnBar);
+    }
+}
+
 async function sendAIMessage() {
-    if (aiIsTyping) return;
+    // v643: if streaming in progress, abort it
+    if (aiIsTyping) {
+        if (_aiAbortCtrl) { _aiAbortCtrl.abort(); }
+        return;
+    }
     const input = document.getElementById('aiChatInput');
     const text = input.value.trim();
     if (!text) return;
@@ -38320,11 +38620,8 @@ async function sendAIMessage() {
         return;
     }
 
-    // Hide quick action buttons
     var qa = document.getElementById('aiQuickActions');
     if (qa) qa.style.display = 'none';
-
-    // Clear welcome message on first real message
     if (aiChatHistory.length === 0) {
         const container = document.getElementById('aiChatMessages');
         container.innerHTML = '';
@@ -38333,128 +38630,160 @@ async function sendAIMessage() {
     input.value = '';
     input.style.height = 'auto';
 
-    // Add user message
     addAIMessage('user', text);
     aiChatHistory.push({role: 'user', parts: [{text: text}]});
     saveAIChatState();
 
-    // Show typing
     aiIsTyping = true;
-    showTypingIndicator();
 
-    try {
-        const systemPrompt = buildSystemPrompt();
-        const requestBody = {
-            system_instruction: {parts: [{text: systemPrompt}]},
-            contents: aiChatHistory,
-            generationConfig: {
-                temperature: 0.8,
-                maxOutputTokens: 8192
-            }
-        };
+    const systemPrompt = buildSystemPrompt();
+    const requestBody = {
+        system_instruction: {parts: [{text: systemPrompt}]},
+        contents: aiChatHistory,
+        generationConfig: { temperature: 0.8, maxOutputTokens: 8192 }
+    };
 
-        // Priority: personal key (direct) > proxy (Cloudflare Worker)
-        let apiUrl;
-        const personalKey = getGeminiKey();
-        if (personalKey) {
-            apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + personalKey;
-        } else {
-            apiUrl = AI_PROXY_URL;
-        }
+    const personalKey = getGeminiKey();
+    const sendBtn = document.getElementById('aiSendBtn');
 
-        // Retry logic for rate limits (up to 5 retries with progressive delays)
-        let response;
-        let retries = 0;
-        const maxRetries = 5;
-        while (retries <= maxRetries) {
-            response = await fetch(apiUrl, {
+    if (personalKey) {
+        // ── v643 STREAMING MODE (personal API key) ──
+        if (sendBtn) sendBtn.innerHTML = '⏹';
+        _aiAbortCtrl = new AbortController();
+        const container = document.getElementById('aiChatMessages');
+
+        // Create streaming message bubble
+        const streamWrapper = document.createElement('div');
+        streamWrapper.className = 'ai-msg assistant';
+        const _streamId = 'aiMsg_' + Date.now();
+        streamWrapper.innerHTML = '<div id="' + _streamId + '"><p><span style="opacity:0.6;animation:blink 0.8s infinite;">▌</span></p></div>';
+        container.appendChild(streamWrapper);
+        container.scrollTop = container.scrollHeight;
+
+        let fullText = '';
+        try {
+            const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=' + personalKey;
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify(requestBody),
+                signal: _aiAbortCtrl.signal
             });
-            if (response.status === 429 && retries < maxRetries) {
-                retries++;
-                var waitSec = Math.min(3 * retries, 15);
-                removeTypingIndicator();
-                addAIMessage('system', currentLang === 'es' ? '⏳ Reintentando en ' + waitSec + 's... (' + retries + '/' + maxRetries + ')' : '⏳ Retrying in ' + waitSec + 's... (' + retries + '/' + maxRetries + ')');
-                await new Promise(r => setTimeout(r, waitSec * 1000));
-                showTypingIndicator();
-                continue;
-            }
-            break;
-        }
 
-        removeTypingIndicator();
-
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            const errMsg = err.error?.message || ('Error ' + response.status);
-            if (response.status === 429) {
-                addAIMessage('error', currentLang === 'es' ? '⏳ Demasiadas consultas. Espera 10 segundos e intenta de nuevo.' : '⏳ Too many requests. Wait 10 seconds and try again.');
-            } else if (response.status === 400 && errMsg.includes('API key')) {
-                if (personalKey) {
-                    addAIMessage('error', currentLang === 'es' ? '🔑 API key inválida. Ve a ⚙️ Preferencias para cambiarla.' : '🔑 Invalid API key. Go to ⚙️ Preferences to change it.');
+            if (!response.ok) {
+                const err = await response.json().catch(function() { return {}; });
+                const errMsg = (err.error && err.error.message) || ('Error ' + response.status);
+                streamWrapper.remove();
+                if (response.status === 429) {
+                    addAIMessage('error', currentLang === 'es' ? '⏳ Demasiadas consultas. Espera 10 segundos e intenta de nuevo.' : '⏳ Too many requests. Wait 10 seconds and try again.');
                 } else {
-                    addAIMessage('error', currentLang === 'es' ? '⚠️ El servicio tiene un problema temporal. Intenta de nuevo más tarde.' : '⚠️ Service has a temporary issue. Try again later.');
+                    addAIMessage('error', '❌ ' + errMsg);
+                }
+                aiChatHistory.pop(); saveAIChatState();
+            } else {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buf = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buf += decoder.decode(value, {stream: true});
+                    const lines = buf.split('\n');
+                    buf = lines.pop() || '';
+                    for (var li = 0; li < lines.length; li++) {
+                        var line = lines[li];
+                        if (!line.startsWith('data: ')) continue;
+                        var j = line.slice(6).trim();
+                        if (!j || j === '[DONE]') continue;
+                        try {
+                            var d = JSON.parse(j);
+                            var chunk = (d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts && d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) || '';
+                            if (chunk) {
+                                fullText += chunk;
+                                _updateStreamBubble(_streamId, streamWrapper, fullText, false);
+                            }
+                        } catch(pe) {}
+                    }
+                }
+                // Finalize
+                var cleanReply = _processAIActionTags(fullText);
+                _updateStreamBubble(_streamId, streamWrapper, cleanReply, true);
+                aiChatHistory.push({role: 'model', parts: [{text: fullText}]});
+                saveAIChatState();
+                speakText(cleanReply);
+            }
+        } catch(err) {
+            if (err.name === 'AbortError') {
+                // User stopped — keep accumulated text
+                if (fullText) {
+                    var cleanStopped = _processAIActionTags(fullText);
+                    _updateStreamBubble(_streamId, streamWrapper, cleanStopped + (currentLang === 'es' ? '\n\n[Detenido]' : '\n\n[Stopped]'), true);
+                    aiChatHistory.push({role: 'model', parts: [{text: fullText}]});
+                    saveAIChatState();
+                } else {
+                    streamWrapper.remove();
+                    aiChatHistory.pop(); saveAIChatState();
                 }
             } else {
-                addAIMessage('error', '❌ ' + errMsg);
+                streamWrapper.remove();
+                addAIMessage('error', '❌ ' + (currentLang === 'es' ? 'Error de conexión: ' : 'Connection error: ') + err.message);
+                aiChatHistory.pop(); saveAIChatState();
             }
-            aiChatHistory.pop();
+        }
+
+        _aiAbortCtrl = null;
+        if (sendBtn) sendBtn.innerHTML = '➤';
+
+    } else {
+        // ── NON-STREAMING MODE (proxy or no key) ──
+        showTypingIndicator();
+        try {
+            const apiUrl = AI_PROXY_URL;
+            let response;
+            let retries = 0;
+            const maxRetries = 5;
+            while (retries <= maxRetries) {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(requestBody)
+                });
+                if (response.status === 429 && retries < maxRetries) {
+                    retries++;
+                    var waitSec = Math.min(3 * retries, 15);
+                    removeTypingIndicator();
+                    addAIMessage('system', currentLang === 'es' ? '⏳ Reintentando en ' + waitSec + 's... (' + retries + '/' + maxRetries + ')' : '⏳ Retrying in ' + waitSec + 's... (' + retries + '/' + maxRetries + ')');
+                    await new Promise(function(r) { setTimeout(r, waitSec * 1000); });
+                    showTypingIndicator();
+                    continue;
+                }
+                break;
+            }
+            removeTypingIndicator();
+            if (!response.ok) {
+                const err = await response.json().catch(function() { return {}; });
+                const errMsg = (err.error && err.error.message) || ('Error ' + response.status);
+                if (response.status === 429) {
+                    addAIMessage('error', currentLang === 'es' ? '⏳ Demasiadas consultas. Espera 10 segundos e intenta de nuevo.' : '⏳ Too many requests. Wait 10 seconds and try again.');
+                } else {
+                    addAIMessage('error', '❌ ' + errMsg);
+                }
+                aiChatHistory.pop(); saveAIChatState();
+                aiIsTyping = false;
+                return;
+            }
+            const data = await response.json();
+            let reply = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
+            var cleanReply = _processAIActionTags(reply);
+            addAIMessage('assistant', cleanReply);
+            aiChatHistory.push({role: 'model', parts: [{text: reply}]});
             saveAIChatState();
-            aiIsTyping = false;
-            return;
+            speakText(cleanReply);
+        } catch(err) {
+            removeTypingIndicator();
+            addAIMessage('error', '❌ ' + (currentLang === 'es' ? 'Error de conexión: ' : 'Connection error: ') + err.message);
+            aiChatHistory.pop(); saveAIChatState();
         }
-
-        const data = await response.json();
-        let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || (currentLang === 'es' ? 'Sin respuesta' : 'No response');
-
-        // Parse and execute AI actions (create events/diary)
-        var actionsExecuted = [];
-        var eventRegex = /\[CREATE_EVENT\|([^|]+)\|([^|]+)(?:\|([^|]*))?(?:\|([^|]*))?(?:\|([^\]]*))?\]/g;
-        var diaryRegex = /\[CREATE_DIARY\|([^|]+)\|([^\]]+)\]/g;
-        var match;
-        while ((match = eventRegex.exec(reply)) !== null) {
-            try {
-                var evDate = match[1].trim();
-                var evTitle = match[2].trim();
-                var evTime = (match[3] || '').trim();
-                var evType = (match[4] || 'otro').trim();
-                var evDesc = (match[5] || '').trim();
-                var evKey = evDate;
-                if (!events[evKey]) events[evKey] = [];
-                events[evKey].push({ title: evTitle, type: evType, time: evTime, description: evDesc, created: new Date().toISOString() });
-                saveEvents();
-                actionsExecuted.push((currentLang === 'es' ? '✅ Evento creado: ' : '✅ Event created: ') + evTitle + ' (' + evDate + ')');
-            } catch(ae) { console.warn('AI create event error:', ae); }
-        }
-        while ((match = diaryRegex.exec(reply)) !== null) {
-            try {
-                var diDate = match[1].trim();
-                var diText = match[2].trim();
-                var existingDiary = localStorage.getItem('diary_' + diDate) || '';
-                localStorage.setItem('diary_' + diDate, existingDiary + (existingDiary ? '\n\n' : '') + '✨ ' + diText);
-                if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
-                actionsExecuted.push((currentLang === 'es' ? '✅ Nota de diario creada: ' : '✅ Diary note created: ') + diDate);
-            } catch(ae) { console.warn('AI create diary error:', ae); }
-        }
-        // Remove action tags from displayed message
-        var cleanReply = reply.replace(/\[CREATE_EVENT\|[^\]]+\]/g, '').replace(/\[CREATE_DIARY\|[^\]]+\]/g, '').trim();
-        if (actionsExecuted.length > 0) {
-            cleanReply += '\n\n---\n' + actionsExecuted.join('\n');
-        }
-
-        addAIMessage('assistant', cleanReply);
-        aiChatHistory.push({role: 'model', parts: [{text: reply}]});
-        saveAIChatState();
-        // Speak the response if TTS is enabled
-        speakText(cleanReply);
-
-    } catch(err) {
-        removeTypingIndicator();
-        addAIMessage('error', '❌ ' + (currentLang === 'es' ? 'Error de conexión: ' : 'Connection error: ') + err.message);
-        aiChatHistory.pop();
-        saveAIChatState();
     }
 
     aiIsTyping = false;
