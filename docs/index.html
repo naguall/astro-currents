@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v654';</script>
+    <script>window.APP_VERSION = 'v655';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -29181,10 +29181,10 @@ function checkDailyQuizNotification() {
         // v651: key includes actual time (not slot index) so changing the time creates a fresh key
         var quizKey = 'dailyQuiz_sent_' + todayKey + '_' + hStr.replace(':', '_');
 
-        // v641: widened to ±5 min window (was ±1) so 30s polling never misses the slot
+        // v654: window is 0 to +5 min AFTER scheduled time (not ±5 — that fired too early)
         var nowMins = now.getHours() * 60 + now.getMinutes();
         var targetMins = h * 60 + m;
-        if (Math.abs(nowMins - targetMins) <= 5 && !localStorage.getItem(quizKey)) {
+        if (nowMins >= targetMins && nowMins - targetMins <= 5 && !localStorage.getItem(quizKey)) {
             localStorage.setItem(quizKey, 'true');
             var L = currentLang === 'es';
             // Send notification
