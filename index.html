@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v652';</script>
+    <script>window.APP_VERSION = 'v653';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28931,7 +28931,13 @@ function _gatherNewConcepts(count) {
 }
 
 // Launch the quiz modal
-function launchDailyQuiz() {
+function launchDailyQuiz() { try { _launchDailyQuizInner(); } catch(err) {
+    var et = document.createElement('div');
+    et.style.cssText = 'position:fixed;top:60px;left:10px;right:10px;background:rgba(200,0,0,0.97);color:#fff;padding:14px;border-radius:12px;z-index:99999;font-size:12px;word-break:break-all;';
+    et.textContent = '❌ Quiz error: ' + (err && err.message ? err.message : String(err));
+    document.body.appendChild(et); setTimeout(function(){ et.remove(); }, 10000);
+} }
+function _launchDailyQuizInner() {
     var L = currentLang === 'es';
     var prefs = _getDailyQuizPrefs();
     var questions = _gatherQuizQuestions(prefs.questionsPerQuiz || 5);
@@ -29027,7 +29033,7 @@ function launchDailyQuiz() {
 
     // Log quiz launch
     localStorage.setItem('dailyQuiz_lastLaunch', new Date().toISOString());
-}
+} // end _launchDailyQuizInner
 // v646: Expose explicitly so onclick="launchDailyQuiz()" always works from any modal
 window.launchDailyQuiz = launchDailyQuiz;
 
@@ -30822,7 +30828,7 @@ function openPreferencesModal() {
                 '<option value="3"' + (_dqPrefs.newConceptsPerDay===3?' selected':'') + '>3</option>' +
                 '<option value="5"' + (_dqPrefs.newConceptsPerDay===5?' selected':'') + '>5</option>' +
             '</select></div>' : '') +
-        '<button onclick="this.disabled=true;this.textContent=\'⏳ Abriendo...\';closePreferencesModal();setTimeout(function(){launchDailyQuiz();},350);" style="width:100%;margin-top:8px;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,149,0,0.15));border:1px solid rgba(255,215,0,0.5);border-radius:10px;color:#ffd700;font-size:0.88em;font-weight:700;cursor:pointer;">🧠 ' + (currentLang==='es'?'Iniciar Quiz Ahora':'Start Quiz Now') + '</button>'
+        '<button onclick="this.disabled=true;launchDailyQuiz();" style="width:100%;margin-top:8px;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,149,0,0.15));border:1px solid rgba(255,215,0,0.5);border-radius:10px;color:#ffd700;font-size:0.88em;font-weight:700;cursor:pointer;">🧠 ' + (currentLang==='es'?'Iniciar Quiz Ahora':'Start Quiz Now') + '</button>'
     );
 
     // ── Tutorial de AstroAtlas ──
