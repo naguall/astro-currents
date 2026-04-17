@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v648';</script>
+    <script>window.APP_VERSION = 'v649';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28927,7 +28927,7 @@ function launchDailyQuiz() {
         return;
     }
 
-    // Close preferences if open
+    // Close preferences if still open (fallback — button already closes it 350ms before calling this)
     var prefModal = document.getElementById('preferencesModal');
     if (prefModal) prefModal.classList.remove('show');
 
@@ -28999,16 +28999,13 @@ function launchDailyQuiz() {
         modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
     }
     document.getElementById('dailyQuizModalContent').innerHTML = html;
-    // v646: Clear any stale onclick before showing (prevents click-through on Android)
+    // v649: Clear any stale onclick, stamp open time (watchdog guard), then show
     modal.onclick = null;
-    modal.classList.add('show');
-    // v648: Stamp open time so global watchdog won't close this modal for 600ms
     modal.dataset.openedAt = String(Date.now());
-    // v646: Delay backdrop-close handler so Android touch-events can't immediately close the modal
-    // (click-through bug: tapping "Iniciar Quiz" fires a second ghost click on the newly-opened backdrop)
-    setTimeout(function() {
-        modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
-    }, 600);
+    modal.classList.add('show');
+    // v649: Register backdrop-close immediately — button delays 350ms before calling this,
+    // so any Android ghost click has already fired and cleared before we get here
+    modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
 
     // Log quiz launch
     localStorage.setItem('dailyQuiz_lastLaunch', new Date().toISOString());
@@ -30806,7 +30803,7 @@ function openPreferencesModal() {
                 '<option value="3"' + (_dqPrefs.newConceptsPerDay===3?' selected':'') + '>3</option>' +
                 '<option value="5"' + (_dqPrefs.newConceptsPerDay===5?' selected':'') + '>5</option>' +
             '</select></div>' : '') +
-        '<button onclick="launchDailyQuiz()" style="width:100%;margin-top:8px;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,149,0,0.15));border:1px solid rgba(255,215,0,0.5);border-radius:10px;color:#ffd700;font-size:0.88em;font-weight:700;cursor:pointer;">🧠 ' + (currentLang==='es'?'Iniciar Quiz Ahora':'Start Quiz Now') + '</button>'
+        '<button onclick="this.disabled=true;this.textContent=\'⏳ Abriendo...\';closePreferencesModal();setTimeout(function(){launchDailyQuiz();},350);" style="width:100%;margin-top:8px;padding:12px;background:linear-gradient(135deg,rgba(255,215,0,0.25),rgba(255,149,0,0.15));border:1px solid rgba(255,215,0,0.5);border-radius:10px;color:#ffd700;font-size:0.88em;font-weight:700;cursor:pointer;">🧠 ' + (currentLang==='es'?'Iniciar Quiz Ahora':'Start Quiz Now') + '</button>'
     );
 
     // ── Tutorial de AstroAtlas ──
