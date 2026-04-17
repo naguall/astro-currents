@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v647';</script>
+    <script>window.APP_VERSION = 'v648';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -29002,11 +29002,13 @@ function launchDailyQuiz() {
     // v646: Clear any stale onclick before showing (prevents click-through on Android)
     modal.onclick = null;
     modal.classList.add('show');
+    // v648: Stamp open time so global watchdog won't close this modal for 600ms
+    modal.dataset.openedAt = String(Date.now());
     // v646: Delay backdrop-close handler so Android touch-events can't immediately close the modal
     // (click-through bug: tapping "Iniciar Quiz" fires a second ghost click on the newly-opened backdrop)
     setTimeout(function() {
         modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); };
-    }, 400);
+    }, 600);
 
     // Log quiz launch
     localStorage.setItem('dailyQuiz_lastLaunch', new Date().toISOString());
@@ -30032,7 +30034,7 @@ document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {
         console.log('🔔 App returned to foreground — checking notifications');
         setTimeout(checkNotifications, 500);
-        // v646: Missed quiz recovery — if quiz was scheduled in the past 2h and not yet launched today, show it now
+        // v648: Missed quiz recovery — if quiz was scheduled today and not yet launched, show it now (no time cap)
         setTimeout(function() {
             var prefs = _getDailyQuizPrefs();
             if (!prefs.enabled) return;
@@ -30046,11 +30048,11 @@ document.addEventListener('visibilitychange', function() {
             var missed = hours.some(function(hStr) {
                 var parts = hStr.split(':');
                 var targetMins = parseInt(parts[0]) * 60 + parseInt(parts[1] || 0);
-                // Quiz was scheduled in the past 2 hours
-                return nowMins >= targetMins && (nowMins - targetMins) <= 120;
+                // v648: Launch anytime today after scheduled time — removed 2-hour cap
+                return nowMins >= targetMins;
             });
             if (missed) {
-                console.log('v646: Launching missed quiz after returning to foreground');
+                console.log('v648: Launching missed quiz after returning to foreground');
                 launchDailyQuiz();
             }
         }, 1500);
@@ -30074,8 +30076,13 @@ window.handleDayClick = handleDayClick;
         // Only run if the click target is NOT inside a modal or TTS player
         if (e.target.closest && (e.target.closest('.modal') || e.target.closest('#ttsPlayerBar') || e.target.closest('#ttsSelBtn'))) return;
         // Check for stuck modals that might be blocking
+        var now = Date.now();
         var stuckModals = document.querySelectorAll('.modal.show');
         stuckModals.forEach(function(m) {
+            // v648: Don't close a modal that was opened less than 600ms ago
+            // (protects against Android ghost-click closing a freshly-opened quiz modal)
+            var openedAt = m.dataset.openedAt ? parseInt(m.dataset.openedAt) : 0;
+            if (now - openedAt < 600) return;
             // If a modal is .show but the user managed to click outside it,
             // that means it's in a broken state — force close it
             console.log('Closing stuck modal:', m.id);
