@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v651';</script>
+    <script>window.APP_VERSION = 'v652';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -28849,6 +28849,21 @@ function updateDailyQuizPref(key, val) {
 }
 function updateDailyQuizTime(idx, val) {
     var p = _getDailyQuizPrefs(); if (!p.hours) p.hours = ['09:00']; p.hours[idx] = val; _saveDailyQuizPrefs(p);
+    // v652: set a precise setTimeout to fire exactly at the new scheduled time
+    _scheduleExactQuizTimer(val);
+}
+function _scheduleExactQuizTimer(hStr) {
+    var parts = hStr.split(':');
+    var h = parseInt(parts[0]), m = parseInt(parts[1] || 0);
+    var now = new Date();
+    var target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+    var msUntil = target - now;
+    if (msUntil < 0) msUntil += 24 * 60 * 60 * 1000; // next day if past
+    if (msUntil > 12 * 60 * 60 * 1000) return; // more than 12h away — skip (30s polling covers it)
+    if (window._quizExactTimer) clearTimeout(window._quizExactTimer);
+    window._quizExactTimer = setTimeout(function() {
+        checkDailyQuizNotification();
+    }, msUntil + 500); // +500ms buffer so we land inside the ±5min window
 }
 
 // Gather questions from Knowledge Graph + Course for review
@@ -28923,7 +28938,12 @@ function launchDailyQuiz() {
     var concepts = prefs.newConcepts ? _gatherNewConcepts(prefs.newConceptsPerDay || 2) : [];
 
     if (questions.length === 0 && concepts.length === 0) {
-        alert(L ? 'No hay preguntas disponibles. Completa algunas lecciones del curso primero.' : 'No questions available. Complete some course lessons first.');
+        // v652: replace alert() — Android PWA blocks alerts silently. Use visible toast instead.
+        var noQToast = document.createElement('div');
+        noQToast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(220,80,0,0.95);color:#fff;padding:14px 22px;border-radius:12px;z-index:99999;font-size:14px;text-align:center;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+        noQToast.textContent = L ? '⚠️ No hay preguntas disponibles aún. Completa algunas lecciones del curso.' : '⚠️ No questions available yet. Complete some course lessons first.';
+        document.body.appendChild(noQToast);
+        setTimeout(function(){ noQToast.remove(); }, 5000);
         return;
     }
 
@@ -28999,16 +29019,11 @@ function launchDailyQuiz() {
         modal.innerHTML = '<div class="modal-content" id="dailyQuizModalContent" style="max-width:500px;max-height:90vh;overflow-y:auto;"></div>';
     }
     document.getElementById('dailyQuizModalContent').innerHTML = html;
-    // v651: Register backdrop-close immediately but guard by openedAt timestamp.
-    // Ghost click (even at 400-500ms on Samsung) can never close it within 700ms.
+    // v652: No backdrop-close at all — ghost click can never close this modal.
+    // Quiz closes ONLY via the X button inside modal-content.
     modal.onclick = null;
     modal.dataset.openedAt = String(Date.now());
     modal.classList.add('show');
-    modal.onclick = function(e) {
-        if (e.target !== modal) return;
-        if (Date.now() - parseInt(modal.dataset.openedAt || '0') < 700) return; // ghost click guard
-        modal.classList.remove('show');
-    };
 
     // Log quiz launch
     localStorage.setItem('dailyQuiz_lastLaunch', new Date().toISOString());
