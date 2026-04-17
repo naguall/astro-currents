@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v655';</script>
+    <script>window.APP_VERSION = 'v656';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -36633,7 +36633,7 @@ window.readAloud = function(elementId, startFromText) {
     } else {
         // Fallback: fixed at bottom for non-modal contexts
         if (playerEl.parentNode !== document.body) document.body.appendChild(playerEl);
-        playerEl.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);width:92%;max-width:500px;padding:6px 8px;background:rgba(15,10,35,0.95);border:1px solid rgba(102,126,234,0.4);border-radius:12px;backdrop-filter:blur(10px);z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:block;';
+        playerEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:92%;max-width:500px;padding:6px 8px;background:rgba(15,10,35,0.95);border:1px solid rgba(102,126,234,0.4);border-radius:12px;backdrop-filter:blur(10px);z-index:10020;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:block;';
     }
 
     // Start playing from the determined index
@@ -36964,6 +36964,10 @@ function closeAIChat() {
     modal.style.height = '';
     modal.style.top = '';
     document.getElementById('aiChatFab').style.display = 'flex';
+    // v656: Stop TTS and hide player bar when AI assistant closes
+    if (window._ttsStop) window._ttsStop();
+    var ttsBar = document.getElementById('ttsPlayerBar');
+    if (ttsBar) ttsBar.style.display = 'none';
 }
 
 function clearAIChat() {
