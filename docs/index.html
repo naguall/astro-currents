@@ -9,13 +9,17 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v670';</script>
+    <script>window.APP_VERSION = 'v671';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
     (function(){
         var REQUIRED_VER = window.APP_VERSION;
         var lastVer = localStorage.getItem('app_version');
+        // v671: Anti-loop guard — sessionStorage persists across reloads in same tab/PWA session
+        // but resets on fresh open. Prevents emergency block + _checkServerVersion from
+        // reloading each other in an infinite cycle on Chrome/Android.
+        var _alreadyReloaded = sessionStorage.getItem('_reloadGuard') === REQUIRED_VER;
         if (lastVer !== REQUIRED_VER) {
             // New version detected — clear caches only (do NOT unregister SW — that causes blank-screen loops on Android)
             if (window.caches) {
@@ -34,8 +38,9 @@
                 if (k.indexOf('natalChart_') === 0) localStorage.removeItem(k);
             }
             localStorage.setItem('app_version', REQUIRED_VER);
-            // If we had an old version, reload to get fresh files (only once)
-            if (lastVer) {
+            // If we had an old version, reload ONCE to get fresh files — never twice
+            if (lastVer && !_alreadyReloaded) {
+                sessionStorage.setItem('_reloadGuard', REQUIRED_VER);
                 window.location.reload(true);
             }
         }
@@ -35698,7 +35703,7 @@ if ('serviceWorker' in navigator) {
                     var serverVer = m[1];
                     var serverN = _parseVer(serverVer);
                     var localN  = _parseVer(APP_VERSION);
-                    // Only reload if server is strictly newer
+                    // Only reload if server is strictly newer — and only once per session (anti-loop guard)
                     if (serverN > localN) {
                         console.log('🔄 Server has ' + serverVer + ' (newer), we have ' + APP_VERSION + ' — updating');
                         if (window.caches) {
@@ -35709,7 +35714,11 @@ if ('serviceWorker' in navigator) {
                         navigator.serviceWorker.getRegistration().then(function(reg) {
                             if (reg) reg.update();
                         });
-                        setTimeout(function() { window.location.reload(true); }, 1000);
+                        // v671: Only reload if we haven't already reloaded this session
+                        if (!sessionStorage.getItem('_reloadGuard')) {
+                            sessionStorage.setItem('_reloadGuard', serverVer);
+                            setTimeout(function() { window.location.reload(true); }, 1000);
+                        }
                     } else if (serverN < localN) {
                         console.log('ℹ️ Server has ' + serverVer + ' (older), we have ' + APP_VERSION + ' — no action');
                     }
