@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v662';</script>
+    <script>window.APP_VERSION = 'v663';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -3187,7 +3187,9 @@ function detectAspectPatterns(date) {
     var pNames = L ? {sun:'Sol',moon:'Luna',mercury:'Mercurio',venus:'Venus',mars:'Marte',jupiter:'Júpiter',saturn:'Saturno',uranus:'Urano',neptune:'Neptuno',pluto:'Plutón'}
                    : {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',uranus:'Uranus',neptune:'Neptune',pluto:'Pluto'};
     var pSymbols = {sun:'☉',moon:'☽',mercury:'☿',venus:'♀',mars:'♂',jupiter:'♃',saturn:'♄',uranus:'♅',neptune:'♆',pluto:'♇'};
-    var signNames = ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis'];
+    var signNames = L
+        ? ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis']
+        : ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
 
     // Get all planet positions
     var positions = {};
@@ -6013,7 +6015,7 @@ function openAspectsModal(date, lunarDay, dayData) {
         // New Moon or Full Moon
         const moonLon = getMoonPosition(date);
         const moonSign = getZodiacSignFromLongitude(moonLon);
-        const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
+        const moonSignName = moonSign ? moonSign : '';  // getZodiacSignFromLongitude returns a string directly
         if (moonEvent.type === 'new') {
             _lunarPhaseEvent = {
                 icon: '🌑',
@@ -6046,7 +6048,7 @@ function openAspectsModal(date, lunarDay, dayData) {
                 if (_qpDateStr === _checkDateStr && (_qPerfs[_qi].degree === 90 || _qPerfs[_qi].degree === 270)) {
                     const moonLon = getMoonPosition(date);
                     const moonSign = getZodiacSignFromLongitude(moonLon);
-                    const moonSignName = moonSign ? (currentLang==='es' ? moonSign.nameEs || moonSign.name : moonSign.name) : '';
+                    const moonSignName = moonSign ? moonSign : '';  // string directly
                     if (_qPerfs[_qi].degree === 90) {
                         _lunarPhaseEvent = {
                             icon: '🌓',
@@ -14710,7 +14712,7 @@ function switchToAspects2026Mode() {
     if (sc) sc.style.display = 'none';
 
     // Update title
-    document.getElementById('calendarTitle').innerHTML = currentLang === 'es' ? 'Aspectos 2026' : 'Aspects 2026';
+    document.getElementById('calendarTitle').innerHTML = (currentLang === 'es' ? 'Aspectos ' : 'Aspects ') + (window._aspYear || 2026);
 
     // Navigation
     const nav = document.querySelector('.navigation');
@@ -15607,9 +15609,24 @@ function renderAspects2026Panel() {
     if (!window._asp2026Tab) window._asp2026Tab = 'planets';
     var activeTab = window._asp2026Tab;
 
+    // Track selected year (default: 2026)
+    if (!window._aspYear) window._aspYear = 2026;
+    var activeYear = window._aspYear;
+
     let html = '<div style="padding:6px;font-size:0.8em;">';
 
-    // 4 tab buttons
+    // Year selector row (2026–2030)
+    var yearBtnStyle = function(yr) {
+        var isActive = activeYear === yr;
+        return 'padding:7px 2px;background:' + (isActive ? 'rgba(255,200,100,0.18)' : 'rgba(255,255,255,0.03)') + ';border:1px solid rgba(255,200,100,' + (isActive ? '0.7' : '0.18') + ');border-radius:8px;color:rgba(255,200,100,' + (isActive ? '1' : '0.5') + ');font-size:0.78em;font-weight:' + (isActive ? '800' : '500') + ';cursor:pointer;';
+    };
+    html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:8px;">';
+    [2026,2027,2028,2029,2030].forEach(function(yr) {
+        html += '<button onclick="window._aspYear=' + yr + ';renderAspects2026Panel()" style="' + yearBtnStyle(yr) + '">' + yr + '</button>';
+    });
+    html += '</div>';
+
+    // 5 subtab buttons
     var tabBtnStyle = function(id, color) {
         var isActive = activeTab === id;
         return 'padding:8px 4px;background:' + (isActive ? 'rgba(' + color + ',0.2)' : 'rgba(255,255,255,0.03)') + ';border:1px solid rgba(' + color + ',' + (isActive ? '0.6' : '0.2') + ');border-radius:10px;color:rgba(' + color + ',' + (isActive ? '1' : '0.6') + ');font-size:0.78em;font-weight:' + (isActive ? '700' : '500') + ';cursor:pointer;';
@@ -15624,7 +15641,7 @@ function renderAspects2026Panel() {
 
     // If Signs tab, render signs view instead of planets
     if (activeTab === 'signs') {
-        html += _renderSigns2026View(es);
+        html += _renderSigns2026View(es, activeYear);
         html += '</div>';
         panel.innerHTML = html;
         return;
@@ -15658,7 +15675,7 @@ function renderAspects2026Panel() {
     planetOrder.forEach((pName, idx) => {
         const p = planetInfo[pName];
         if (!p) return;
-        const aspects = getAllAspectsForPlanet(pName);
+        const aspects = getAllAspectsForPlanet(pName, activeYear);
         const aspectCount = aspects.length;
 
         // Count types
@@ -16198,7 +16215,40 @@ function updateCurrentDayInfoForMode(mode) {
         const todayAstroEvent = isAstronomicalEvent(today);
         const todayStellium = getStellium(today);
 
+        // Moon phase event (Luna Nueva, Llena, Quarters) — show in all modes
+        var _todayMoonEv = getMoonEventForDate(today);
+        var _todayLunarPhaseEvent = null;
+        if (_todayMoonEv) {
+            var _tMoonLon = getMoonPosition(today);
+            var _tMoonSign = getZodiacSignFromLongitude(_tMoonLon);
+            var _tMoonSignName = _tMoonSign ? _tMoonSign : '';
+            if (_todayMoonEv.type === 'new') {
+                _todayLunarPhaseEvent = { icon: '🌑', name: currentLang==='es' ? 'Luna Nueva' : 'New Moon', sign: _tMoonSignName, color: '#a8b2d1' };
+            } else if (_todayMoonEv.type === 'full') {
+                _todayLunarPhaseEvent = { icon: '🌕', name: currentLang==='es' ? 'Luna Llena' : 'Full Moon', sign: _tMoonSignName, color: '#FFD700' };
+            }
+        } else {
+            // Check quarters
+            var _tqScanStart = new Date(today); _tqScanStart.setDate(_tqScanStart.getDate() - 15);
+            var _tqPerfs = findLunarPerfections(_tqScanStart);
+            var _todayStr2 = today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate();
+            if (_tqPerfs) for (var _tqi=0; _tqi<_tqPerfs.length; _tqi++) {
+                var _tqpD = new Date(_tqPerfs[_tqi].date); _tqpD.setHours(0,0,0,0);
+                var _tqpStr = _tqpD.getFullYear()+'-'+(_tqpD.getMonth()+1)+'-'+_tqpD.getDate();
+                if (_tqpStr === _todayStr2 && (_tqPerfs[_tqi].degree===90||_tqPerfs[_tqi].degree===270)) {
+                    var _tqMoonLon = getMoonPosition(today);
+                    var _tqMoonSign = getZodiacSignFromLongitude(_tqMoonLon);
+                    var _tqMoonSignName = _tqMoonSign ? _tqMoonSign : '';
+                    _todayLunarPhaseEvent = _tqPerfs[_tqi].degree===90
+                        ? { icon: '🌓', name: currentLang==='es'?'Cuarto Creciente':'First Quarter', sign: _tqMoonSignName, color: '#7ec8ff' }
+                        : { icon: '🌗', name: currentLang==='es'?'Cuarto Menguante':'Last Quarter', sign: _tqMoonSignName, color: '#a8b2d1' };
+                    break;
+                }
+            }
+        }
+
         const allPlanetaryEvents = [
+            ...(_todayLunarPhaseEvent ? [{ type: 'moonPhase', data: _todayLunarPhaseEvent }] : []),
             ...(todayEclipse ? [{ type: 'eclipse', data: todayEclipse }] : []),
             ...(todayAstroEvent ? [{ type: 'astroEvent', data: todayAstroEvent }] : []),
             ...(todayStellium ? [{ type: 'stellium', data: todayStellium }] : []),
@@ -16350,7 +16400,11 @@ function updateCurrentDayInfoForMode(mode) {
                     ${allPlanetaryEvents.length > 0 ? `
                     <div style="display:flex;flex-direction:column;gap:2px;align-items:center;max-height:52px;overflow-y:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
                         ${allPlanetaryEvents.slice(0, 8).map(event => {
-                            if (event.type === 'eclipse') {
+                            if (event.type === 'moonPhase') {
+                                const mp = event.data;
+                                const mpText = (mp.icon + ' ' + mp.name + (mp.sign ? (currentLang==='es' ? ' en ' : ' in ') + mp.sign : '')).replace(/'/g, "\\'");
+                                return `<div onclick="showBannerAspectDetail('${mpText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(168,178,209,0.15);border-radius:4px;border-left:2px solid ${mp.color};font-weight:bold;text-align:center;width:100%;cursor:pointer;">${mpText}</div>`;
+                            } else if (event.type === 'eclipse') {
                                 const ecl = event.data;
                                 const eclText = (ecl.type || (currentLang==='es'?'Eclipse':'Eclipse')).replace(/'/g, "\\'");
                                 return `<div onclick="showBannerAspectDetail('${eclText}')" style="font-size:0.65em;padding:2px 4px;background:rgba(232,93,122,0.2);border-radius:4px;border-left:2px solid #f5576c;font-weight:bold;text-align:center;width:100%;cursor:pointer;">🌑 ${eclText}</div>`;
@@ -19987,6 +20041,9 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
 
 // Switch natal sub-tab
 function switchNatalTab(tabName, btn) {
+    // 'curso' tab content lives in 'natalTabMapa' (renamed container)
+    var _tabAlias = { 'curso': 'mapa' };
+    if (_tabAlias[tabName]) tabName = _tabAlias[tabName];
     document.querySelectorAll('.natal-tab-content').forEach(function(el) { el.style.display = 'none'; });
     document.querySelectorAll('.natal-subtab').forEach(function(el) { el.classList.remove('active'); });
     var tabEl = document.getElementById('natalTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
@@ -23872,7 +23929,18 @@ function generateGregorianMonth() {
             const retClickTxt = (tp(r.planet) + ' ' + retLabel + (r.sign ? ' en ' + r.sign : '')).replace(/'/g, "\\'");
             html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${retClickTxt}')" style="color:#7ec8ff;font-size:0.65em;cursor:pointer;font-weight:bold;text-align:right;" title="${r.planet} ${r.isStart ? t('startsRetrograde') : t('turnsDirect')}">${planetInit}${r.isStart ? 'R' : 'D'}</div>`;
         });
-        
+
+        // Stellium & aspect patterns
+        const _gregPatterns = (typeof detectAspectPatterns === 'function') ? detectAspectPatterns(date) : [];
+        _gregPatterns.forEach(function(pat) {
+            const _pTxt = (pat.name + ' — ' + pat.planets.join(', ')).replace(/'/g, "\\'");
+            if (pat.type === 'stellium') {
+                html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${_pTxt}')" style="color:#FFD700;font-size:0.75em;font-weight:bold;cursor:pointer;text-align:right;line-height:1;" title="${pat.name}">★</div>`;
+            } else {
+                html += `<div onclick="event.stopPropagation(); showBannerAspectDetail('${_pTxt}')" style="color:${pat.color};font-size:0.75em;font-weight:bold;cursor:pointer;text-align:right;line-height:1;" title="${pat.name}">${pat.icon}</div>`;
+            }
+        });
+
         html += '</div></div></div>';
     }
 
@@ -26339,7 +26407,7 @@ function renderCalendar() {
                      data-has-aspects="${hasAspects}"
                      data-day-data="${dayDataStr}"
                      onclick="handleDayClick(this)"
-                     ${day.isPerfectionDay ? 'style="border: 2px solid rgba(232,200,74,0.6); box-shadow: 0 0 12px rgba(232,200,74,0.2);"' : ''}>
+                     ${day.isPerfectionDay && !isToday ? 'style="border: 2px solid rgba(232,200,74,0.6); box-shadow: 0 0 12px rgba(232,200,74,0.2);"' : (day.isPerfectionDay && isToday ? 'style="border-top: 3px solid rgba(232,200,74,0.8) !important;"' : '')}>
 
                     <div class="day-header" style="display: flex; justify-content: space-between; align-items: baseline; width: 100%;">
                         <div class="day-number">${day.lunarDay}</div>
@@ -29513,31 +29581,32 @@ function checkNotifications() {
                         body: body12h,
                         tag: 'lunar-phase-12h-' + phaseId,
                         requireInteraction: false,
-                        data: { interpret: phaseName + ' en ' + enrich.zodiacSign }
+                        data: { interpret: phaseName + (L ? ' en ' : ' in ') + enrich.zodiacSign }
                     });
                     localStorage.setItem(key12h, 'true');
                     console.log('🌙 12h before lunar phase:', phaseName);
                 }
-                
+
                 // Check 5 minutes before (widened to ±3 min window)
                 var time5mBefore = new Date(phaseTime.getTime() - 5*60000);
                 var min5m = new Date(time5mBefore.getTime() - 3*60000);
                 var max5m = new Date(time5mBefore.getTime() + 3*60000);
                 var key5m = 'notif-lunarPhases-' + phaseId + '-5m';
-                
+
                 if (now >= min5m && now <= max5m && !localStorage.getItem(key5m)) {
                     var enrich2 = getLunarPhaseEnrichment(phaseTime);
-                    var body5m = phaseName + ' en ' + enrich2.zodiacSign + ' | ' + enrich2.distance + ' km' + (enrich2.moonAspects ? ' | ' + enrich2.moonAspects : '');
+                    var _inWord2 = L ? ' en ' : ' in ';
+                    var body5m = phaseName + _inWord2 + enrich2.zodiacSign + ' | ' + enrich2.distance + ' km' + (enrich2.moonAspects ? ' | ' + enrich2.moonAspects : '');
                     sendNotif(times[pi].icon + ' ' + phaseName, {
                         body: body5m,
                         tag: 'lunar-phase-5m-' + phaseId,
                         requireInteraction: true,
-                        data: { interpret: phaseName + ' en ' + enrich2.zodiacSign + (enrich2.moonAspects ? ' | ' + enrich2.moonAspects : '') }
+                        data: { interpret: phaseName + _inWord2 + enrich2.zodiacSign + (enrich2.moonAspects ? ' | ' + enrich2.moonAspects : '') }
                     });
                     localStorage.setItem(key5m, 'true');
                     console.log('🌙 5min before lunar phase:', phaseName);
                 }
-                
+
                 // v631: Catch-up on app open — fires if phase happened in last 48h
                 // and user was never notified (only checks catchup flag, not 12h/5m).
                 // Also fires ALSO if phase is within next 2h (imminent) and user missed windows.
@@ -29547,12 +29616,13 @@ function checkNotifications() {
                 if (catchupWindow) {
                     if (!localStorage.getItem(keyCatchup)) {
                         var enrich3 = getLunarPhaseEnrichment(phaseTime);
-                        var bodyCatch = phaseName + ' en ' + enrich3.zodiacSign + ' | ' + enrich3.distance + ' km' + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '');
+                        var _inWord3 = L ? ' en ' : ' in ';
+                        var bodyCatch = phaseName + _inWord3 + enrich3.zodiacSign + ' | ' + enrich3.distance + ' km' + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '');
                         sendNotif(times[pi].icon + ' ' + phaseName + ' (' + (L ? 'hoy' : 'today') + ')', {
                             body: bodyCatch,
                             tag: 'lunar-phase-catchup-' + phaseId,
                             requireInteraction: true,
-                            data: { interpret: phaseName + ' en ' + enrich3.zodiacSign + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '') }
+                            data: { interpret: phaseName + _inWord3 + enrich3.zodiacSign + (enrich3.moonAspects ? ' | ' + enrich3.moonAspects : '') }
                         });
                         localStorage.setItem(keyCatchup, 'true');
                         console.log('🌙 Catch-up lunar phase:', phaseName);
