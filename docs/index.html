@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v671';</script>
+    <script>window.APP_VERSION = 'v672';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -38,11 +38,8 @@
                 if (k.indexOf('natalChart_') === 0) localStorage.removeItem(k);
             }
             localStorage.setItem('app_version', REQUIRED_VER);
-            // If we had an old version, reload ONCE to get fresh files — never twice
-            if (lastVer && !_alreadyReloaded) {
-                sessionStorage.setItem('_reloadGuard', REQUIRED_VER);
-                window.location.reload(true);
-            }
+            // v672: NO automatic reload — the SW handles serving fresh files.
+            // Every reload triggered another reload creating an infinite loop on Android Chrome.
         }
 
         // ALWAYS clean notifHistory on every page load: keep only today's entries
@@ -35714,11 +35711,8 @@ if ('serviceWorker' in navigator) {
                         navigator.serviceWorker.getRegistration().then(function(reg) {
                             if (reg) reg.update();
                         });
-                        // v671: Only reload if we haven't already reloaded this session
-                        if (!sessionStorage.getItem('_reloadGuard')) {
-                            sessionStorage.setItem('_reloadGuard', serverVer);
-                            setTimeout(function() { window.location.reload(true); }, 1000);
-                        }
+                        // v672: Don't force-reload — just trigger SW update, banner will appear
+                        // Forcing reload here caused infinite loop on Android Chrome
                     } else if (serverN < localN) {
                         console.log('ℹ️ Server has ' + serverVer + ' (older), we have ' + APP_VERSION + ' — no action');
                     }
