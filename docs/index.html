@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v676';</script>
+    <script>window.APP_VERSION = 'v677';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -9564,6 +9564,7 @@ window._setSolfVol = function(hz, val) {
     if (label) label.textContent = val + '%';
 };
 // v676: Test plays indefinitely until user presses Stop
+// v677: Uses DynamicsCompressor to maximize loudness at any phone volume
 window._testSolfeggioHold = function() {
     var btn = document.getElementById('daSolfeggioTest');
     // If already playing, stop
@@ -9576,15 +9577,23 @@ window._testSolfeggioHold = function() {
         var prefs = _getSolfeggioPrefs();
         var activeFreqs = [];
         for (var k in prefs) {
-            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.18 });
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.10 });
         }
         if (activeFreqs.length === 0) { alert(currentLang==='es'?'Activa al menos una frecuencia':'Enable at least one frequency'); return; }
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // DynamicsCompressor: maximizes loudness at any system volume
+        var compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-12, ctx.currentTime);
+        compressor.knee.setValueAtTime(6, ctx.currentTime);
+        compressor.ratio.setValueAtTime(20, ctx.currentTime);
+        compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+        compressor.release.setValueAtTime(0.15, ctx.currentTime);
+        compressor.connect(ctx.destination);
         var oscs = [];
         for (var i = 0; i < activeFreqs.length; i++) {
             var o = ctx.createOscillator();
             var g = ctx.createGain();
-            o.connect(g); g.connect(ctx.destination);
+            o.connect(g); g.connect(compressor);
             o.type = 'sine';
             o.frequency.setValueAtTime(activeFreqs[i].hz, ctx.currentTime);
             g.gain.setValueAtTime(0, ctx.currentTime);
@@ -9763,21 +9772,30 @@ function playDreamAlarmSound() {
         var prefs = _getSolfeggioPrefs();
         var activeFreqs = [];
         for (var k in prefs) {
-            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.18 }); // v676: +4dB
+            if (prefs[k].on) activeFreqs.push({ hz: parseInt(k), vol: prefs[k].vol / 100 * 0.10 });
         }
         // Fallback if nothing selected
-        if (activeFreqs.length === 0) activeFreqs = [{ hz: 396, vol: 0.09 }, { hz: 417, vol: 0.09 }, { hz: 528, vol: 0.09 }];
+        if (activeFreqs.length === 0) activeFreqs = [{ hz: 396, vol: 0.05 }, { hz: 417, vol: 0.05 }, { hz: 528, vol: 0.05 }];
 
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
         var duration = 60; // 60 seconds
         var allOscs = [];
+
+        // v677: DynamicsCompressor maximizes loudness at any phone volume level
+        var masterComp = ctx.createDynamicsCompressor();
+        masterComp.threshold.setValueAtTime(-12, ctx.currentTime);
+        masterComp.knee.setValueAtTime(6, ctx.currentTime);
+        masterComp.ratio.setValueAtTime(20, ctx.currentTime);
+        masterComp.attack.setValueAtTime(0.003, ctx.currentTime);
+        masterComp.release.setValueAtTime(0.15, ctx.currentTime);
+        masterComp.connect(ctx.destination);
 
         for (var i = 0; i < activeFreqs.length; i++) {
             var freq = activeFreqs[i];
             var osc = ctx.createOscillator();
             var g = ctx.createGain();
             osc.connect(g);
-            g.connect(ctx.destination);
+            g.connect(masterComp);
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq.hz, ctx.currentTime);
 
