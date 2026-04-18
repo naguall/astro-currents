@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v667';</script>
+    <script>window.APP_VERSION = 'v668';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -35657,13 +35657,17 @@ if ('serviceWorker' in navigator) {
         });
 
     // When new SW takes control: reload if user requested update, else show banner
+    // v668: only show banner if _pendingSW is set — prevents spurious banner on initial SW
+    // activation (clients.claim() fires controllerchange even when no new version exists)
     navigator.serviceWorker.addEventListener('controllerchange', function() {
         console.log('🔄 New SW active');
         if (_swUpdateRequested) {
             window.location.reload();
-        } else {
+        } else if (_pendingSW) {
+            // Only show update banner when we know a real new version took over
             showUpdateBanner();
         }
+        // else: initial SW activation via clients.claim() — no action needed
     });
 
     // Periodically check for updates (every 30 minutes)
