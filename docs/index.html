@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v677';</script>
+    <script>window.APP_VERSION = 'v678';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -8001,7 +8001,7 @@ window._readingChatSend = function(chatId) {
         ? 'Eres un tutor experto de astrología. El usuario está leyendo una interpretación/entrada titulada "' + state.title + '". A continuación está el contenido completo:\n\n' + state.context.substring(0,3000) + '\n\nResponde preguntas sobre este contenido de forma didáctica y en español.'
         : 'You are an expert astrology tutor. The user is reading an interpretation/entry titled "' + state.title + '". Here is the full content:\n\n' + state.context.substring(0,3000) + '\n\nAnswer questions about this content didactically.');
 
-    var apiKey = localStorage.getItem('gemini_api_key') || '';
+    var apiKey = localStorage.getItem('gemini_api_key') || 'AIzaSyCg_3eDzlcYaLBNB7Wq1fnzcJNgEUX6cyQ';
     if (!apiKey) {
         var t = document.getElementById('readingTyping_' + chatId);
         if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">' + (L?'⚠️ Configura tu API key en Preferencias':'⚠️ Configure your API key in Preferences') + '</span>';
@@ -28216,8 +28216,164 @@ function goToCurrentCycle() {
     if (_lastOnbVer && !localStorage.getItem(ONBOARDING_KEY + '_hideForever')) {
         localStorage.setItem(ONBOARDING_KEY + '_hideForever', 'true');
     }
-    setTimeout(function() { showOnboardingWelcome(); }, 800);
-    // Onboarding slides restored (v616)
+    // v678: Setup flow — language, calendar, AstroConnect — before regular onboarding
+    (function() {
+        var SETUP_KEY = 'astroatlas_setup_v1';
+        if (localStorage.getItem(SETUP_KEY)) {
+            // Setup done — show regular tutorial slides
+            setTimeout(function() { showOnboardingWelcome(); }, 800);
+            return;
+        }
+        setTimeout(function() {
+            var step = 0;
+            var langSet = localStorage.getItem('language') !== null;
+            var steps = [];
+            if (!langSet) steps.push('language');
+            steps.push('calendar');
+            steps.push('social');
+            steps.push('ready');
+
+            var overlay = document.createElement('div');
+            overlay.id = 'setupFlowOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:linear-gradient(180deg,#02020F 0%,#07092a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;';
+            document.body.appendChild(overlay);
+
+            function getL() { return (localStorage.getItem('language') || 'es') === 'es'; }
+
+            function dots() {
+                return '<div style="display:flex;gap:6px;justify-content:center;margin-bottom:28px;">' +
+                    steps.map(function(_, i) {
+                        return '<div style="width:' + (i===step?'24px':'8px') + ';height:8px;border-radius:4px;background:' + (i===step?'rgba(102,126,234,0.9)':'rgba(255,255,255,0.15)') + ';transition:all 0.3s;"></div>';
+                    }).join('') + '</div>';
+            }
+
+            function next() {
+                step++;
+                if (step >= steps.length) { complete(); return; }
+                overlay.style.opacity = '0';
+                setTimeout(function() { overlay.style.opacity = '1'; renderStep(); }, 200);
+                overlay.style.transition = 'opacity 0.2s';
+            }
+
+            function complete() {
+                localStorage.setItem(SETUP_KEY, 'true');
+                overlay.style.opacity = '0';
+                overlay.style.transition = 'opacity 0.4s';
+                setTimeout(function() {
+                    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                    if (typeof showOnboardingWelcome === 'function') showOnboardingWelcome();
+                }, 400);
+            }
+
+            function renderStep() {
+                var s = steps[step];
+                var L = getL();
+                if (s === 'language') {
+                    overlay.innerHTML =
+                        '<div style="max-width:360px;width:100%;text-align:center;animation:fadeInUp 0.35s ease;">' +
+                        '<img src="icons/icon-192x192.png" style="width:80px;height:80px;border-radius:18px;box-shadow:0 4px 24px rgba(102,126,234,0.5);margin-bottom:20px;">' +
+                        '<h1 style="font-family:Cinzel,serif;font-size:1.6em;color:#fff;margin:0 0 8px;letter-spacing:2px;">AstroAtlas</h1>' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.45);margin:0 0 32px;">Choose your language / Elige tu idioma</p>' +
+                        dots() +
+                        '<div style="display:flex;gap:16px;justify-content:center;">' +
+                        '<button onclick="window._sLang('es')" style="flex:1;max-width:140px;padding:20px 16px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.5);border-radius:16px;color:#fff;font-size:1em;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;"><span style="font-size:2em;">🇪🇸</span><strong>Español</strong></button>' +
+                        '<button onclick="window._sLang('en')" style="flex:1;max-width:140px;padding:20px 16px;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(102,126,234,0.05));border:1.5px solid rgba(102,126,234,0.5);border-radius:16px;color:#fff;font-size:1em;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;"><span style="font-size:2em;">🇺🇸</span><strong>English</strong></button>' +
+                        '</div></div>';
+                    window._sLang = function(lang) {
+                        localStorage.setItem('language', lang);
+                        if (typeof currentLang !== 'undefined') currentLang = lang;
+                        next();
+                    };
+                } else if (s === 'calendar') {
+                    var calConn = typeof gcalIsConnected === 'function' && gcalIsConnected();
+                    overlay.innerHTML =
+                        '<div style="max-width:360px;width:100%;text-align:center;animation:fadeInUp 0.35s ease;">' +
+                        dots() +
+                        '<div style="font-size:3.5em;margin-bottom:16px;">📅</div>' +
+                        '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#4285f4;margin:0 0 12px;letter-spacing:1px;">Google Calendar</h2>' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 24px;padding:0 8px;">' +
+                        (L ? 'Importa tus eventos y sincroniza tu agenda con los tránsitos planetarios.' : 'Import your events and sync your agenda with planetary transits.') + '</p>' +
+                        (calConn ?
+                            '<div style="padding:14px;background:rgba(52,199,89,0.1);border:1px solid rgba(52,199,89,0.3);border-radius:12px;color:#34c759;font-size:0.9em;margin-bottom:16px;">✓ ' + (L?'Conectado':'Connected') + '</div>' :
+                            '<button id="sCalBtn" onclick="window._sCal()" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(66,133,244,0.25),rgba(66,133,244,0.08));border:1.5px solid rgba(66,133,244,0.5);border-radius:12px;color:#4285f4;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:10px;">📅 ' +
+                            (L?'Conectar Google Calendar':'Connect Google Calendar') + '</button>'
+                        ) +
+                        '<button onclick="window._sNext()" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;">' +
+                        (calConn ? (L?'Continuar →':'Continue →') : (L?'Saltar por ahora':'Skip for now')) + '</button></div>';
+                    window._sCal = function() {
+                        var btn = document.getElementById('sCalBtn');
+                        if (btn) { btn.textContent = L?'Conectando...':'Connecting...'; btn.disabled = true; }
+                        if (typeof gcalSignIn === 'function') {
+                            gcalSignIn();
+                            var poll = setInterval(function() {
+                                if (typeof gcalIsConnected === 'function' && gcalIsConnected()) {
+                                    clearInterval(poll); next();
+                                }
+                            }, 1500);
+                            setTimeout(function() { clearInterval(poll); }, 30000);
+                        }
+                    };
+                    window._sNext = next;
+                } else if (s === 'social') {
+                    var socConn = typeof _socialUser !== 'undefined' && _socialUser;
+                    overlay.innerHTML =
+                        '<div style="max-width:360px;width:100%;text-align:center;animation:fadeInUp 0.35s ease;">' +
+                        dots() +
+                        '<div style="font-size:3.5em;margin-bottom:16px;">🌐</div>' +
+                        '<h2 style="font-family:Cinzel,serif;font-size:1.25em;color:#00bcd4;margin:0 0 12px;letter-spacing:1px;">AstroConnect</h2>' +
+                        '<p style="font-size:0.85em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 24px;padding:0 8px;">' +
+                        (L ? 'La red social de AstroAtlas. Conectate con otros usuarios y compartí tus patrones astrológicos.' : 'The AstroAtlas social network. Connect with other users and share your astrological patterns.') + '</p>' +
+                        (socConn ?
+                            '<div style="padding:14px;background:rgba(52,199,89,0.1);border:1px solid rgba(52,199,89,0.3);border-radius:12px;color:#34c759;font-size:0.9em;margin-bottom:16px;">✓ ' + (L?'Conectado como ':'Connected as ') + (typeof _socialUser !== 'undefined' && _socialUser ? (_socialUser.displayName||_socialUser.email) : '') + '</div>' :
+                            '<button id="sSocBtn" onclick="window._sSoc()" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(0,188,212,0.2),rgba(0,188,212,0.05));border:1.5px solid rgba(0,188,212,0.45);border-radius:12px;color:#00bcd4;font-size:0.9em;font-weight:700;cursor:pointer;margin-bottom:12px;">🌐 ' +
+                            (L?'Unirme a AstroConnect':'Join AstroConnect') + '</button>'
+                        ) +
+                        '<button onclick="window._sNext()" style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;color:rgba(255,255,255,0.45);font-size:0.85em;cursor:pointer;">' +
+                        (socConn ? (L?'Continuar →':'Continue →') : (L?'Saltar por ahora':'Skip for now')) + '</button></div>';
+                    window._sSoc = function() {
+                        // Open social tab for login, then poll for user
+                        if (typeof switchToSocialMode === 'function') {
+                            overlay.style.display = 'none';
+                            switchToSocialMode();
+                            var poll = setInterval(function() {
+                                if (typeof _socialUser !== 'undefined' && _socialUser) {
+                                    clearInterval(poll);
+                                    overlay.style.display = 'flex';
+                                    next();
+                                }
+                            }, 1500);
+                            // Add close button in case user wants to skip after seeing social
+                            var skipBtn = document.createElement('button');
+                            skipBtn.textContent = L ? '← Volver al setup' : '← Back to setup';
+                            skipBtn.style.cssText = 'position:fixed;top:16px;left:16px;z-index:10001;padding:8px 16px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:#fff;font-size:0.8em;cursor:pointer;';
+                            skipBtn.onclick = function() {
+                                clearInterval(poll);
+                                document.body.removeChild(skipBtn);
+                                overlay.style.display = 'flex';
+                                next();
+                            };
+                            document.body.appendChild(skipBtn);
+                            setTimeout(function() { clearInterval(poll); if (skipBtn.parentNode) document.body.removeChild(skipBtn); overlay.style.display='flex'; }, 60000);
+                        } else { next(); }
+                    };
+                    window._sNext = next;
+                } else if (s === 'ready') {
+                    overlay.innerHTML =
+                        '<div style="max-width:360px;width:100%;text-align:center;animation:fadeInUp 0.35s ease;">' +
+                        dots() +
+                        '<div style="font-size:4em;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(201,168,64,0.6));">🌙</div>' +
+                        '<h2 style="font-family:Cinzel,serif;font-size:1.4em;color:#c9a840;margin:0 0 12px;letter-spacing:1px;">' + (L?'¡Todo listo!':'You're all set!') + '</h2>' +
+                        '<p style="font-size:0.87em;color:rgba(255,255,255,0.6);line-height:1.55;margin:0 0 32px;">' +
+                        (L ? 'AstroAtlas está configurado y listo para sincronizarte con los movimientos celestes.' : 'AstroAtlas is configured and ready to sync you with the celestial movements.') + '</p>' +
+                        '<button onclick="window._sNext()" style="width:100%;padding:16px;background:linear-gradient(135deg,rgba(201,168,64,0.3),rgba(201,168,64,0.1));border:1.5px solid rgba(201,168,64,0.6);border-radius:14px;color:#c9a840;font-size:1em;font-weight:700;cursor:pointer;letter-spacing:1px;">🚀 ' +
+                        (L?'Explorar AstroAtlas':'Explore AstroAtlas') + '</button></div>';
+                    window._sNext = next;
+                }
+            }
+
+            renderStep();
+        }, 400);
+    })();
 
     // CSS animation keyframes
     var styleEl = document.createElement('style');
@@ -36292,7 +36448,7 @@ window._mapaTopicSendMsg = function(nodeId, kpIdx) {
     } catch(e) {}
 
     // Call AI
-    var apiKey = localStorage.getItem('gemini_api_key') || '';
+    var apiKey = localStorage.getItem('gemini_api_key') || 'AIzaSyCg_3eDzlcYaLBNB7Wq1fnzcJNgEUX6cyQ';
     if (!apiKey) {
         var t = document.getElementById('mapaTyping_' + chatId);
         if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">' + (isES ? '⚠️ Configura tu API key de Gemini en Preferencias' : '⚠️ Configure your Gemini API key in Preferences') + '</span>';
