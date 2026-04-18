@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v661';</script>
+    <script>window.APP_VERSION = 'v662';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -2806,6 +2806,15 @@ const retrogrades2026 = [
         meaning: 'Transformación entre futurismo colectivo y estructuras de poder establecidas. Revisión profunda de sistemas de control.',
         areas: 'Poder institucional, revolución, estructuras sociales',
         lastTime: 'May-Oct 2025 en Acuario/Capricornio'
+    },
+    // v662: Venus retrógrado (faltaba en datos)
+    {
+        planet: 'Venus', symbol: '♀',
+        start: crDate('2026-10-03'), end: crDate('2026-11-13'),
+        sign: 'Escorpio → Libra',
+        meaning: 'Revisión profunda de vínculos íntimos y valores personales. Escorpio invita a confrontar lo que se desea de verdad vs. lo que se teme perder. Período de introspección romántica y financiera.',
+        areas: 'Relaciones íntimas, valores, dinero compartido, pasión, transformación afectiva',
+        lastTime: 'Mar-Abr 2025 en Aries/Piscis'
     }
 ];
 
@@ -2838,6 +2847,33 @@ const signChanges2026 = [
     { planet: 'Venus', symbol: '♀', date: crDate('2026-03-06'), toSign: 'Aries', meaning: 'La energía relacional adquiere cualidad de iniciativa y coraje. El principio venusino se encuentra con la cualidad marcial. Disponibilidad para expresión directa de deseo. Tensión natural entre autonomía y vínculo.', color: '#e91e63' },
     { planet: 'Venus', symbol: '♀', date: crDate('2026-03-30'), toSign: 'Tauro', meaning: 'La energía venusina en su domicilio natural. Anclaje sensorial y tangibilidad disponibles. Encuentro entre placer y materia. Ritmo más lento en procesos relacionales y de valor.', color: '#e91e63' },
     
+    // MERCURIO — mayo-diciembre 2026 (v662: datos faltantes añadidos)
+    // Mercurio retrógrado: 11 May-4 Jun 2026 (Tauro→Aries) y 3-25 Sep 2026 (Libra→Virgo) y ~20 Dic
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-05-04'), toSign: 'Tauro', meaning: 'Comunicación práctica, enfoque en valores materiales y concretos.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-06-11'), toSign: 'Tauro', meaning: 'Mercurio re-entra en Tauro tras su retrógrado. Consolidación de ideas aplazadas.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-06-26'), toSign: 'Géminis', meaning: 'Mente en su domicilio: versatilidad, curiosidad, velocidad comunicativa.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-07-11'), toSign: 'Cáncer', meaning: 'Comunicación emocional e intuitiva. La mente se filtra por el sentimiento.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-07-27'), toSign: 'Leo', meaning: 'Comunicación expresiva, dramática y creativa. La mente busca brillar.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-08-11'), toSign: 'Virgo', meaning: 'Mercurio en domicilio: análisis preciso, pensamiento metódico, enfoque en detalles.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-08-30'), toSign: 'Libra', meaning: 'Pensamiento diplomático, comunicación equilibrada. Mente orientada al diálogo justo.', color: '#f39c12' },
+    // Mercurio retrógrado 3-25 Sep 2026 en Libra→Virgo
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-10-10'), toSign: 'Libra', meaning: 'Mercurio re-entra en Libra tras retrógrado. Relanzamiento de negociaciones y decisiones.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-10-29'), toSign: 'Escorpio', meaning: 'Mente penetrante e investigadora. Comunicación profunda, psicológica, estratégica. Secretos, análisis de motivaciones.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-11-17'), toSign: 'Sagitario', meaning: 'Mente expansiva y filosófica. Comunicación entusiasta con visión global. Pensamiento que busca el gran significado.', color: '#f39c12' },
+    { planet: 'Mercurio', symbol: '☿', date: crDate('2026-12-07'), toSign: 'Capricornio', meaning: 'Comunicación seria, estructurada y ambiciosa. La mente se orienta a resultados tangibles.', color: '#f39c12' },
+
+    // VENUS — mayo-diciembre 2026 (v662: datos faltantes añadidos)
+    // Venus retrógrado: 3 Oct-13 Nov 2026 en Escorpio→Libra
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-05-06'), toSign: 'Géminis', meaning: 'El amor se vuelve curioso y dual. La energía venusina busca variedad e intercambio intelectual. Placer en conexiones ligeras y comunicativas.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-06-03'), toSign: 'Cáncer', meaning: 'El amor se nutre y protege. La energía venusina busca seguridad emocional y conexión íntima con lo familiar.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-07-01'), toSign: 'Leo', meaning: 'Amor expresivo y generoso. La energía venusina busca celebración, reconocimiento y drama romántico.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-07-27'), toSign: 'Virgo', meaning: 'Amor práctico y devoto. La energía venusina se expresa a través del servicio, el orden y la mejora continua.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-08-20'), toSign: 'Libra', meaning: 'Venus en domicilio: armonía, equilibrio y reciprocidad en los vínculos. Energía relacional en su máxima expresión natural.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-09-14'), toSign: 'Escorpio', meaning: 'Amor intenso, transformador y magnético. La energía venusina se sumerge en lo profundo: pasión, deseo y regeneración emocional.', color: '#e91e63' },
+    // Venus retrógrado 3 Oct-13 Nov 2026 en Escorpio→Libra (Venus retrograda de regreso a Libra)
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-11-14'), toSign: 'Escorpio', meaning: 'Venus re-entra en Escorpio tras retrógrado. Relanzamiento de vínculos profundos; lo que fue interrumpido puede reanudarse con mayor claridad.', color: '#e91e63' },
+    { planet: 'Venus', symbol: '♀', date: crDate('2026-12-08'), toSign: 'Sagitario', meaning: 'Amor aventurero, filosófico y libre. La energía venusina busca crecimiento espiritual y expansión en los vínculos.', color: '#e91e63' },
+
     // MARTE — v641: corrected sign change dates (were all wrong, showing Leo/Virgo/Libra/Scorpio/Sag)
     // Verified against interPlanetaryAspects2026: Mars in Aquarius Jan 27, Pisces Mar 21, Aries Apr 12-20, Taurus May 25, Gemini Jul 3, Cancer Sep 1, Leo Oct 3, Virgo Dec 4
     { planet: 'Marte', symbol: '♂', date: crDate('2026-03-03'), toSign: 'Piscis', meaning: 'La acción se vuelve intuitiva y receptiva. El impulso marcial se disuelve en lo fluido. Energía disponible para arte, espiritualidad y compasión activa. Posible confusión sobre dirección.', color: '#ff6b6b' },
@@ -14732,8 +14768,9 @@ function _renderSigns2026View(es) {
         });
 
         // 2. Retrogrades in this sign
+        // v662: use includes() — r.sign can be 'Aries → Piscis', not exact match
         retrogrades2026.forEach(function(r) {
-            if (r.sign === sign.name) {
+            if ((r.sign || '').includes(sign.name)) {
                 signAspects.push({
                     date: r.start,
                     planet: r.planet,
