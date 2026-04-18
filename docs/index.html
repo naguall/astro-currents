@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v673';</script>
+    <script>window.APP_VERSION = 'v674';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -4932,39 +4932,37 @@ function autoRestoreFromIndexedDB() {
                     return;
                 }
 
-                // v673: Only restore if backup actually contains user data — prevents infinite
-                // reload loop when backup exists but is empty (no events/journals/diary)
-                var backupHasData = backup.events || backup.journals ||
-                    (backup.diaryEntries && Object.keys(backup.diaryEntries).length > 0);
-                if (!backupHasData) {
-                    resolve(false);
-                    return;
-                }
-
-                // localStorage is empty but IndexedDB has backup — auto-restore
+                // v674: Restore anything in the backup — track if ANYTHING was actually written
+                // to prevent reload loop when backup is truly empty
                 console.log('[AutoBackup] Restoring from IndexedDB backup dated:', backup._date);
+                var somethingRestored = false;
                 if (backup.events) {
                     localStorage.setItem('lunarCalendarEvents', JSON.stringify(backup.events));
                     try { events = backup.events; } catch(e) {}
+                    somethingRestored = true;
                 }
                 if (backup.journals) {
                     localStorage.setItem('lunarCalendarJournals', JSON.stringify(backup.journals));
                     try { journals = backup.journals; } catch(e) {}
+                    somethingRestored = true;
                 }
-                if (backup.diaryEntries) {
+                if (backup.diaryEntries && Object.keys(backup.diaryEntries).length > 0) {
                     Object.keys(backup.diaryEntries).forEach(function(key) {
                         localStorage.setItem(key, backup.diaryEntries[key]);
                     });
+                    somethingRestored = true;
                 }
                 if (backup.natalProfiles) {
                     localStorage.setItem('natalProfiles', JSON.stringify(backup.natalProfiles));
+                    somethingRestored = true;
                 }
-                if (backup.settings) {
+                if (backup.settings && Object.keys(backup.settings).length > 0) {
                     Object.keys(backup.settings).forEach(function(key) {
                         localStorage.setItem(key, backup.settings[key]);
                     });
+                    somethingRestored = true;
                 }
-                resolve(true); // restored
+                resolve(somethingRestored); // only true if something was actually written
             };
             req.onerror = function(e) { reject(e.target.error); };
         });
