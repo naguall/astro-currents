@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v663';</script>
+    <script>window.APP_VERSION = 'v664';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -20041,14 +20041,16 @@ function buildNatalSubTabs(natalChart, natal, profileDisplayName, L, sunSign, mo
 
 // Switch natal sub-tab
 function switchNatalTab(tabName, btn) {
-    // 'curso' tab content lives in 'natalTabMapa' (renamed container)
+    // 'curso' tab content lives in 'natalTabMapa' (no dedicated natalTabCurso DOM element)
+    var _origTabName = tabName;
     var _tabAlias = { 'curso': 'mapa' };
-    if (_tabAlias[tabName]) tabName = _tabAlias[tabName];
+    var _domTabName = _tabAlias[tabName] || tabName; // alias only for DOM ID lookup
     document.querySelectorAll('.natal-tab-content').forEach(function(el) { el.style.display = 'none'; });
     document.querySelectorAll('.natal-subtab').forEach(function(el) { el.classList.remove('active'); });
-    var tabEl = document.getElementById('natalTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+    var tabEl = document.getElementById('natalTab' + _domTabName.charAt(0).toUpperCase() + _domTabName.slice(1));
     if (tabEl) tabEl.style.display = 'block';
     if (btn) btn.classList.add('active');
+    tabName = _origTabName; // restore original tab name for logic checks below
     // Show/hide calendar grid based on active tab
     var calGrid = document.getElementById('natalCalendarGrid');
     if (calGrid) calGrid.style.display = (tabName === 'calendar') ? 'block' : 'none';
@@ -26899,14 +26901,23 @@ function goToCurrentCycle() {
                 LearnerProfile.updateStreak();
                 var lpCtx = LearnerProfile.generateTutorContext();
                 if (lpCtx) {
-                    sysCtx += '\n\n═══ SISTEMA DE APRENDIZAJE ADAPTATIVO ═══\n'
-                        + lpCtx
-                        + '\n═══ REGLAS DEL TUTOR ADAPTATIVO ═══\n'
-                        + '1. SIGUE LA CURIOSIDAD: Si el usuario pregunta sobre un tema, responde a esa pregunta. No fuerces un camino.\n'
-                        + '2. VERIFICA PREREQUISITOS: Si el usuario pregunta sobre algo avanzado sin bases, guíalo suavemente: "Para entender X, necesitamos Y. ¿Empezamos por ahí?"\n'
-                        + '3. PROPÓN EVALUACIONES: Cuando notes que el usuario domina un tema (buenas preguntas, comprensión clara), sugiere: "Parece que dominas esto. ¿Quieres un mini-test de 5 preguntas?"\n'
-                        + '4. SUGIERE PRÓXIMOS PASOS: Después de cubrir un tema, sugiere los siguientes naturales basándote en el perfil.\n'
-                        + '5. ADAPTA TU NIVEL: Usa vocabulario y profundidad acordes al nivel del estudiante mostrado en el perfil.\n';
+                    sysCtx += isES
+                        ? ('\n\n═══ SISTEMA DE APRENDIZAJE ADAPTATIVO ═══\n'
+                            + lpCtx
+                            + '\n═══ REGLAS DEL TUTOR ADAPTATIVO ═══\n'
+                            + '1. SIGUE LA CURIOSIDAD: Si el usuario pregunta sobre un tema, responde a esa pregunta. No fuerces un camino.\n'
+                            + '2. VERIFICA PREREQUISITOS: Si el usuario pregunta sobre algo avanzado sin bases, guíalo suavemente: "Para entender X, necesitamos Y. ¿Empezamos por ahí?"\n'
+                            + '3. PROPÓN EVALUACIONES: Cuando notes que el usuario domina un tema, sugiere: "Parece que dominas esto. ¿Quieres un mini-test de 5 preguntas?"\n'
+                            + '4. SUGIERE PRÓXIMOS PASOS: Después de cubrir un tema, sugiere los siguientes naturales basándote en el perfil.\n'
+                            + '5. ADAPTA TU NIVEL: Usa vocabulario y profundidad acordes al nivel del estudiante.\n')
+                        : ('\n\n═══ ADAPTIVE LEARNING SYSTEM ═══\n'
+                            + lpCtx
+                            + '\n═══ ADAPTIVE TUTOR RULES ═══\n'
+                            + '1. FOLLOW CURIOSITY: If the user asks about a topic, answer that question. Don\'t force a path.\n'
+                            + '2. CHECK PREREQUISITES: If the user asks about something advanced without basics, guide gently: "To understand X, we need Y. Shall we start there?"\n'
+                            + '3. PROPOSE ASSESSMENTS: When you notice the user masters a topic, suggest: "It seems you\'ve got this. Want a 5-question mini-test?"\n'
+                            + '4. SUGGEST NEXT STEPS: After covering a topic, suggest natural next ones based on the profile.\n'
+                            + '5. ADAPT YOUR LEVEL: Use vocabulary and depth appropriate to the student\'s level.\n');
                 }
             }
         } catch(e) { console.log('[Tutor] Adaptive context error:', e); }
@@ -34021,7 +34032,7 @@ window._socialLogout = function() { _signOut(); _renderSocial(); };
 // ── Main Social UI ──
 function _renderMainSocial(container, isES) {
     // Navigation bar
-    var navHtml = '<div style="display:flex;gap:2px;margin-bottom:12px;padding:3px;background:rgba(0,0,0,0.2);border-radius:12px;">';
+    var navHtml = '<div style="display:flex;gap:2px;margin-bottom:12px;padding:3px;background:rgba(0,0,0,0.2);border-radius:12px;overflow:visible;">';
     var tabs = [
         { id: 'home', icon: '🏠', label: isES ? 'Inicio' : 'Home' },
         { id: 'activity', icon: '🔔', label: isES ? 'Actividad' : 'Activity' },
@@ -34036,9 +34047,9 @@ function _renderMainSocial(container, isES) {
         var showMsgBadge = tab.id === 'messages' && _unreadCount > 0;
         var showActBadge = tab.id === 'activity' && _unreadCount > 0;
         var badgeHtml = showMsgBadge
-            ? '<span style="position:absolute;top:-2px;right:0px;background:#ff4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:0.72em;font-weight:700;min-width:16px;line-height:1.4;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.4);">' + _unreadCount + '</span>'
-            : (showActBadge ? '<span style="position:absolute;top:-2px;right:0px;background:#ff9800;color:#fff;border-radius:10px;padding:1px 5px;font-size:0.72em;font-weight:700;min-width:16px;line-height:1.4;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.4);">' + _unreadCount + '</span>' : '');
-        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-size:0.62em;white-space:nowrap;min-width:0;position:relative;' +
+            ? '<span style="position:absolute;top:-5px;right:-4px;background:#ff4444;color:#fff;border-radius:50%;min-width:16px;height:16px;line-height:16px;padding:0 3px;font-size:0.70em;font-weight:800;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.5);border:1.5px solid #0a0a2e;box-sizing:border-box;z-index:10;">' + _unreadCount + '</span>'
+            : (showActBadge ? '<span style="position:absolute;top:-5px;right:-4px;background:#ff9800;color:#fff;border-radius:50%;min-width:16px;height:16px;line-height:16px;padding:0 3px;font-size:0.70em;font-weight:800;text-align:center;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,0.5);border:1.5px solid #0a0a2e;box-sizing:border-box;z-index:10;">' + _unreadCount + '</span>' : '');
+        navHtml += '<button onclick="window._switchSocialTab(\'' + tab.id + '\')" style="flex:1;padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-size:0.62em;white-space:nowrap;min-width:0;position:relative;overflow:visible;' +
             (isActive ? 'background:rgba(0,188,212,0.2);color:#00bcd4;font-weight:700;' : 'background:transparent;color:rgba(255,255,255,0.4);font-weight:500;') +
             '">' + tab.icon + '<br>' + tab.label + badgeHtml +
             '</button>';
