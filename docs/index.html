@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v665';</script>
+    <script>window.APP_VERSION = 'v666';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -4347,6 +4347,21 @@ function changeLanguage(lang) {
     localStorage.setItem('language', lang);
     updateLanguageButtons();
     updateUILanguage();
+    // v666: Clear lunar phase catchup keys so pending notifications re-fire in the new language
+    try {
+        if (typeof buildPhaseTimesCache === 'function') {
+            buildPhaseTimesCache();
+            if (window._phaseTimesCache && window._phaseTimesCache.times) {
+                window._phaseTimesCache.times.forEach(function(t) {
+                    var phaseId = t.es.replace(/\s+/g, '-');
+                    localStorage.removeItem('notif-lunarPhases-' + phaseId + '-catchup');
+                });
+            }
+        }
+        if (typeof checkNotifications === 'function') {
+            setTimeout(checkNotifications, 800);
+        }
+    } catch(e) {}
 }
 
 async function toggleNotifications() {
@@ -27530,7 +27545,8 @@ function goToCurrentCycle() {
                 _courseAIChatHistory.push({role: 'model', parts: [{text: reply}]});
                 var formatted = reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
                 var _courseRespId = 'courseResp_' + Date.now();
-                msgs.innerHTML += '<div style="margin-bottom:8px;"><div id="' + _courseRespId + '" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.5;"><p>' + formatted + '</p></div></div>';
+                // v666: added class="course-ai-bubble" + title for double-click karaoke
+                msgs.innerHTML += '<div style="margin-bottom:8px;"><div id="' + _courseRespId + '" class="course-ai-bubble" title="Double click to read from here" style="display:inline-block;max-width:90%;padding:10px 12px;background:rgba(201,168,64,0.08);border:1px solid rgba(201,168,64,0.2);border-radius:12px 12px 12px 4px;font-size:0.82em;color:rgba(255,255,255,0.85);line-height:1.5;cursor:text;"><p>' + formatted + '</p></div></div>';
             } else {
                 msgs.innerHTML += '<div style="margin-bottom:8px;"><div style="display:inline-block;padding:8px 12px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);border-radius:12px;font-size:0.82em;color:#ff6b6b;">❌ Error</div></div>';
             }
@@ -27596,6 +27612,32 @@ function goToCurrentCycle() {
         }
 
         target.innerHTML = html;
+
+        // v666: Karaoke double-click on CursoPro AI chat bubbles (like Tutor tab)
+        setTimeout(function() {
+            var courseChat = document.getElementById('courseAIChatMsgs');
+            if (courseChat && !courseChat._dblDelegated) {
+                courseChat._dblDelegated = true;
+                courseChat.addEventListener('dblclick', function(e) {
+                    var bubble = e.target.closest('.course-ai-bubble, [id^="courseResp_"]');
+                    if (!bubble || !bubble.id) return;
+                    e.stopPropagation();
+                    var sel = window.getSelection();
+                    var clickedText = '';
+                    if (sel && sel.anchorNode) {
+                        var node = sel.anchorNode;
+                        while (node && node !== bubble && node.nodeType !== 1) node = node.parentNode;
+                        if (node && node !== bubble) clickedText = (node.textContent || '').trim();
+                        else clickedText = (sel.anchorNode.textContent || '').trim();
+                    }
+                    if (clickedText && clickedText.length > 3) {
+                        window.readAloud(bubble.id, clickedText);
+                    } else {
+                        window.readAloud(bubble.id);
+                    }
+                });
+            }
+        }, 150);
     };
 
     window.markCourseLessonDone = function(lessonId, modIdx, lessonIdx) {
