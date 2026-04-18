@@ -4753,46 +4753,28 @@ function saveJournals() {
 // ==============================================
 
 function exportUserData() {
-    const L = currentLang === 'es';
-    const backup = {
-        _version: 'moonsync_backup_v1',
+    var L = currentLang === 'es';
+    // v675: Export ALL localStorage keys — dream journals, interpretations, CursoPro, everything
+    var backup = {
+        _version: 'moonsync_backup_v2',
         _date: new Date().toISOString(),
-        events: null,
-        journals: null,
-        diaryEntries: {},
-        natalProfiles: null,
-        settings: {}
+        allKeys: {}
     };
-
-    // Events
-    try { backup.events = JSON.parse(localStorage.getItem('lunarCalendarEvents') || 'null'); } catch(e) {}
-    // Journals
-    try { backup.journals = JSON.parse(localStorage.getItem('lunarCalendarJournals') || 'null'); } catch(e) {}
-    // Individual diary_ entries
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('diary_')) {
-            backup.diaryEntries[key] = localStorage.getItem(key);
-        }
+    for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k) backup.allKeys[k] = localStorage.getItem(k);
     }
-    // Natal profiles
-    try { backup.natalProfiles = JSON.parse(localStorage.getItem('natalProfiles') || 'null'); } catch(e) {}
-    // Settings
-    ['natalLat','natalLon','currentLang','natalBirthDate','natalBirthTime','natalCityName','natalCountryCode','activeProfileId'].forEach(function(k) {
-        const v = localStorage.getItem(k);
-        if (v) backup.settings[k] = v;
-    });
-
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    var count = Object.keys(backup.allKeys).length;
+    var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
     a.href = url;
-    a.download = 'moonsync_backup_' + new Date().toISOString().split('T')[0] + '.json';
+    a.download = 'astroatlas_backup_' + new Date().toISOString().split('T')[0] + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    alert(L ? '✅ Backup descargado. Guárdalo en un lugar seguro.' : '✅ Backup downloaded. Keep it in a safe place.');
+    alert(L ? '✅ Backup completo descargado (' + count + ' elementos). Guárdalo en un lugar seguro.' : '✅ Full backup downloaded (' + count + ' items). Keep it in a safe place.');
 }
 
 function importUserData() {
@@ -4813,31 +4795,19 @@ function importUserData() {
                 }
                 if (!confirm(L ? '¿Restaurar datos desde backup del ' + (backup._date || '?').split('T')[0] + '? Esto reemplazará tus datos actuales.' : 'Restore data from backup dated ' + (backup._date || '?').split('T')[0] + '? This will replace your current data.')) return;
 
-                // Restore events
-                if (backup.events) {
-                    localStorage.setItem('lunarCalendarEvents', JSON.stringify(backup.events));
-                    events = backup.events;
-                }
-                // Restore journals
-                if (backup.journals) {
-                    localStorage.setItem('lunarCalendarJournals', JSON.stringify(backup.journals));
-                    journals = backup.journals;
-                }
-                // Restore diary entries
-                if (backup.diaryEntries) {
-                    Object.keys(backup.diaryEntries).forEach(function(key) {
-                        localStorage.setItem(key, backup.diaryEntries[key]);
+                // v675: handle both new format (allKeys) and legacy format
+                if (backup.allKeys && Object.keys(backup.allKeys).length > 0) {
+                    // New format: restore everything
+                    Object.keys(backup.allKeys).forEach(function(key) {
+                        if (key !== 'app_version') localStorage.setItem(key, backup.allKeys[key]);
                     });
-                }
-                // Restore natal profiles
-                if (backup.natalProfiles) {
-                    localStorage.setItem('natalProfiles', JSON.stringify(backup.natalProfiles));
-                }
-                // Restore settings
-                if (backup.settings) {
-                    Object.keys(backup.settings).forEach(function(key) {
-                        localStorage.setItem(key, backup.settings[key]);
-                    });
+                } else {
+                    // Legacy format
+                    if (backup.events) { localStorage.setItem('lunarCalendarEvents', JSON.stringify(backup.events)); try { events = backup.events; } catch(e) {} }
+                    if (backup.journals) { localStorage.setItem('lunarCalendarJournals', JSON.stringify(backup.journals)); try { journals = backup.journals; } catch(e) {} }
+                    if (backup.diaryEntries) { Object.keys(backup.diaryEntries).forEach(function(key) { localStorage.setItem(key, backup.diaryEntries[key]); }); }
+                    if (backup.natalProfiles) { localStorage.setItem('natalProfiles', JSON.stringify(backup.natalProfiles)); }
+                    if (backup.settings) { Object.keys(backup.settings).forEach(function(key) { localStorage.setItem(key, backup.settings[key]); }); }
                 }
 
                 alert(L ? '✅ Datos restaurados exitosamente. La app se recargará.' : '✅ Data restored successfully. The app will reload.');
