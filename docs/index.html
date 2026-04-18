@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v668';</script>
+    <script>window.APP_VERSION = 'v669';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -27926,10 +27926,11 @@ function goToCurrentCycle() {
     };
 
     // ── Auto-launch on every app open (unless user checked "don't show again") ──
-    // Clear hideForever if app version changed (so slides show after updates)
+    // v669: NEVER auto-clear hideForever on version change — once user dismisses, respect it
+    // (previously every version bump deleted their "don't show again" pref → tutorial loop)
     var _lastOnbVer = localStorage.getItem(ONBOARDING_KEY + '_ver');
     if (_lastOnbVer !== APP_VERSION) {
-        localStorage.removeItem(ONBOARDING_KEY + '_hideForever');
+        // Just update the stored version — do NOT remove hideForever
         localStorage.setItem(ONBOARDING_KEY + '_ver', APP_VERSION);
     }
     setTimeout(function() { showOnboardingWelcome(); }, 800);
