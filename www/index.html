@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v692';</script>
+    <script>window.APP_VERSION = 'v696';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -36237,11 +36237,17 @@ function showUpdateBanner() {
 
 var _swUpdateRequested = false;
 function applyAppUpdate() {
+    // v696: Always clear caches and reload — works even if SW already activated via skipWaiting
+    _swUpdateRequested = true;
     if (_pendingSW) {
-        _swUpdateRequested = true;
         _pendingSW.postMessage({ type: 'SKIP_WAITING' });
+    }
+    if (window.caches) {
+        caches.keys().then(function(keys) {
+            keys.forEach(function(k) { caches.delete(k); });
+        }).then(function() { window.location.reload(true); });
     } else {
-        window.location.reload();
+        window.location.reload(true);
     }
 }
 
@@ -36314,17 +36320,21 @@ if ('serviceWorker' in navigator) {
                     var localN  = _parseVer(APP_VERSION);
                     // Only reload if server is strictly newer — and only once per session (anti-loop guard)
                     if (serverN > localN) {
-                        console.log('🔄 Server has ' + serverVer + ' (newer), we have ' + APP_VERSION + ' — updating');
+                        console.log('🔄 Server has ' + serverVer + ' (newer), we have ' + APP_VERSION + ' — auto-updating');
+                        // v696: Auto-reload with sessionStorage anti-loop guard (resets on fresh app open)
+                        var _reloadKey = '_svrReload_' + serverVer;
+                        if (sessionStorage.getItem(_reloadKey)) {
+                            console.log('ℹ️ Already reloaded for ' + serverVer + ' this session — skipping');
+                            return;
+                        }
+                        sessionStorage.setItem(_reloadKey, '1');
                         if (window.caches) {
                             caches.keys().then(function(keys) {
                                 keys.forEach(function(k) { caches.delete(k); });
-                            });
+                            }).then(function() { window.location.reload(true); });
+                        } else {
+                            window.location.reload(true);
                         }
-                        navigator.serviceWorker.getRegistration().then(function(reg) {
-                            if (reg) reg.update();
-                        });
-                        // v672: Don't force-reload — just trigger SW update, banner will appear
-                        // Forcing reload here caused infinite loop on Android Chrome
                     } else if (serverN < localN) {
                         console.log('ℹ️ Server has ' + serverVer + ' (older), we have ' + APP_VERSION + ' — no action');
                     }
