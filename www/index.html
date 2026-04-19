@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v685';</script>
+    <script>window.APP_VERSION = 'v686';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -26857,9 +26857,13 @@ function renderCalendar() {
 
     // Sync all week scrolls — when one scrolls, all follow
   } catch(err) {
-    console.error('[MoonSync] renderCalendar error:', err);
+    var _errMsg = (err && err.message) ? err.message : String(err);
+    console.error('[MoonSync] renderCalendar error:', _errMsg, err);
     var c = document.getElementById('lunarWeeks');
-    if (c) c.innerHTML = '<div style="padding:20px;color:#ff6b6b;text-align:center;">Error: ' + err.message + '</div>';
+    if (c) {
+      c.style.display = 'block';
+      c.innerHTML = '<div style="padding:20px;color:#ff6b6b;text-align:center;font-size:14px;">⚠️ Error al cargar calendario: ' + _errMsg + '<br><br><button onclick="renderCalendar()" style="background:#7c3aed;color:white;border:none;padding:10px 20px;border-radius:20px;font-size:14px;cursor:pointer;">🔄 Reintentar</button></div>';
+    }
   }
 }
 
