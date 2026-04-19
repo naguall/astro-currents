@@ -28990,10 +28990,22 @@ function goToCurrentCycle() {
 
         // ── Hook into mode switches ──
         // Header walkthrough: show once on very first app load
+        // v681: Wait for setup flow to finish so language is set before computing step titles
         var _headerDone = _wkShown['header'];
         if (!_headerDone) {
             setTimeout(function() {
-                _runWalkthrough('header');
+                var setupOverlay = document.getElementById('setupFlowOverlay');
+                if (setupOverlay) {
+                    // Setup flow is active — wait until it's removed, then run
+                    var _setupWait = setInterval(function() {
+                        if (!document.getElementById('setupFlowOverlay')) {
+                            clearInterval(_setupWait);
+                            setTimeout(function() { _runWalkthrough('header'); }, 600);
+                        }
+                    }, 400);
+                } else {
+                    _runWalkthrough('header');
+                }
             }, 1500);
         }
 
