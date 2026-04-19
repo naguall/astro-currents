@@ -8,7 +8,9 @@ const ALLOWED_ORIGINS = [
   'https://naguall.github.io',
   'http://localhost',
   'http://localhost:8080',
-  'http://127.0.0.1'
+  'http://127.0.0.1',
+  'https://localhost',        // Capacitor Android APK
+  'capacitor://localhost'     // Capacitor fallback origin
 ];
 
 // Try models in order — fallback if first fails

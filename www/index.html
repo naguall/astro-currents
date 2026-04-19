@@ -8032,14 +8032,17 @@ window._readingChatSend = function(chatId) {
         ? 'Eres un tutor experto de astrología. El usuario está leyendo una interpretación/entrada titulada "' + state.title + '". A continuación está el contenido completo:\n\n' + state.context.substring(0,3000) + '\n\nResponde preguntas sobre este contenido de forma didáctica y en español.'
         : 'You are an expert astrology tutor. The user is reading an interpretation/entry titled "' + state.title + '". Here is the full content:\n\n' + state.context.substring(0,3000) + '\n\nAnswer questions about this content didactically.');
 
-    var apiKey = localStorage.getItem('gemini_api_key') || '';
-    if (!apiKey) {
+    var apiKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('geminiApiKey') || '';
+    var _readUrl = apiKey
+        ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey
+        : (typeof AI_PROXY_URL !== 'undefined' ? AI_PROXY_URL : '');
+    if (!_readUrl) {
         var t = document.getElementById('readingTyping_' + chatId);
         if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">' + (L?'⚠️ Configura tu API key en Preferencias':'⚠️ Configure your API key in Preferences') + '</span>';
         return;
     }
 
-    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+    fetch(_readUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -36652,8 +36655,11 @@ window._mapaTopicSendMsg = function(nodeId, kpIdx) {
     } catch(e) {}
 
     // Call AI
-    var apiKey = localStorage.getItem('gemini_api_key') || '';
-    if (!apiKey) {
+    var apiKey = localStorage.getItem('gemini_api_key') || localStorage.getItem('geminiApiKey') || '';
+    var _mapaUrl = apiKey
+        ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey
+        : (typeof AI_PROXY_URL !== 'undefined' ? AI_PROXY_URL : '');
+    if (!_mapaUrl) {
         var t = document.getElementById('mapaTyping_' + chatId);
         if (t) t.innerHTML = '<span style="display:inline-block;background:rgba(255,107,107,0.1);color:#ff6b6b;padding:8px 12px;border-radius:12px;font-size:0.8em;">' + (isES ? '⚠️ Configura tu API key de Gemini en Preferencias' : '⚠️ Configure your Gemini API key in Preferences') + '</span>';
         return;
@@ -36665,7 +36671,7 @@ window._mapaTopicSendMsg = function(nodeId, kpIdx) {
         generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
     };
 
-    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+    fetch(_mapaUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
