@@ -4886,62 +4886,32 @@ function autoRestoreFromIndexedDB() {
                 const backup = e.target.result;
                 if (!backup || !backup._version) { resolve(false); return; }
 
-                // Check if localStorage is essentially empty (no diary/events data)
-                const hasEvents = localStorage.getItem('lunarCalendarEvents');
-                const hasJournals = localStorage.getItem('lunarCalendarJournals');
-                let hasDiary = false;
-                for (let i = 0; i < localStorage.length; i++) {
-                    if (localStorage.key(i) && localStorage.key(i).startsWith('diary_')) { hasDiary = true; break; }
-                }
-
-                if (hasEvents || hasJournals || hasDiary) {
-                    // localStorage has data, no need to restore
-                    resolve(false);
-                    return;
-                }
-
-                // v675: Restore ALL localStorage keys from backup
-                console.log('[AutoBackup] Restoring from IndexedDB backup dated:', backup._date);
-                var somethingRestored = false;
-                // New format (v2): allKeys contains everything
+                // v695: SAFE MERGE — only restore keys that are MISSING from localStorage.
+                // NEVER overwrite existing data. This fixes a bug where the restore
+                // could overwrite freshly-saved readings with an older backup snapshot.
                 if (backup.allKeys && Object.keys(backup.allKeys).length > 0) {
+                    var keysRestored = 0;
                     Object.keys(backup.allKeys).forEach(function(key) {
-                        if (key !== 'app_version') { // don't overwrite version tracking
-                            localStorage.setItem(key, backup.allKeys[key]);
-                        }
+                        if (key === 'app_version') return; // never overwrite version
+                        if (localStorage.getItem(key) !== null) return; // NEVER overwrite existing data
+                        localStorage.setItem(key, backup.allKeys[key]);
+                        keysRestored++;
                     });
-                    somethingRestored = true;
-                }
-                // Legacy format (v1): restore each field separately
-                if (!somethingRestored) {
-                    if (backup.events) {
+                    console.log('[AutoBackup] Safe-merge from IndexedDB backup (' + backup._date + '): restored ' + keysRestored + ' missing keys');
+                    resolve(keysRestored > 0);
+                } else {
+                    // Legacy v1 format: also safe-merge
+                    var legacyRestored = false;
+                    if (backup.events && !localStorage.getItem('lunarCalendarEvents')) {
                         localStorage.setItem('lunarCalendarEvents', JSON.stringify(backup.events));
-                        try { events = backup.events; } catch(e) {}
-                        somethingRestored = true;
+                        legacyRestored = true;
                     }
-                    if (backup.journals) {
+                    if (backup.journals && !localStorage.getItem('lunarCalendarJournals')) {
                         localStorage.setItem('lunarCalendarJournals', JSON.stringify(backup.journals));
-                        try { journals = backup.journals; } catch(e) {}
-                        somethingRestored = true;
+                        legacyRestored = true;
                     }
-                    if (backup.diaryEntries && Object.keys(backup.diaryEntries).length > 0) {
-                        Object.keys(backup.diaryEntries).forEach(function(key) {
-                            localStorage.setItem(key, backup.diaryEntries[key]);
-                        });
-                        somethingRestored = true;
-                    }
-                    if (backup.natalProfiles) {
-                        localStorage.setItem('natalProfiles', JSON.stringify(backup.natalProfiles));
-                        somethingRestored = true;
-                    }
-                    if (backup.settings && Object.keys(backup.settings).length > 0) {
-                        Object.keys(backup.settings).forEach(function(key) {
-                            localStorage.setItem(key, backup.settings[key]);
-                        });
-                        somethingRestored = true;
-                    }
+                    resolve(legacyRestored);
                 }
-                resolve(somethingRestored); // only true if something was actually written
             };
             req.onerror = function(e) { reject(e.target.error); };
         });
@@ -7018,12 +6988,42 @@ window.restoreReturnChart = restoreReturnChart;
 // ============================================
 function getSavedReadings() {
     var profileId = getActiveProfileId() || 'default';
-    try { return JSON.parse(localStorage.getItem('moonsync_saved_readings_' + profileId) || '[]'); }
-    catch(e) { return []; }
+    try {
+        var main = JSON.parse(localStorage.getItem('moonsync_saved_readings_' + profileId) || '[]');
+        if (main.length > 0) return main;
+        // v695: Recovery — if current profile has no readings, search ALL profiles + emergency backup
+        var allFound = [];
+        var seenIds = {};
+        for (var _ri = 0; _ri < localStorage.length; _ri++) {
+            var _rk = localStorage.key(_ri);
+            if (!_rk) continue;
+            if (_rk.startsWith('moonsync_saved_readings_') || _rk === 'moonsync_readings_emgbak') {
+                try {
+                    var arr = JSON.parse(localStorage.getItem(_rk) || '[]');
+                    arr.forEach(function(r) {
+                        if (r && r.id && !seenIds[r.id]) { seenIds[r.id] = true; allFound.push(r); }
+                    });
+                } catch(_re) {}
+            }
+        }
+        if (allFound.length > 0) {
+            // Consolidate all recovered readings into current profile
+            allFound.sort(function(a, b) { return new Date(b.date || 0) - new Date(a.date || 0); });
+            localStorage.setItem('moonsync_saved_readings_' + profileId, JSON.stringify(allFound));
+            console.log('[Readings] Recovered ' + allFound.length + ' readings from other profile keys');
+            return allFound;
+        }
+        return [];
+    } catch(e) { return []; }
 }
 function setSavedReadings(readings) {
     var profileId = getActiveProfileId() || 'default';
-    localStorage.setItem('moonsync_saved_readings_' + profileId, JSON.stringify(readings));
+    var key = 'moonsync_saved_readings_' + profileId;
+    localStorage.setItem(key, JSON.stringify(readings));
+    // v695: Emergency duplicate backup — survives profile ID changes
+    if (readings.length > 0) {
+        try { localStorage.setItem('moonsync_readings_emgbak', JSON.stringify(readings)); } catch(_se) {}
+    }
     if (typeof scheduleAutoBackup === 'function') scheduleAutoBackup();
 }
 function saveReading(title, textContent, htmlContent) {
@@ -7041,6 +7041,8 @@ function saveReading(title, textContent, htmlContent) {
         });
         if (readings.length > 100) readings = readings.slice(0, 100);
         setSavedReadings(readings);
+        // v695: Immediate IndexedDB backup on every save (not debounced) to prevent data loss
+        if (typeof autoBackupToIndexedDB === 'function') autoBackupToIndexedDB();
         var L = currentLang === 'es';
         // Show confirmation
         var toast = document.createElement('div');
@@ -7178,8 +7180,9 @@ function openSavedReadingsModal(tab) {
                 + '<div style="font-size:3em;margin-bottom:15px;">📚</div>'
                 + '<p style="font-size:1.1em;margin-bottom:8px;">' + (L ? 'No tienes lecturas guardadas aún' : 'No saved readings yet') + '</p></div>';
         } else {
-            html += '<div style="margin-bottom:12px;display:flex;justify-content:flex-end;">';
-            html += '<button onclick="exportAllReadings()" style="padding:6px 14px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;">' + (L ? '📥 Exportar Todo' : '📥 Export All') + '</button>';
+            html += '<div style="margin-bottom:12px;display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">';
+            html += '<button onclick="exportAllReadings()" style="padding:6px 14px;background:rgba(201,168,64,0.15);border:1px solid rgba(201,168,64,0.3);border-radius:6px;color:#c9a840;font-size:0.8em;cursor:pointer;">' + (L ? '📥 Exportar texto' : '📥 Export text') + '</button>';
+            html += '<button onclick="exportUserData()" style="padding:6px 14px;background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.4);border-radius:6px;color:#4ecdc4;font-size:0.8em;font-weight:700;cursor:pointer;">🛡️ ' + (L ? 'Backup JSON' : 'Backup JSON') + '</button>';
             html += '</div>';
             readings.forEach(function(r) {
                 var d = new Date(r.date);
@@ -8122,6 +8125,53 @@ function exportAllReadings() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+// v695: Full data backup/restore — exports ALL localStorage data as JSON
+window.exportFullDataBackup = function() {
+    var L = currentLang === 'es';
+    var snapshot = { _type: 'astroatlas_backup', _date: new Date().toISOString(), _version: '695', allKeys: {} };
+    for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k) snapshot.allKeys[k] = localStorage.getItem(k);
+    }
+    var blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url;
+    var now = new Date();
+    a.download = 'astroatlas-backup-' + now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(78,205,196,0.95);color:#000;padding:10px 20px;border-radius:20px;font-size:0.85em;font-weight:600;z-index:99999;';
+    toast.textContent = '🛡️ ' + (L ? 'Backup descargado — guárdalo en un lugar seguro!' : 'Backup downloaded — save it somewhere safe!');
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 4000);
+};
+
+window.importFullDataBackup = function() {
+    var L = currentLang === 'es';
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
+    inp.onchange = function(e) {
+        var file = e.target.files[0]; if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                var data = JSON.parse(ev.target.result);
+                if (!data._type || data._type !== 'astroatlas_backup' || !data.allKeys) {
+                    alert(L ? 'Archivo no válido. Selecciona un backup de AstroAtlas.' : 'Invalid file. Select an AstroAtlas backup file.'); return;
+                }
+                var count = 0;
+                Object.keys(data.allKeys).forEach(function(k) {
+                    if (k !== 'app_version') { localStorage.setItem(k, data.allKeys[k]); count++; }
+                });
+                alert((L ? '✅ Restaurados ' + count + ' elementos. Recargando...' : '✅ Restored ' + count + ' items. Reloading...'));
+                location.reload();
+            } catch(e) { alert(L ? 'Error al leer el archivo: ' + e.message : 'Error reading file: ' + e.message); }
+        };
+        reader.readAsText(file);
+    };
+    inp.click();
+};
 
 // Global variable to store current natal chart for detail modal access
 let globalNatalChart = null;
