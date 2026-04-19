@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v697';</script>
+    <script>window.APP_VERSION = 'v698';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -33092,15 +33092,17 @@ let _allCities = [...CITIES_DB];
 function openLocationSelector() {
     if (typeof window._cleanupSpotlightZIndex === 'function') window._cleanupSpotlightZIndex();
     const modal = document.getElementById('locationModal');
-    if (!modal) return;
-    document.getElementById('locModalTitle').textContent = currentLang==='es'?'Mi Ubicación':'My Location';
-    document.getElementById('gpsBtn').textContent = currentLang==='es'?'Usar mi ubicación actual (GPS)':'Use my current location (GPS)';
-    document.getElementById('currentLocDisplay').textContent = (currentLang==='es'?'Actual: ':'Current: ') + ASTRO_USER_NAME + ' (' + ASTRO_USER_LAT + '°, ' + ASTRO_USER_LON + '°)';
-    document.getElementById('citySearch').value = '';
-    filterCities('');
+    if (!modal) { console.error('[Loc] locationModal not found'); return; }
+    try { document.getElementById('locModalTitle').textContent = currentLang==='es'?'Mi Ubicación':'My Location'; } catch(e) {}
+    try { document.getElementById('gpsBtn').textContent = currentLang==='es'?'Usar mi ubicación actual (GPS)':'Use my current location (GPS)'; } catch(e) {}
+    try { document.getElementById('currentLocDisplay').textContent = (currentLang==='es'?'Actual: ':'Current: ') + ASTRO_USER_NAME + ' (' + ASTRO_USER_LAT + '°, ' + ASTRO_USER_LON + '°)'; } catch(e) {}
+    try { document.getElementById('citySearch').value = ''; } catch(e) {}
+    // v698: show modal FIRST, then populate — avoids errors blocking display
     modal.classList.add('show');
-    updateLocationTimeBanner();
-    startLocTimeBannerClock();
+    modal.style.display = 'flex';
+    try { filterCities(''); } catch(e) { console.error('[Loc] filterCities error:', e); }
+    try { updateLocationTimeBanner(); } catch(e) {}
+    try { startLocTimeBannerClock(); } catch(e) {}
 }
 
 // Store the device's real timezone offset for comparison
