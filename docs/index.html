@@ -37381,26 +37381,26 @@ window._ttsHighlightChunk = function(idx) {
         var cur = document.getElementById(p.spanIds[idx]);
         if (cur) {
             cur.classList.add('tts-active');
-            // v643: Scroll within the nearest scrollable container (chat areas have overflow-y:auto)
+            // Scroll the nearest scroll container so the active chunk is always visible
             try {
                 var scrollEl = cur.parentElement;
                 while (scrollEl && scrollEl !== document.body) {
-                    var style = window.getComputedStyle(scrollEl);
-                    if (style.overflowY === 'auto' || style.overflowY === 'scroll' || scrollEl.id === 'tutorAIChatArea' || scrollEl.id === 'aiChatMessages' || scrollEl.id === 'hoyInterpMessages') break;
+                    var _oy = window.getComputedStyle(scrollEl).overflowY;
+                    if ((_oy === 'auto' || _oy === 'scroll') && scrollEl.scrollHeight > scrollEl.clientHeight + 2) break;
                     scrollEl = scrollEl.parentElement;
                 }
                 if (scrollEl && scrollEl !== document.body) {
                     var curRect = cur.getBoundingClientRect();
                     var contRect = scrollEl.getBoundingClientRect();
-                    var relTop = curRect.top - contRect.top + scrollEl.scrollTop;
-                    var targetScroll = relTop - (scrollEl.clientHeight / 2) + (curRect.height / 2);
-                    scrollEl.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
-                } else {
-                    cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    var topOk = curRect.top >= contRect.top + 4;
+                    var botOk = curRect.bottom <= contRect.bottom - 4;
+                    if (!topOk || !botOk) {
+                        // Bring span into view — position it ~25% from top so user can read ahead
+                        var relTop = curRect.top - contRect.top + scrollEl.scrollTop;
+                        scrollEl.scrollTop = Math.max(0, relTop - scrollEl.clientHeight * 0.25);
+                    }
                 }
-            } catch(se) {
-                cur.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            } catch(se) {}
         }
     }
 };
@@ -37654,26 +37654,15 @@ window.readAloud = function(elementId, startFromText) {
         }
     }
 
-    // Create or show player bar — try to insert above chat input inside modal, fallback to fixed
+    // Always show player bar as fixed overlay at bottom of screen (below text input, above nav)
     var playerId = 'ttsPlayerBar';
     var playerEl = document.getElementById(playerId);
     if (!playerEl) {
         playerEl = document.createElement('div');
         playerEl.id = playerId;
     }
-    // Try to place inside the reading element's parent sticky input area
-    var _ttsSourceEl = document.getElementById(elementId);
-    var _ttsStickyParent = _ttsSourceEl ? _ttsSourceEl.closest('.modal-content') || _ttsSourceEl.closest('.modal') : null;
-    var _ttsStickyInput = _ttsStickyParent ? _ttsStickyParent.querySelector('[style*="position:sticky"]') : null;
-    if (_ttsStickyInput && _ttsStickyInput.parentNode) {
-        // Insert player right before the sticky input area
-        _ttsStickyInput.parentNode.insertBefore(playerEl, _ttsStickyInput);
-        playerEl.style.cssText = 'width:100%;padding:6px 8px;background:rgba(15,10,35,0.95);border:1px solid rgba(102,126,234,0.4);border-radius:12px;z-index:100;margin-bottom:6px;display:block;';
-    } else {
-        // Fallback: fixed at bottom for non-modal contexts
-        if (playerEl.parentNode !== document.body) document.body.appendChild(playerEl);
-        playerEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:92%;max-width:500px;padding:6px 8px;background:rgba(15,10,35,0.95);border:1px solid rgba(102,126,234,0.4);border-radius:12px;backdrop-filter:blur(10px);z-index:10020;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:block;';
-    }
+    if (playerEl.parentNode !== document.body) document.body.appendChild(playerEl);
+    playerEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:92%;max-width:500px;padding:6px 8px;background:rgba(15,10,35,0.97);border:1px solid rgba(102,126,234,0.5);border-radius:12px;backdrop-filter:blur(10px);z-index:10025;box-shadow:0 4px 24px rgba(0,0,0,0.6);display:block;';
 
     // Start playing from the determined index
     window._ttsPlayChunk(startIdx);
