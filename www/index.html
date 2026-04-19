@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v684';</script>
+    <script>window.APP_VERSION = 'v685';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -26454,6 +26454,7 @@ function renderCalendar() {
     
     // Mostrar título "Hoy" siempre (incluso si no se encuentra, mostrar info básica)
     if (currentDayInCycle) {
+      try { // v685: wrap entire currentDayInCycle rendering — errors here must not block calendar
         // Determinar qué información mostrar según el modo de calendario
         let displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
         let displayEmoji = '';
@@ -26550,8 +26551,10 @@ function renderCalendar() {
             ...todayAspects.map(asp => ({ type: 'aspect', data: asp }))
         ];
 
+        // v685: inner try for the astro calculations + innerHTML
+        try {
         document.getElementById('currentDayInfo').style.display = 'block';
-        
+
         // Get astro data for today
         const todayAstro = getAstroData(today);
         const todayTideCurve = getTideCurveForLocation(today, ASTRO_USER_LAT, ASTRO_USER_LON);
@@ -26665,8 +26668,19 @@ function renderCalendar() {
                 </div>
             </div>
         `;
+        } catch(_innerCdiErr) {
+            console.error('[MoonSync] currentDayInfo inner render error:', _innerCdiErr);
+            var _cdi2 = document.getElementById('currentDayInfo');
+            if (_cdi2) { _cdi2.style.display = 'none'; }
+        }
+      } catch(_cdiErr) {
+            // v685: outer catch — hide currentDayInfo and let calendar render
+            console.error('[MoonSync] currentDayInCycle render error:', _cdiErr);
+            var _cdi = document.getElementById('currentDayInfo');
+            if (_cdi) { _cdi.style.display = 'none'; }
+      }
     }
-    
+
     // Render the lunar info banner below the weeks
     renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeekIndex);
 

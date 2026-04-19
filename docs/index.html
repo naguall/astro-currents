@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v684';</script>
+    <script>window.APP_VERSION = 'v685';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -26444,6 +26444,7 @@ function renderCalendar() {
     
     // Mostrar título "Hoy" siempre (incluso si no se encuentra, mostrar info básica)
     if (currentDayInCycle) {
+      try { // v685: wrap entire currentDayInCycle rendering — errors here must not block calendar
         // Determinar qué información mostrar según el modo de calendario
         let displayTitle = currentLang === 'es' ? 'Aspectos de Hoy' : 'Today\'s Aspects';
         let displayEmoji = '';
@@ -26540,8 +26541,11 @@ function renderCalendar() {
             ...todayAspects.map(asp => ({ type: 'aspect', data: asp }))
         ];
 
+        // v685: Wrap currentDayInfo render in its own try-catch so errors here
+        // don't stop the lunar calendar from rendering
+        try {
         document.getElementById('currentDayInfo').style.display = 'block';
-        
+
         // Get astro data for today
         const todayAstro = getAstroData(today);
         const todayTideCurve = getTideCurveForLocation(today, ASTRO_USER_LAT, ASTRO_USER_LON);
@@ -26655,8 +26659,14 @@ function renderCalendar() {
                 </div>
             </div>
         `;
+      } catch(_cdiErr) {
+            // v685: If currentDayInfo rendering fails, hide it — don't block calendar rendering
+            console.error('[MoonSync] currentDayInfo render error:', _cdiErr);
+            var _cdi = document.getElementById('currentDayInfo');
+            if (_cdi) { _cdi.style.display = 'none'; }
+      }
     }
-    
+
     // Render the lunar info banner below the weeks
     renderLunarInfoBanner(today, currentDayInCycle, todayWeeks, currentWeekIndex);
 
