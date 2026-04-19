@@ -9,7 +9,7 @@
     <title>⚡ AstroAtlas - Lunar Calendar</title>
 
     <!-- v636: APP_VERSION declared at the TOP so it's always defined no matter what runs later -->
-    <script>window.APP_VERSION = 'v687';</script>
+    <script>window.APP_VERSION = 'v688';</script>
 
     <!-- EMERGENCY: Force SW update on first load of new version -->
     <script>
@@ -37941,9 +37941,11 @@ function speakText(text) {
     });
 }
 
-(function() {
-    if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform || !Capacitor.isNativePlatform()) return;
+// v687: Capacitor fetch override (removed unclosed IIFE that was trapping all AI functions)
+if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
     var _origFetch = window.fetch;
+}
+
 function getGeminiKey() {
     return localStorage.getItem('geminiApiKey') || '';
 }
